@@ -9,15 +9,6 @@ import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_uti
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:nepali_utils/nepali_utils.dart';
 
-/// Custom range date picker shown in a bottom sheet — replaces the default
-/// Material `showDateRangePicker` dialog so the look matches the rest of the
-/// Expenses screen.
-///
-/// The grid follows the user's calendar: Bikram Sambat months starting on
-/// Sunday when the profile uses the Nepali calendar, Gregorian months starting
-/// on Monday otherwise. Either way the dates in and out are Gregorian.
-///
-/// Returns the chosen [DateTimeRange] via `Navigator.pop`, or null on cancel.
 class ExpenseDateRangeSheet extends StatefulWidget {
   const ExpenseDateRangeSheet({
     super.key,
@@ -30,7 +21,6 @@ class ExpenseDateRangeSheet extends StatefulWidget {
   final DateTime lastDate;
   final DateTimeRange? initialRange;
 
-  /// Convenience launcher that applies the shared sheet chrome.
   static Future<DateTimeRange?> show(
     BuildContext context, {
     required DateTime firstDate,
@@ -61,13 +51,11 @@ class ExpenseDateRangeSheet extends StatefulWidget {
 class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
   static DateTime _d(DateTime x) => DateTime(x.year, x.month, x.day);
 
-  /// Whether the grid is in Bikram Sambat; fixed for the sheet's lifetime.
   final bool _bs = AppDateFormat.isBs;
 
   late DateTime _first;
   late DateTime _last;
 
-  /// The shown month as `(year, month)` in the active calendar.
   late (int, int) _visibleMonth;
   DateTime? _start;
   DateTime? _end;
@@ -90,14 +78,12 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
     _visibleMonth = _monthOf(_start ?? _clamp(_d(DateTime.now())));
   }
 
-  /// `(year, month)` of [date] in the active calendar.
   (int, int) _monthOf(DateTime date) {
     if (!_bs) return (date.year, date.month);
     final NepaliDateTime bs = AppDate.toBs(date);
     return (bs.year, bs.month);
   }
 
-  /// Day [day] of the active-calendar month [month], as a Gregorian date.
   DateTime _dayOf((int, int) month, int day) => _bs
       ? AppDate.fromBs(month.$1, month.$2, day)
       : DateTime(month.$1, month.$2, day);

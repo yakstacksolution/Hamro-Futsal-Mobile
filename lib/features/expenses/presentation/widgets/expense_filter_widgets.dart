@@ -9,7 +9,6 @@ import 'package:hamro_futsal/features/expenses/presentation/models/expense_analy
 import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_utils.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Compact selectable chip with haptic feedback, shared by all filter rows.
 class ExpenseChip extends StatelessWidget {
   const ExpenseChip({
     super.key,
@@ -85,7 +84,6 @@ class ExpenseChip extends StatelessWidget {
   }
 }
 
-/// `Jun 1 – Jun 30 · 84 entries · NPR 145,200` context line.
 class ExpenseContextLine extends StatelessWidget {
   const ExpenseContextLine({
     super.key,
@@ -118,11 +116,6 @@ class ExpenseContextLine extends StatelessWidget {
   }
 }
 
-/// Time-period + payment-method dropdowns side by side in a single row.
-///
-/// The left dropdown drives the `date_filter` query
-/// (today / week / month / year / custom) and the right one the
-/// `payment_method` query (`null` = all methods).
 class ExpenseFilterDropdownRow extends StatelessWidget {
   const ExpenseFilterDropdownRow({
     super.key,
@@ -190,8 +183,6 @@ class ExpenseFilterDropdownRow extends StatelessWidget {
   }
 }
 
-/// Compact dropdown button matching the [ExpenseChip] look. Options are
-/// `(label, selected)` pairs; [onSelect] receives the tapped index.
 class ExpenseFilterDropdown extends StatelessWidget {
   const ExpenseFilterDropdown({
     super.key,
@@ -207,7 +198,6 @@ class ExpenseFilterDropdown extends StatelessWidget {
   final List<(String, bool)> options;
   final ValueChanged<int> onSelect;
 
-  /// Tints the button like a selected chip when a narrowing value is chosen.
   final bool active;
 
   @override
@@ -345,12 +335,8 @@ class ExpenseCategoryFilterRow extends StatelessWidget {
     required this.onChange,
   });
 
-  /// Categories fetched from the `/expense-categories` API — the row renders
-  /// only what the server returns (no static fallback) and hides itself
-  /// while the list is empty.
   final List<ExpenseCategoryModel> categories;
 
-  /// Selected server category id.
   final String? selected;
   final ValueChanged<String?> onChange;
 

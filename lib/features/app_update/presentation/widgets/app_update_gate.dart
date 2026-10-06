@@ -11,17 +11,6 @@ import 'package:hamro_futsal/features/app_update/presentation/bloc/app_update_bl
 import 'package:hamro_futsal/features/app_update/presentation/widgets/force_update_screen.dart';
 import 'package:hamro_futsal/features/app_update/presentation/widgets/update_available_sheet.dart';
 
-/// Wraps the entire app and owns update presentation:
-///
-/// * runs a check shortly after launch and again whenever the app returns to
-///   the foreground (throttled inside the bloc),
-/// * shows the dismissible sheet for an optional update, exactly once per check,
-/// * layers a non-dismissible wall over everything for a mandatory update,
-/// * offers "Restart to install" once a background download has finished.
-///
-/// Mount it inside `MaterialApp.router`'s `builder` so it sits above every route
-/// but below the theme — a forced update then cannot be navigated around.
-/// Requires an [AppUpdateBloc] provided above it.
 class AppUpdateGate extends StatefulWidget {
   const AppUpdateGate({super.key, required this.child});
 
@@ -33,14 +22,10 @@ class AppUpdateGate extends StatefulWidget {
 
 class _AppUpdateGateState extends State<AppUpdateGate>
     with WidgetsBindingObserver {
-  /// Small delay so the first frame, splash removal and FCM/token work are not
-  /// competing with the version request.
   static const Duration _initialCheckDelay = Duration(milliseconds: 1500);
 
   bool _isSheetVisible = false;
 
-  /// Held so the pending check is cancelled if the app is torn down first —
-  /// otherwise a widget test disposing the tree leaves a live timer behind.
   Timer? _initialCheckTimer;
 
   @override
@@ -115,8 +100,6 @@ class _AppUpdateGateState extends State<AppUpdateGate>
   }
 }
 
-/// Persistent bar offering the restart that installs an already-downloaded
-/// flexible update. Play requires an explicit user action for this.
 class _InstallReadyBanner extends StatelessWidget {
   const _InstallReadyBanner();
 

@@ -12,11 +12,6 @@ import 'package:hamro_futsal/features/futsal_details/domain/usecase/submit_revie
 part 'venue_reviews_event.dart';
 part 'venue_reviews_state.dart';
 
-/// Reviews for one venue, paged.
-///
-/// The same bloc serves both surfaces: the details page asks for a short
-/// preview ([kVenueReviewsPreviewSize]) and the full-list page asks for
-/// [kVenueReviewsPageSize] at a time, appending as the user scrolls.
 class VenueReviewsBloc extends Bloc<VenueReviewsEvent, VenueReviewsState> {
   VenueReviewsBloc(
     this._getVenueReviewsUseCase, [
@@ -29,8 +24,6 @@ class VenueReviewsBloc extends Bloc<VenueReviewsEvent, VenueReviewsState> {
 
   final GetVenueReviewsUseCase _getVenueReviewsUseCase;
 
-  /// Only the full reviews page offers the edit/delete menu, so the details
-  /// page's instance is built without it.
   final SubmitReviewChangeRequestUseCase? _submitReviewChangeRequestUseCase;
 
   FutureOr<void> _onFetch(

@@ -82,10 +82,6 @@ final class ReverbConnection {
     client.connect();
   }
 
-  /// Tears down the shared Reverb client and all channel bindings.
-  ///
-  /// Call this when the authenticated session changes (logout/token switch) so
-  /// private and presence channel authorization is rebuilt with fresh headers.
   Future<void> reset() async {
     _initialised = false;
     await _connectionSub?.cancel();
@@ -113,8 +109,6 @@ final class ReverbConnection {
     }
   }
 
-  /// Returns the private channel named [name], creating, binding [onEvent] and
-  /// subscribing it exactly once. Returns null when realtime is disabled.
   PrivateChannel? privateChannel(
     String name, {
     required EndpointAuthorizableChannelTokenAuthorizationDelegate<
@@ -143,12 +137,6 @@ final class ReverbConnection {
     return channel;
   }
 
-  /// Returns the presence channel named [name], creating, binding [onEvent]
-  /// and subscribing it exactly once. Returns null when realtime is disabled.
-  ///
-  /// Presence channels are typically scoped to what the user is currently
-  /// looking at (e.g. one venue + date) — call [unsubscribe] when leaving so
-  /// the user drops out of the channel's member roster.
   PresenceChannel? presenceChannel(
     String name, {
     required EndpointAuthorizableChannelTokenAuthorizationDelegate<
@@ -179,8 +167,6 @@ final class ReverbConnection {
     return channel;
   }
 
-  /// Leaves the channel named [name] and stops routing its events. Safe to
-  /// call for channels that were never registered.
   void unsubscribe(String name) {
     for (final sub in _eventSubs.remove(name) ?? const []) {
       sub.cancel();
@@ -189,8 +175,6 @@ final class ReverbConnection {
     debugPrint('Reverb: left channel $name');
   }
 
-  /// Wraps a channel's [onEvent] handler so every event received on the
-  /// socket is logged (debug mode) before it's routed to feature services.
   void Function(PusherChannelsReadEvent) _logged(
     String channelName,
     void Function(PusherChannelsReadEvent event) onEvent,
@@ -204,9 +188,6 @@ final class ReverbConnection {
     };
   }
 
-  /// Debug-only visibility into a channel's subscription lifecycle —
-  /// authorization failures against `/broadcasting/auth` are otherwise
-  /// swallowed silently by the pusher client.
   List<StreamSubscription<dynamic>> _debugWatch(Channel channel) {
     if (!kDebugMode) return const [];
     return <StreamSubscription<dynamic>>[
@@ -222,8 +203,6 @@ final class ReverbConnection {
     ];
   }
 
-  /// Returns the public channel named [name], creating, binding [onEvent] and
-  /// subscribing it exactly once. Returns null when realtime is disabled.
   PublicChannel? publicChannel(
     String name, {
     required void Function(PusherChannelsReadEvent event) onEvent,

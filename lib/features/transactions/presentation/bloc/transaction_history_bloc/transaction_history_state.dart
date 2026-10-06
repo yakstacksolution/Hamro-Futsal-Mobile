@@ -22,24 +22,18 @@ class TransactionHistoryState extends Equatable {
 
   final TransactionHistoryStatus status;
 
-  /// Every page loaded so far, oldest page first.
   final List<TransactionHistoryItemModel> items;
   final TransactionHistorySummaryModel? summary;
 
-  /// `type` chip values: the known sources plus anything else the loaded rows
-  /// turn out to carry.
   final List<String> availableTypes;
 
   final TransactionDirectionFilter direction;
   final String type;
 
-  /// Current server-side `search` term ('' when not searching).
   final String search;
 
-  /// Current `date_from` / `date_to` window.
   final TransactionDateRange range;
 
-  /// Highest page number currently loaded.
   final int page;
   final int total;
   final bool hasReachedMax;
@@ -47,13 +41,9 @@ class TransactionHistoryState extends Equatable {
   final bool isRefreshing;
   final String? errorMessage;
 
-  /// First load with nothing to show yet — the only time a skeleton appears.
   bool get isInitialLoading =>
       status == TransactionHistoryStatus.loading && items.isEmpty;
 
-  /// A filter or search change is in flight while rows from the previous query
-  /// are still on screen. Pull-to-refresh has its own indicator, so it is
-  /// excluded here.
   bool get isReloading =>
       status == TransactionHistoryStatus.loading &&
       items.isNotEmpty &&
@@ -65,8 +55,6 @@ class TransactionHistoryState extends Equatable {
       search.isNotEmpty ||
       range.isActive;
 
-  /// Count shown on the filter button's badge; [search] has its own field on
-  /// screen, so it is deliberately not counted here.
   int get activeFilterCount =>
       (direction != TransactionDirectionFilter.all ? 1 : 0) +
       (type != 'all' ? 1 : 0) +

@@ -271,17 +271,8 @@ String settlementBlockedReason(AccountState state) {
   return 'Commission payment is not available right now.';
 }
 
-/// True while the pay page is open, so a second tap on the CTA behind it does
-/// not stack a duplicate.
 bool _openingSettlementFlow = false;
 
-/// Opens the Pay Commission page.
-///
-/// The page goes up immediately and fetches the preview and the QR codes
-/// itself. It used to await both here first, which left the tapped button
-/// looking dead for the length of two requests before anything happened; the
-/// caller only ever offers this when commission is actually owed, so there is
-/// nothing to check before showing the screen.
 Future<void> openSettlementSheet(
   BuildContext context, {
   VenueAccountModel? venue,
@@ -379,8 +370,6 @@ class _ShortcutsCard extends StatelessWidget {
   }
 }
 
-/// A section heading matching [_RecentActivityHeader]'s title, so headings
-/// placed side by side share a baseline.
 class _SectionHeading extends StatelessWidget {
   const _SectionHeading(this.text);
 
@@ -547,8 +536,6 @@ class _VenueBreakdownPageState extends State<_VenueBreakdownPage> {
   }
 }
 
-/// Retry affordance for a failed breakdown fetch. The account screen's own
-/// error banner cannot cover this — the request now happens on this screen.
 class _BreakdownError extends StatelessWidget {
   const _BreakdownError({required this.message, required this.onRetry});
 
@@ -594,7 +581,6 @@ class _BreakdownError extends StatelessWidget {
   }
 }
 
-/// Label/value line under a futsal's headline commission.
 class _VenueFigureRow extends StatelessWidget {
   const _VenueFigureRow({required this.label, required this.value});
 
@@ -639,7 +625,6 @@ class _VenueCard extends StatelessWidget {
   final VenueAccountModel venue;
   final VoidCallback? onSettle;
 
-  /// Shown in place of the CTA when this futsal cannot be settled yet.
   final String? disabledReason;
 
   @override
@@ -772,12 +757,6 @@ class _VenueCard extends StatelessWidget {
   }
 }
 
-/// Detail page: the full ledger.
-/// Detail page: the full account ledger, paginated.
-///
-/// This screen owns the `/auth/settlement-recent-activity` request. The account
-/// summary carries only a short preview of the same rows, so the full list is
-/// not fetched until the reader asks for it.
 class _StatementPage extends StatefulWidget {
   const _StatementPage();
 
@@ -806,7 +785,6 @@ class _StatementPageState extends State<_StatementPage> {
     super.dispose();
   }
 
-  /// Fetches ahead of the bottom so the next page is usually there on arrival.
   void _onScroll() {
     if (!_scrollCtrl.hasClients) return;
     final double remaining =
@@ -942,11 +920,6 @@ class _StatementPageState extends State<_StatementPage> {
   }
 }
 
-/// One line of the statement list: either a day heading or an entry.
-///
-/// Grouping is done on the recorded time (`created_at`), falling back to the
-/// business date, because that is the order the endpoint returns rows in — a
-/// heading has to match the run of rows beneath it.
 class _ActivityRow {
   const _ActivityRow.header(DateTime this.day) : entry = null;
   const _ActivityRow.item(AccountEntryModel this.entry) : day = null;
@@ -974,10 +947,6 @@ class _ActivityRow {
   }
 }
 
-/// Detail page: the settlement request history, paginated.
-///
-/// The server's `summary` counts every request; the list itself walks pages of
-/// 20 as the reader scrolls.
 class _SettlementsPage extends StatefulWidget {
   const _SettlementsPage();
 
@@ -1123,7 +1092,6 @@ class _SettlementsPageState extends State<_SettlementsPage> {
   }
 }
 
-/// Paging footer for the settlements list: the app spinner, or a retry row.
 class _SettlementsFooter extends StatelessWidget {
   const _SettlementsFooter({
     required this.loading,

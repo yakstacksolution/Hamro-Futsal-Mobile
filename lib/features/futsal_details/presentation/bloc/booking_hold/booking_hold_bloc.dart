@@ -80,10 +80,6 @@ class BookingHoldBloc extends Bloc<BookingHoldEvent, BookingHoldState> {
     _release();
   }
 
-  /// Releases every hold by id (`DELETE /booking-holds`, as a list) at most
-  /// once, unless a completed booking already consumed it. Fire-and-forget:
-  /// the request runs on the singleton API client and survives the bloc
-  /// being closed.
   void _release() {
     final List<String> ids = state.holdIds;
     if (_consumed || _released || ids.isEmpty) return;

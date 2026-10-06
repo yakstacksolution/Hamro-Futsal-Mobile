@@ -32,10 +32,8 @@ abstract class FutsalDetailsRemoteDataSource {
   Future<Result> createBooking(CreateBookingRequest request);
   Future<Result> getRecurringAvailability({required Map<String, dynamic> data});
 
-  /// `POST /booking-holds` with `{"holds": [...]}`, one object per slot.
   Future<Result> createBookingHolds({required Map<String, dynamic> data});
 
-  /// `DELETE /booking-holds` with a list of hold ids.
   Future<Result> releaseBookingHolds({required List<String> holdIds});
 }
 

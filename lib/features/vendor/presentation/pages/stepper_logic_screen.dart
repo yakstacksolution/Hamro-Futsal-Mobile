@@ -100,10 +100,6 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
     AppUtils().showSnackBar(context, MsgType.error, failure);
   }
 
-  /// After Finish, land on the "Your Venues" list. Opened from that list, the
-  /// stepper just pops back to it (the list refreshes itself on return);
-  /// opened from anywhere else, it is replaced by the list so Back from there
-  /// still leads to wherever the vendor started.
   void _returnToYourVenues(BuildContext context) {
     // go_router 7 does not export `RouteMatch`, so the list type is inferred.
     final matches = GoRouter.of(
@@ -289,7 +285,6 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
     );
   }
 
-  /// The court list, or the futsal step form, under the category switcher.
   List<Widget> _categoryBody(
     VendorOnboardingCubit cubit,
     VendorOnboardingState state, {
@@ -323,8 +318,6 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
     ];
   }
 
-  /// Desktop: progress, category and the step list in a rail; the form (or
-  /// the court list) beside it.
   Widget _buildDesktopBody(
     VendorOnboardingCubit cubit,
     VendorOnboardingState state,

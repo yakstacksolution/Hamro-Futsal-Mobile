@@ -15,25 +15,15 @@ import 'package:hamro_futsal/core/widgets/app_message_view.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
 
-/// Height of the manual-booking pill on the futsal bookings list.
 const double kManualBookingFabHeight = 44;
 
-/// Gap kept between the pill and whatever sits below it.
 const double _kManualBookingFabGap = AppDimens.paddingX12;
 
-/// Where the manual-booking pill sits above the bottom of its Stack.
-///
-/// The dashboard's bottom navigation bar overlays this page as a sibling, and
-/// that bar is content-sized — it grows with the user's text scale and adds the
-/// system inset itself. A fixed offset therefore cleared it on some devices and
-/// not others, so it is measured. Wide layouts use side navigation and have
-/// already applied the bottom inset, so only the gap is needed there.
 double manualBookingFabBottomInset(BuildContext context) =>
     context.isTabletOrWider
     ? AppDimens.paddingX16
     : CustomBottomNavigationBar.heightOf(context) + _kManualBookingFabGap;
 
-/// Bottom padding a list needs so its last row can scroll clear of the pill.
 double manualBookingFabListInset(BuildContext context) =>
     manualBookingFabBottomInset(context) +
     kManualBookingFabHeight +
@@ -60,9 +50,6 @@ List<BookingModel> sortBookingsForDisplay(Iterable<BookingModel> bookings) {
   return sorted;
 }
 
-/// Human-readable age of a booking: minutes/hours ago for the first 12 hours,
-/// then the absolute date and time. Uses `created_at` when the API reports it,
-/// otherwise the booking's slot.
 String bookingTimeAgo(BookingModel booking, {DateTime? now}) {
   final DateTime reference = now ?? DateTime.now();
   final DateTime moment = booking.createdAt ?? booking.date;
@@ -84,7 +71,6 @@ String bookingTimeAgo(BookingModel booking, {DateTime? now}) {
   return bookingDateTimeStamp(moment, reference: reference);
 }
 
-/// `12 Aug, 6:00 PM` — the year is appended only when it differs from [reference].
 String bookingDateTimeStamp(DateTime moment, {DateTime? reference}) {
   const List<String> months = <String>[
     'Jan',
@@ -115,7 +101,6 @@ String bookingDateTimeStamp(DateTime moment, {DateTime? reference}) {
       '$hour12:$minute $meridiem';
 }
 
-/// Muted relative timestamp shown alongside a booking card's actions.
 class BookingTimeAgoLabel extends StatelessWidget {
   const BookingTimeAgoLabel({super.key, required this.booking});
 
@@ -195,14 +180,9 @@ class BookingInfoChip extends StatelessWidget {
   }
 }
 
-/// Loading placeholder for the booking lists: [BookingCard]-shaped skeletons
-/// with a shimmer sweeping across them, so the list keeps its shape and the
-/// real cards land where the placeholders were.
 class BookingSkeletonLoader extends StatelessWidget {
   const BookingSkeletonLoader({super.key, this.showBookedBy = false});
 
-  /// Mirrors [BookingCard.showBookedBy]: the vendor's cards carry an extra
-  /// "Booked by" row, and the skeleton should be the same height.
   final bool showBookedBy;
 
   @override
@@ -229,9 +209,6 @@ class BookingSkeletonLoader extends StatelessWidget {
   }
 }
 
-/// One [BookingCard]-shaped placeholder. The card surface stays still and
-/// only the bones inside it shimmer, the way the real card's content would
-/// fill in.
 class _SkeletonCard extends StatelessWidget {
   const _SkeletonCard({required this.showBookedBy});
 
@@ -323,7 +300,6 @@ class _SkeletonGridRow extends StatelessWidget {
   }
 }
 
-/// A label over a value, like [DataCardCell].
 class _SkeletonCell extends StatelessWidget {
   const _SkeletonCell({required this.valueWidth});
 
@@ -418,11 +394,6 @@ class BookingEmptyView extends StatelessWidget {
   }
 }
 
-/// Load-failure state for the booking lists.
-///
-/// Thin wrapper over [AppMessageView] so bookings and the wishlist share one
-/// error treatment. [title] defaults to the bookings wording; pass your own
-/// where the surface differs.
 class BookingErrorView extends StatelessWidget {
   const BookingErrorView({
     super.key,
@@ -447,21 +418,6 @@ class BookingErrorView extends StatelessWidget {
   }
 }
 
-/// One booking, as a card.
-///
-/// Built from the shared card language in `core/widgets/data_card.dart`, the
-/// same parts the account ledger uses, so the two lists read as one product
-/// rather than two screens that happen to both show cards.
-///
-/// The header answers "whose booking, and how much": the venue (or, on a
-/// vendor's list, the player) with the court or phone under it, the amount in
-/// tabular digits on the right and the status as a chip beneath it. The body
-/// carries the facts that identify the slot — date, time, reference — as
-/// labelled rows whose values align down the card. Type and recurrence badges
-/// and the optional [footer] sit at the bottom.
-///
-/// Every field is optional: a missing one takes its row away rather than
-/// showing a blank, and long values elide instead of overflowing.
 class BookingCard extends StatelessWidget {
   const BookingCard({
     super.key,
@@ -472,25 +428,15 @@ class BookingCard extends StatelessWidget {
     this.footer,
   });
 
-  /// A booking card reads at the same size wherever it appears — in a list or
-  /// as the summary at the top of the details page. They show the same facts
-  /// about the same booking, so a reader moving between them should not have
-  /// to adjust.
   static const DataCardDensity _density = DataCardDensity.detail;
 
   final BookingModel booking;
 
-  /// Vendor lists lead with the player rather than the venue.
   final bool showPlayer;
 
-  /// Names the customer who placed the booking on a card that leads with the
-  /// venue — the vendor's list. Redundant when [showPlayer] already titles the
-  /// card with them, and on a player's own list, where it is always them.
   final bool showBookedBy;
   final VoidCallback? onTap;
 
-  /// Optional trailing widget rendered at the bottom of the card (e.g. the
-  /// "Add products" quick action on eligible futsal bookings).
   final Widget? footer;
 
   @override
@@ -675,7 +621,6 @@ class BookingCard extends StatelessWidget {
     );
   }
 
-  /// Width of the card's content from which the wide layout is used.
   static const double _wideFrom = 720;
 
   Widget _header({
@@ -698,8 +643,6 @@ class BookingCard extends StatelessWidget {
     titleSize: kDataCardListTitleSize,
   );
 
-  /// Tablet / desktop: the header (with who booked it on the subtitle), the
-  /// facts side by side in one row, and the actions at the right.
   Widget _wideLayout({
     required String title,
     required String subtitle,
@@ -750,7 +693,6 @@ class BookingCard extends StatelessWidget {
     );
   }
 
-  /// Phone: the original stacked card.
   Widget _compactLayout({
     required String title,
     required String subtitle,

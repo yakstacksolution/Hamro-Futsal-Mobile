@@ -9,19 +9,6 @@ import 'package:hamro_futsal/features/futsal_details/data/repositories/futsal_de
 import 'package:hamro_futsal/features/futsal_details/domain/repository/futsal_details_repository.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 
-/// Books a vendor's multi-venue, multi-court, multi-date selection for one
-/// customer, with however it was paid.
-///
-/// 1. [prepare] holds every range. If any hold is refused, every hold already
-///    taken is released and nothing is booked — the vendor sees exactly which
-///    slot conflicted. The holds also bring the server's prices to review.
-/// 2. [confirm] books the whole selection in one
-///    `POST /futsal-bookings/manual` ([buildManualBookingPayload]): the
-///    customer, every payment line (part in cash, the rest online), and one
-///    entry per venue, court and date with its slots. The server books all of
-///    it or none of it, so a retry after a failure sends the same request
-///    again, and once booked nothing is sent twice.
-/// Sends a manual booking payload; the decoded response on success.
 typedef OpsSubmitManualBooking =
     Future<Either<AppException, dynamic>> Function(
       Map<String, dynamic> payload,
@@ -47,9 +34,6 @@ class ManualGroupBookingService {
     return right(response.getValue());
   }
 
-  /// Holds every range in one `POST /booking-holds` — a list, one item per
-  /// range. Returns the held ranges, or a conflict with every hold taken
-  /// released.
   Future<OpsPrepareOutcome> prepare(List<OpsBookingRange> ranges) async {
     if (ranges.isEmpty) return const OpsPrepareOutcome.held(<OpsRangeTicket>[]);
     final Either<AppException, List<BookingHoldModel>> result =
@@ -107,9 +91,6 @@ class ManualGroupBookingService {
     return OpsPrepareOutcome.held(held);
   }
 
-  /// [range]'s hold: the one for its court, date and start time, else — for
-  /// a hold that does not say which court it is — the one sent back at its
-  /// place in the list.
   static BookingHoldModel? _holdFor(
     OpsBookingRange range,
     int index,
@@ -140,8 +121,6 @@ class ManualGroupBookingService {
     if (ids.isNotEmpty) await _repository.releaseBookingHolds(holdIds: ids);
   }
 
-  /// Releases holds that were not turned into bookings, in one
-  /// `DELETE /booking-holds` with their ids.
   Future<void> release(Iterable<OpsRangeTicket> tickets) async {
     final List<String> ids = <String>[
       for (final OpsRangeTicket t in tickets)
@@ -151,9 +130,6 @@ class ManualGroupBookingService {
     await _repository.releaseBookingHolds(holdIds: ids);
   }
 
-  /// Books every held range in one request, with [payment]. Returns the
-  /// tickets marked booked — or, when the server refused, unbooked with its
-  /// message, ready to send again.
   Future<List<OpsRangeTicket>> confirm({
     required List<OpsRangeTicket> tickets,
     required OpsCustomer customer,
@@ -196,23 +172,6 @@ class ManualGroupBookingService {
   }
 }
 
-/// The `POST /futsal-bookings/manual` body for [tickets]:
-///
-/// ```json
-/// {
-///   "customer_name": "Walk In Customer", "customer_phone": "9800000000",
-///   "payment": [{"payment_type": "cash", "value": 2000},
-///               {"payment_type": "online", "value": 200}],
-///   "payment_status": "partial", "booking_status": "confirmed",
-///   "notes": "Bulk manual booking",
-///   "bookings": [{"venue_id": 1, "court_id": 5, "booking_date": "2026-09-29",
-///                 "slots": [{"start_time": "10:00", "end_time": "11:00"}]}]
-/// }
-/// ```
-///
-/// One `bookings` entry per venue, court and date, in the order first
-/// picked, each with its slots in time order. `payment_status` is what the
-/// payments add up to against [payable]. Empty optional fields are left out.
 Map<String, dynamic> buildManualBookingPayload({
   required List<OpsRangeTicket> tickets,
   required OpsCustomer customer,
@@ -272,11 +231,8 @@ Map<String, dynamic> buildManualBookingPayload({
   };
 }
 
-/// `2000`, not `2000.0`, for whole rupees.
 num _wholeOrDecimal(double v) => v == v.roundToDouble() ? v.round() : v;
 
-/// Every booking the response describes — maps with an `id` and a court —
-/// wherever it nests them (`data`, `data.bookings`, …).
 List<Map<String, dynamic>> _createdBookings(dynamic node, [int depth = 0]) {
   if (depth > 5 || node == null) return const <Map<String, dynamic>>[];
   if (node is List) {
@@ -298,8 +254,6 @@ List<Map<String, dynamic>> _createdBookings(dynamic node, [int depth = 0]) {
   ];
 }
 
-/// The created booking covering [range]: same court and date, and — when the
-/// booking says — a time that overlaps.
 int? _bookingIdFor(OpsBookingRange range, List<Map<String, dynamic>> created) {
   for (final Map<String, dynamic> b in created) {
     final dynamic court = b['court'];
@@ -321,8 +275,6 @@ int? _bookingIdFor(OpsBookingRange range, List<Map<String, dynamic>> created) {
   return null;
 }
 
-/// How much of [received] went to each ticket, filling them in order up to
-/// what each costs — for showing what was paid on each booking.
 List<double> _paidPerTicket(List<OpsRangeTicket> tickets, double received) {
   double left = received;
   return <double>[
@@ -338,11 +290,6 @@ List<double> _paidPerTicket(List<OpsRangeTicket> tickets, double received) {
   ];
 }
 
-/// What has been paid, worked out from the payment lines./// What has been paid, worked out from the payment lines.
-///
-/// The booking API's payment statuses are `paid`, `partial` and `pending` —
-/// `pending` is what it calls not paid yet, and it rejects `unpaid` with 422
-/// "The selected payment status is invalid."
 enum OpsPaymentPlan {
   full('Paid', 'paid'),
   partial('Partly paid', 'partial'),
@@ -352,12 +299,9 @@ enum OpsPaymentPlan {
 
   final String label;
 
-  /// `payment_status` sent with the booking.
   final String apiStatus;
 }
 
-/// The booking's own status, apart from its payment. A booking made at the
-/// counter is either confirmed, or already played (completed).
 enum OpsBookingStatus {
   confirmed('Confirmed', 'confirmed'),
   completed('Completed', 'completed');
@@ -385,8 +329,6 @@ class OpsCustomer extends Equatable {
   List<Object?> get props => <Object?>[name, phone, email, note];
 }
 
-/// One amount received, and how: `cash` or `online` — the methods the
-/// booking API accepts.
 class OpsPaymentLine extends Equatable {
   const OpsPaymentLine({required this.method, required this.amount});
 
@@ -404,33 +346,24 @@ class OpsPayment extends Equatable {
     this.note,
   });
 
-  /// What was received, one line per method used — e.g. part in cash, the
-  /// rest online. Empty when nothing has been paid yet.
   final List<OpsPaymentLine> lines;
   final OpsBookingStatus bookingStatus;
 
-  /// Sent as the booking's `payment_note`.
   final String? note;
 
-  /// Everything received, across the lines.
   double get received => lines.fold<double>(
     0,
     (double sum, OpsPaymentLine l) => sum + (l.amount > 0 ? l.amount : 0),
   );
 
-  /// Paid by more than one line.
   bool get isSplit =>
       lines.where((OpsPaymentLine l) => l.amount > 0).length > 1;
 
-  /// The method the booking is created with: the first line that paid
-  /// something, else the first line, else cash.
   String get method =>
       lines.where((OpsPaymentLine l) => l.amount > 0).firstOrNull?.method ??
       lines.firstOrNull?.method ??
       'cash';
 
-  /// Nothing received is pending, [payable] or more is paid, anything
-  /// between is partly paid.
   OpsPaymentPlan planFor(double payable) {
     final double r = received;
     if (r <= 0) return OpsPaymentPlan.pending;
@@ -442,7 +375,6 @@ class OpsPayment extends Equatable {
   List<Object?> get props => <Object?>[lines, bookingStatus, note];
 }
 
-/// One range's progress through hold → booking → payment.
 class OpsRangeTicket extends Equatable {
   const OpsRangeTicket({
     required this.range,
@@ -458,15 +390,12 @@ class OpsRangeTicket extends Equatable {
 
   final OpsBookingRange range;
 
-  /// Releases the hold (`DELETE /booking-holds`).
   final String holdId;
   final String holdToken;
   final DateTime? holdExpiresAt;
 
-  /// What the server quoted when holding. Null when it sent no quote.
   final double? serverTotal;
 
-  /// Set once created. `-1` when the server confirmed but sent no id.
   final int? bookingId;
   final bool paymentRecorded;
   final double paidNow;
@@ -475,7 +404,6 @@ class OpsRangeTicket extends Equatable {
 
   bool get isCreated => bookingId != null;
 
-  /// The server's price differs from what the board showed.
   bool get priceChanged {
     final double? estimate = range.estimate;
     final double? server = serverTotal;
@@ -483,7 +411,6 @@ class OpsRangeTicket extends Equatable {
     return (estimate - server).abs() >= 0.5;
   }
 
-  /// The price to show and charge against: the server's when known.
   double? get effectiveTotal => serverTotal ?? range.estimate;
 
   OpsRangeTicket copyWith({
@@ -531,8 +458,6 @@ class OpsPrepareOutcome extends Equatable {
   const OpsPrepareOutcome.held(List<OpsRangeTicket> tickets)
     : this._(tickets: tickets);
 
-  /// Nothing held. [range] names the range that could not be — null when the
-  /// server refused the whole list without saying which.
   const OpsPrepareOutcome.conflict({
     required OpsBookingRange? range,
     required String message,
@@ -540,8 +465,6 @@ class OpsPrepareOutcome extends Equatable {
 
   final List<OpsRangeTicket> tickets;
 
-  /// The range that could not be held, when known; every other hold was
-  /// released.
   final OpsBookingRange? conflict;
   final String? message;
   final bool refused;

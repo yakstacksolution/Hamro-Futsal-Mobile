@@ -15,11 +15,8 @@ abstract class CouponRepository {
     String? endTime,
     int? repeatWeeks,
 
-    /// Active booking-hold token, sent in the request payload as `hold_token`.
     String? holdToken,
 
-    /// Order subtotal, used only to fill in amounts the server may omit from the
-    /// response. Not part of the request payload.
     required double amount,
   });
 }

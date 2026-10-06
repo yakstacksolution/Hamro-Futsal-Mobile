@@ -17,11 +17,8 @@ import 'package:hamro_futsal/features/auth/presentation/widgets/otp_digit_field.
 class CreateNewPasswordScreen extends StatefulWidget {
   const CreateNewPasswordScreen({super.key, required this.email, this.otp});
 
-  /// The address the OTP was sent to. Submitted with the reset, so the user
-  /// never retypes it and cannot reset a different account by editing a field.
   final String email;
 
-  /// The already-verified code, when the OTP screen sent us here.
   final String? otp;
 
   @override
@@ -65,7 +62,6 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
     return '${name.substring(0, 2)}***@$domain';
   }
 
-  /// True when the code arrived already verified, so no code row is shown.
   bool get _hasVerifiedOtp => (widget.otp?.trim().length ?? 0) == _otpLength;
 
   String get _otp => _hasVerifiedOtp

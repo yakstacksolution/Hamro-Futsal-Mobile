@@ -3,23 +3,12 @@ import 'package:hamro_futsal/core/utils/kathmandu_time.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/weekday_option.dart';
 
-/// Pure model and logic for the vendor operations dashboard: court schedules,
-/// the availability board, the daily summary and the manual-booking selection.
-///
-/// Nothing here touches Flutter or the network, so every rule — slot
-/// generation, pricing, overlap, occupancy — is unit-testable.
-///
-/// Time is minutes since midnight throughout, and every interval is
-/// start-inclusive and end-exclusive: 18:00–19:00 and 19:00–20:00 touch but do
-/// not overlap.
 
 const int kMinutesPerDay = 24 * 60;
 const int kDefaultSlotMinutes = 60;
 
 // ───────────────────────────── Time helpers ─────────────────────────────
 
-/// Minutes since midnight from any time string the API or the app uses:
-/// `18:00`, `18:00:00`, `6:00 PM`, `06 : 00 PM`. Null when unreadable.
 int? parseMinuteOfDay(String? raw) {
   final String value = raw?.trim() ?? '';
   if (value.isEmpty) return null;
@@ -41,7 +30,6 @@ int? parseMinuteOfDay(String? raw) {
   return hour * 60 + minute;
 }
 
-/// `6:00 PM` — for display.
 String formatMinuteOfDay(int minute) {
   final int m = minute % kMinutesPerDay;
   final int hour24 = m ~/ 60;
@@ -50,16 +38,12 @@ String formatMinuteOfDay(int minute) {
   return '$hour12:$mm ${hour24 < 12 ? 'AM' : 'PM'}';
 }
 
-/// `18:00` — the 24-hour `H:i` the API expects. 24:00 is sent as `23:59`
-/// never; a slot ending at midnight is sent as `24:00`, which the backend
-/// reads as end of day.
 String apiTimeOf(int minute) {
   final int hour = minute ~/ 60;
   final String mm = (minute % 60).toString().padLeft(2, '0');
   return '${hour.toString().padLeft(2, '0')}:$mm';
 }
 
-/// `1 h 30 m`, `45 m`, `2 h`.
 String formatDuration(int minutes) {
   final int h = minutes ~/ 60;
   final int m = minutes % 60;
@@ -68,7 +52,6 @@ String formatDuration(int minutes) {
   return '$h h $m m';
 }
 
-/// Court-hours with one decimal, e.g. `3.5`.
 String formatHours(int minutes) {
   final double hours = minutes / 60;
   return hours == hours.roundToDouble()
@@ -79,14 +62,11 @@ String formatHours(int minutes) {
 bool overlaps(int aStart, int aEnd, int bStart, int bEnd) =>
     aStart < bEnd && bStart < aEnd;
 
-/// `sun` … `sat` for [date].
 String weekdayKeyOf(DateTime date) =>
     WeekdayOption.values[date.weekday % 7].key;
 
 // ───────────────────────────── Court schedule ─────────────────────────────
 
-/// One pricing window of a court's schedule. Slots are generated inside it,
-/// so a slot never straddles two windows.
 class OpsPriceBand extends Equatable {
   const OpsPriceBand({
     required this.start,
@@ -100,16 +80,13 @@ class OpsPriceBand extends Equatable {
 
   final int start;
 
-  /// Exclusive. Already widened to midnight (1440) for an overnight window.
   final int end;
 
-  /// Weekday keys (`sun` … `sat`); empty means every day.
   final Set<String> days;
   final double? price;
   final double? weekendPrice;
   final double? holidayPrice;
 
-  /// ISO date → price for that one date.
   final Map<String, double> customDatePrices;
 
   bool appliesOn(String dayKey) => days.isEmpty || days.contains(dayKey);
@@ -126,7 +103,6 @@ class OpsPriceBand extends Equatable {
   ];
 }
 
-/// A closure on one date: the whole day, or [start]–[end].
 class OpsClosure extends Equatable {
   const OpsClosure({
     required this.date,
@@ -144,7 +120,6 @@ class OpsClosure extends Equatable {
   List<Object?> get props => <Object?>[date, fullDay, start, end];
 }
 
-/// One sellable slot of a court on a date.
 class OpsSlot extends Equatable {
   const OpsSlot({
     required this.courtId,
@@ -158,14 +133,10 @@ class OpsSlot extends Equatable {
   final int courtId;
   final int venueId;
 
-  /// ISO date.
   final String date;
   final int start;
   final int end;
 
-  /// Estimated price from the court's schedule. The server prices the booking
-  /// for real; this is what the board shows and what the review compares the
-  /// server's quote against.
   final double? price;
 
   int get minutes => end - start;
@@ -181,13 +152,11 @@ class OpsSlot extends Equatable {
   ];
 }
 
-/// A court's slots for one date, or why it has none.
 class OpsDaySchedule extends Equatable {
   const OpsDaySchedule({required this.slots, this.closedReason});
 
   final List<OpsSlot> slots;
 
-  /// Set when the court is not open at all that day.
   final String? closedReason;
 
   @override
@@ -218,25 +187,20 @@ class OpsCourt extends Equatable {
   final String venueName;
   final String name;
 
-  /// Never assumed to be an hour — each court has its own.
   final int slotMinutes;
   final int? openMinute;
   final int? closeMinute;
   final bool open24Hours;
 
-  /// Weekday keys the court opens on; empty means every day.
   final Set<String> openDays;
   final double? basePrice;
   final List<OpsPriceBand> bands;
   final List<OpsClosure> closures;
   final Set<String> holidayDates;
 
-  /// Weekday keys that take the weekend price.
   final Set<String> weekendDays;
   final bool isActive;
 
-  /// Whether the schedule has enough to generate slots from. Courts from the
-  /// day's server answer have none — their slots are the server's.
   bool get hasSchedule =>
       bands.isNotEmpty ||
       open24Hours ||
@@ -249,8 +213,6 @@ class OpsCourt extends Equatable {
       band.price ??
       basePrice;
 
-  /// This court's slots on [date], hourly closures removed. Past time is not
-  /// removed here — that depends on the clock, not the schedule.
   OpsDaySchedule scheduleFor(DateTime date) {
     final String dateKey = isoDate(date);
     final String dayKey = weekdayKeyOf(date);
@@ -339,7 +301,6 @@ class OpsCourt extends Equatable {
     );
   }
 
-  /// Hourly closures on [date], for drawing them on the board.
   List<OpsClosure> hourlyClosuresOn(DateTime date) {
     final String key = isoDate(date);
     return closures
@@ -372,8 +333,6 @@ class OpsCourt extends Equatable {
 
 // ───────────────────────────── Bookings ─────────────────────────────
 
-/// Where a booking stands operationally — kept apart from [OpsPaymentState]:
-/// a confirmed booking can still be unpaid.
 enum OpsBookingPhase { pending, confirmed, inProgress, completed }
 
 enum OpsPaymentState { paid, partial, unpaid }
@@ -381,8 +340,6 @@ enum OpsPaymentState { paid, partial, unpaid }
 bool isActiveBooking(BookingModel b) =>
     b.status != BookingStatus.cancelled && b.status != BookingStatus.rejected;
 
-/// The [start, end) intervals [booking] occupies on [date]. Uses the booking's
-/// slot rows when it has them — a multi-slot booking is not one block.
 List<(int, int)> bookingIntervalsOn(BookingModel booking, String date) {
   final List<(int, int)> out = <(int, int)>[];
   for (final BookingSlotModel slot in booking.bookingSlots) {
@@ -434,8 +391,6 @@ OpsBookingPhase phaseOf(
 
 enum OpsCellKind { available, booked, closed, past }
 
-/// One block on a court's timeline: a free slot, a booking (merged across the
-/// slots it covers), a closure, or elapsed time.
 class OpsCell extends Equatable {
   const OpsCell({
     required this.courtId,
@@ -462,12 +417,10 @@ class OpsCell extends Equatable {
   final OpsBookingPhase? phase;
   final OpsPaymentState? payment;
 
-  /// Closure reason, for closed cells.
   final String? note;
 
   int get minutes => end - start;
 
-  /// Stable identity of a selectable slot.
   String get slotKey => '$courtId|$date|$start|$end';
 
   @override
@@ -496,13 +449,10 @@ class OpsCourtRow extends Equatable {
 
   final OpsCourt court;
 
-  /// Sorted by start, non-overlapping.
   final List<OpsCell> cells;
 
-  /// Set when the court is closed for the whole day.
   final String? closedReason;
 
-  /// Scheduled open time, closures excluded — occupancy's denominator.
   final int sellableMinutes;
 
   bool get isFullyBooked =>
@@ -546,11 +496,9 @@ class OpsBoard extends Equatable {
   final DateTime date;
   final List<OpsVenueRow> venues;
 
-  /// Earliest and latest minute any visible court uses — the timeline's span.
   final int axisStart;
   final int axisEnd;
 
-  /// Set only when [date] is today (Kathmandu).
   final int? nowMinute;
 
   bool get isEmpty => venues.every((OpsVenueRow v) => v.courts.isEmpty);
@@ -565,16 +513,6 @@ class OpsBoard extends Equatable {
   ];
 }
 
-/// Builds the board for [date] from the courts' schedules and that day's
-/// bookings.
-///
-/// [today] decides what is past: every free slot on an earlier date, slots
-/// that have started on today, nothing on a later date.
-///
-/// A court whose week is in [server] (court id → its week from
-/// `GET /court-availability-slots`) and covers [date] is drawn from the
-/// server's slots, the way the Week table draws it; any other court from its
-/// own schedule.
 OpsBoard buildOpsBoard({
   required List<OpsCourt> courts,
   required List<BookingModel> bookings,
@@ -742,8 +680,6 @@ OpsBoard buildOpsBoard({
 
 // ───────────────────────────── Summary ─────────────────────────────
 
-/// One court's share of its open time that is booked, for the per-court
-/// occupancy chart.
 class OpsCourtOccupancy extends Equatable {
   const OpsCourtOccupancy({
     required this.courtId,
@@ -760,7 +696,6 @@ class OpsCourtOccupancy extends Equatable {
   final int bookedMinutes;
   final int sellableMinutes;
 
-  /// Set when the court is not open at all that day.
   final String? closedReason;
 
   double get occupancy => sellableMinutes <= 0
@@ -793,34 +728,24 @@ class OpsSummary extends Equatable {
     this.courts = const <OpsCourtOccupancy>[],
   });
 
-  /// Distinct bookings — a booking with three slots counts once.
   final int bookingCount;
   final int bookedMinutes;
 
-  /// Open court-time, closures excluded.
   final int sellableMinutes;
 
-  /// Free court-time still bookable (past time excluded on today).
   final int availableMinutes;
 
-  /// Open court-time that went by without a booking.
   final int pastUnbookedMinutes;
 
-  /// Net value of the active bookings scheduled on the date.
   final double bookingValue;
 
-  /// What has been paid towards those bookings.
   final double paidValue;
 
-  /// What is still owed on those bookings.
   final double outstanding;
   final int outstandingCount;
 
-  /// Distinct bookings by where they stand. A booking with a slot running now
-  /// counts as in progress.
   final Map<OpsBookingPhase, int> phaseCounts;
 
-  /// Every visible court, in board order.
   final List<OpsCourtOccupancy> courts;
 
   double get occupancy => sellableMinutes <= 0
@@ -918,9 +843,6 @@ OpsSummary summarizeBoard(OpsBoard board) {
 
 // ───────────────────────────── Focus & filters ─────────────────────────────
 
-/// What the board emphasises. Set from the status filter or a summary card;
-/// cells that do not match are dimmed, never hidden, so the day keeps its
-/// shape.
 enum OpsFocus {
   all('All'),
   available('Available'),
@@ -965,7 +887,6 @@ bool cellMatchesFocus(OpsCell cell, OpsFocus focus, String search) {
 
 // ───────────────────────────── Selection ─────────────────────────────
 
-/// One slot the vendor has picked for the manual booking.
 class OpsSelectionItem extends Equatable {
   const OpsSelectionItem({
     required this.venueId,
@@ -1015,10 +936,6 @@ class OpsSelectionItem extends Equatable {
   ];
 }
 
-/// Selected slots on one court and date that touch end to start — booked as
-/// one request, since the booking API takes one court and one time range.
-/// Slots with a gap between them stay separate ranges: the gap is never
-/// filled in.
 class OpsBookingRange extends Equatable {
   const OpsBookingRange({required this.items});
 
@@ -1034,7 +951,6 @@ class OpsBookingRange extends Equatable {
   int get end => items.last.end;
   int get minutes => end - start;
 
-  /// Null when any slot has no known price.
   double? get estimate {
     double total = 0;
     for (final OpsSelectionItem i in items) {
@@ -1084,25 +1000,18 @@ List<OpsBookingRange> mergeSelection(Iterable<OpsSelectionItem> selection) {
 
 // ───────────────────────────── Week table ─────────────────────────────
 
-/// Sunday of the week containing [date] — Nepal's week runs Sunday to
-/// Saturday.
 DateTime weekStartOf(DateTime date) {
   final DateTime day = DateTime(date.year, date.month, date.day);
   return day.subtract(Duration(days: day.weekday % 7));
 }
 
-/// Where the Week table's seven days begin.
 enum OpsWeekStart {
-  /// The calendar week, Sunday to Saturday.
   sunday('sunday', 'Sun – Sat'),
 
-  /// A rolling week: today and the six days after it, then the seven after
-  /// those, and so on.
   today('today', 'From today');
 
   const OpsWeekStart(this.key, this.label);
 
-  /// Stored in preferences.
   final String key;
   final String label;
 
@@ -1112,9 +1021,6 @@ enum OpsWeekStart {
   );
 }
 
-/// First day of the week containing [date] under [mode]. A rolling week
-/// counts in sevens from [today], so paging moves a whole week and today is
-/// always its first day.
 DateTime weekStartFor(
   DateTime date,
   OpsWeekStart mode, {
@@ -1133,13 +1039,10 @@ DateTime weekStartFor(
   return DateTime(from.year, from.month, from.day + weeks * 7);
 }
 
-/// What the server says one of a court's slots is
-/// (`GET /court-availability-slots`).
 enum OpsServerSlotState { available, booked, held, closed, past }
 
 enum OpsAvailabilityResponseType { day, week }
 
-/// One court slot on one day, as the server reports it.
 class OpsServerSlot extends Equatable {
   const OpsServerSlot({
     required this.start,
@@ -1156,14 +1059,10 @@ class OpsServerSlot extends Equatable {
   final OpsServerSlotState state;
   final double? price;
 
-  /// The booking on this slot, when the server names it.
   final int? bookingId;
 
-  /// The booking itself, when the server sends it with the slot — lets a
-  /// booked slot open its booking even when the device has not loaded it.
   final BookingModel? booking;
 
-  /// Why a closed slot is closed, when the server says.
   final String? reason;
 
   @override
@@ -1178,8 +1077,6 @@ class OpsServerSlot extends Equatable {
   ];
 }
 
-/// One court's slots from the server: a week for the Week table, or one day
-/// ([type] `day`) for the Day board.
 class OpsCourtWeekAvailability extends Equatable {
   const OpsCourtWeekAvailability({
     required this.courtId,
@@ -1191,14 +1088,10 @@ class OpsCourtWeekAvailability extends Equatable {
 
   final int courtId;
 
-  /// The first day covered — the week's Sunday, or the day itself.
   final DateTime weekStart;
 
-  /// When the server answered (Kathmandu time).
   final DateTime? fetchedAt;
 
-  /// What was asked for. A day answer covers one date only, so it is kept
-  /// apart from a week that starts on the same date.
   final OpsAvailabilityResponseType type;
 
   static String keyOf(
@@ -1211,8 +1104,6 @@ class OpsCourtWeekAvailability extends Equatable {
 
   String get key => keyOf(courtId, weekStart, type);
 
-  /// `yyyy-MM-dd` → that day's slots, sorted by start. A day the server did
-  /// not report is missing; the table works it out on the device instead.
   final Map<String, List<OpsServerSlot>> days;
 
   bool isFor(int courtId, DateTime weekStart) =>
@@ -1228,9 +1119,6 @@ class OpsCourtWeekAvailability extends Equatable {
   ];
 }
 
-/// Everything the Day board shows for one date, from a single
-/// `GET /court-availability-slots?start_date=&type=day`: every court of every
-/// venue the vendor has, each court's slots, and the bookings on them.
 class OpsDayAvailability extends Equatable {
   const OpsDayAvailability({
     required this.date,
@@ -1241,22 +1129,16 @@ class OpsDayAvailability extends Equatable {
 
   final DateTime date;
 
-  /// In the server's order. They carry no schedule of their own — the
-  /// server's slots are the schedule.
   final List<OpsCourt> courts;
 
-  /// Court id → its day (`type` day).
   final Map<int, OpsCourtWeekAvailability> slots;
 
-  /// Every booking the slots carry, once each.
   final List<BookingModel> bookings;
 
   @override
   List<Object?> get props => <Object?>[date, courts, slots, bookings];
 }
 
-/// One cell of the week table: what one court's slot at one time looks like
-/// on one day.
 class OpsWeekCell extends Equatable {
   const OpsWeekCell({
     required this.kind,
@@ -1265,28 +1147,20 @@ class OpsWeekCell extends Equatable {
     this.note,
   });
 
-  /// No slot at this time on this day (outside hours, or the day has fewer
-  /// slots).
   static const OpsWeekCell none = OpsWeekCell(kind: null);
 
-  /// Null when there is no slot here.
   final OpsCellKind? kind;
 
-  /// The board cell behind it: the free slot, or the booking covering it.
   final OpsCell? cell;
 
-  /// The booking started in an earlier row — shown quieter so one booking
-  /// reads as one.
   final bool continuation;
 
-  /// Why a closed day or slot is closed.
   final String? note;
 
   @override
   List<Object?> get props => <Object?>[kind, cell, continuation, note];
 }
 
-/// A court's week: one row per slot start time, one column per day.
 class OpsWeekTable extends Equatable {
   const OpsWeekTable({
     required this.court,
@@ -1302,30 +1176,21 @@ class OpsWeekTable extends Equatable {
 
   final OpsCourt court;
 
-  /// Seven days, Sunday first.
   final List<DateTime> days;
 
-  /// Slot start minutes, in order — the union across the week, since pricing
-  /// windows can differ by weekday.
   final List<int> rows;
 
-  /// `cells[row][day]`.
   final List<List<OpsWeekCell>> cells;
 
-  /// Day index → why the court is closed that whole day.
   final Map<int, String> closedDays;
 
-  /// Index of today in [days], when this week contains it.
   final int? todayIndex;
   final int? nowMinute;
 
-  /// Row start → end, where the server's slots set it.
   final Map<int, int> rowEnds;
 
-  /// Built from the server's slots rather than the court's schedule alone.
   final bool live;
 
-  /// Where the row starting at [start] ends.
   int endOf(int start) => rowEnds[start] ?? start + court.slotMinutes;
 
   int get freeCount => cells.fold<int>(
@@ -1349,12 +1214,6 @@ class OpsWeekTable extends Equatable {
   ];
 }
 
-/// Builds [court]'s week from [weekStart] using the same rules as the day
-/// board, so a slot reads the same in both views.
-///
-/// Days [server] reports are built from the server's slots instead; the
-/// device's bookings still supply who is booked, so a booked slot opens its
-/// booking. Days it does not report fall back to the court's schedule.
 OpsWeekTable buildWeekTable({
   required OpsCourt court,
   required List<BookingModel> bookings,
@@ -1448,10 +1307,6 @@ OpsWeekTable buildWeekTable({
   );
 }
 
-/// [court]'s [date] from the server's [slots]. The device's bookings, and the
-/// ones the server sends with its slots, are laid in at their real times, so
-/// a booked slot opens its booking; a slot the server calls booked or held
-/// with no booking to show is drawn closed with that reason.
 OpsCourtRow _serverDayRow({
   required OpsCourt court,
   required List<OpsServerSlot> slots,
@@ -1606,9 +1461,6 @@ OpsWeekCell _weekCell(OpsCourtRow row, int start, int end, String? dayClosed) {
 
 // ───────────────────────────── Court summary ─────────────────────────────
 
-/// What a court's day looks like at a glance, for the Day view's court
-/// cards: how full it is, the next slot that can be sold, and the booking on
-/// court now or next.
 class OpsCourtDaySummary extends Equatable {
   const OpsCourtDaySummary({
     required this.court,
@@ -1626,17 +1478,12 @@ class OpsCourtDaySummary extends Equatable {
   final int bookedMinutes;
   final int sellableMinutes;
 
-  /// The earliest slot still bookable.
   final OpsCell? nextFree;
 
-  /// The booking on court right now (today only).
   final OpsCell? current;
 
-  /// The next booking to start after now (or the day's first, on a future
-  /// date).
   final OpsCell? next;
 
-  /// Set when the court is closed all day.
   final String? closedReason;
 
   double get occupancy => sellableMinutes <= 0
@@ -1659,8 +1506,6 @@ class OpsCourtDaySummary extends Equatable {
   ];
 }
 
-/// Summarises one court's row of the day board. [nowMinute] is null when the
-/// board is not today; on a past date nothing is "now" or "next".
 OpsCourtDaySummary summarizeCourtDay(
   OpsCourtRow row, {
   int? nowMinute,

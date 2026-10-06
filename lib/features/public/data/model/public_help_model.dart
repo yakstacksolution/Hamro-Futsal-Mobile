@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// A help topic from `GET /helps`.
 final class PublicHelpModel extends Equatable {
   const PublicHelpModel({
     required this.id,

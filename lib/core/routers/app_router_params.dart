@@ -54,8 +54,6 @@ class AppRouterParams {
     path: '/dashboard/profile/details',
   );
 
-  /// Shared venue links: `/venues/<slug>?venue=<id>`. Both the plural and the
-  /// singular spelling are handed out, so both resolve.
   static const RouteConfig venueLink = RouteConfig(
     name: 'venueLink',
     path: '/venues/:slug',

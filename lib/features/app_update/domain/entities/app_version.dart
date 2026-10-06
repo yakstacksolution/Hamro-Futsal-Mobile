@@ -1,26 +1,14 @@
 import 'package:equatable/equatable.dart';
 
-/// A dotted release version (`1.4.2`), compared numerically segment by segment.
-///
-/// Store and backend version strings are not reliably three segments — a build
-/// may be published as `2`, `2.1` or `1.4.2+18` — so parsing tolerates any
-/// segment count, ignores a `+build` suffix and any pre-release tag, and treats
-/// missing segments as zero. That makes `1.4` and `1.4.0` equal rather than
-/// prompting an endless update loop.
 final class AppVersion extends Equatable implements Comparable<AppVersion> {
   const AppVersion(this.segments, {this.raw = ''});
 
-  /// Numeric segments, most significant first. Never empty.
   final List<int> segments;
 
-  /// The original string, kept for display so users see exactly what the
-  /// store shows them.
   final String raw;
 
   static const AppVersion zero = AppVersion(<int>[0], raw: '0');
 
-  /// Parses [value], returning null when it holds no usable number at all.
-  /// Never throws — an unparsable manifest must not break app launch.
   static AppVersion? tryParse(String? value) {
     final String trimmed = (value ?? '').trim();
     if (trimmed.isEmpty) return null;

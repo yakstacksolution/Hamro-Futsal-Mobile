@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// A frequently-asked question from `GET /faqs`.
 final class PublicFaqModel extends Equatable {
   const PublicFaqModel({
     required this.id,

@@ -10,31 +10,16 @@ import 'package:hamro_futsal/features/vendor_operations/data/manual_group_bookin
 import 'package:hamro_futsal/features/vendor_operations/data/vendor_ops_repository.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 
-/// Whether the vendor dashboard starts on demo data.
-///
-/// Off by default, so the dashboard loads the vendor's own venues and courts
-/// (`/auth/get-venue-courts?purpose=booking`) and their bookings. Build with
-/// `--dart-define=VENDOR_OPS_DEMO=true` to start on demo data instead.
 const bool kVendorOpsDemoByDefault = bool.fromEnvironment('VENDOR_OPS_DEMO');
 
-/// Two venues: Dhananjay Sports Arena and Dhanawantary Sports.
-///
-/// Demo court ids chosen to trigger each booking outcome.
 abstract final class VendorOpsDemoCourts {
-  /// Holds from 7 PM on are refused — "just booked online".
   static const int conflictAfter7pm = 9201;
 
-  /// The server quotes NPR 100 more per range than the board shows.
   static const int priceChanges = 9202;
 
-  /// The first booking attempt fails; retrying succeeds.
   static const int failsFirstTime = 9103;
 }
 
-/// In-memory venues, courts and bookings that exercise every state the
-/// dashboard can show. Bookings are generated for whichever date is asked
-/// for, relative to Kathmandu today, and bookings made in demo mode are kept
-/// for the session so they appear on the board.
 class VendorOpsDemoStore {
   VendorOpsDemoStore();
 
@@ -138,7 +123,6 @@ class VendorOpsDemoStore {
   OpsCourt? _court(int id) =>
       courts().where((OpsCourt c) => c.id == id).firstOrNull;
 
-  /// What the schedule says [range] costs — the "server" price in demo.
   double? _priceOf(int courtId, String date, int start, int end) {
     final OpsCourt? court = _court(courtId);
     final DateTime? day = DateTime.tryParse(date);
@@ -432,8 +416,6 @@ class VendorOpsDemoStore {
     );
   }
 
-  /// `POST /futsal-bookings/manual` in demo mode: one booking per venue,
-  /// court and date, the payments filling them in order.
   Future<Either<AppException, dynamic>> createManual(
     Map<String, dynamic> payload,
   ) async {
@@ -590,8 +572,6 @@ class DemoVendorOpsRepository extends VendorOpsRepository {
 
   final VendorOpsDemoStore store;
 
-  /// The demo courts with their own schedules and the day's demo bookings;
-  /// no server slots, so each court is drawn from its schedule.
   @override
   Future<Either<AppException, OpsDayAvailability>> loadDay(
     DateTime date,
@@ -622,7 +602,6 @@ class DemoVendorOpsRepository extends VendorOpsRepository {
     ]);
   }
 
-  /// The demo week has no server slots to carry bookings: the store's.
   @override
   List<BookingModel> bookingsInWeek(OpsCourtWeekAvailability week) =>
       <BookingModel>[
@@ -636,8 +615,6 @@ class DemoVendorOpsRepository extends VendorOpsRepository {
           ),
       ];
 
-  /// No server week in the demo: the table works the week out from the demo
-  /// courts' schedules.
   @override
   Future<Either<AppException, OpsCourtWeekAvailability>> loadCourtWeekSlots({
     required int venueId,
@@ -654,8 +631,6 @@ class _DemoFutsalDetailsRepository implements FutsalDetailsRepository {
 
   final VendorOpsDemoStore store;
 
-  /// Holds each range in turn; one refused refuses the whole list, as the
-  /// server does.
   @override
   Future<Either<AppException, List<BookingHoldModel>>> createBookingHolds({
     required List<BookingHoldRequest> holds,
@@ -687,14 +662,12 @@ class _DemoFutsalDetailsRepository implements FutsalDetailsRepository {
       throw UnsupportedError('Not available in demo: ${invocation.memberName}');
 }
 
-/// A booking service that talks only to [store] — nothing leaves the device.
 ManualGroupBookingService demoBookingService(VendorOpsDemoStore store) =>
     ManualGroupBookingService(
       repository: _DemoFutsalDetailsRepository(store),
       submit: store.createManual,
     );
 
-/// Stand in for repositories the demo never calls.
 class _UnusedBookings implements BookingRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) =>

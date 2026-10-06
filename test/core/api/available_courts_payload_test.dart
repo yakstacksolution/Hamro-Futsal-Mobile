@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart' show ResponseType;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_futsal/core/api/api_client/api_call_wrapper.dart';
 import 'package:hamro_futsal/core/api/api_client/api_client.dart';
@@ -14,7 +15,13 @@ final class _RecordingHttp extends IHttp {
   dynamic data;
 
   @override
-  get({String? url, String? token, Map? query, dynamic data}) async {
+  get({
+    String? url,
+    String? token,
+    Map? query,
+    dynamic data,
+    ResponseType? responseType,
+  }) async {
     this.url = url;
     this.query = query;
     this.data = data;

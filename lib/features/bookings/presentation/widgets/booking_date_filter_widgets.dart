@@ -11,9 +11,6 @@ import 'package:hamro_futsal/features/bookings/domain/model/booking_date_filter.
 import 'package:hamro_futsal/features/bookings/presentation/utils/booking_search.dart';
 import 'package:intl/intl.dart';
 
-/// The trailing control on the search row: opens the date sheet, and carries a
-/// dot while a date filter is on so the row says at a glance that the list is
-/// narrowed.
 class BookingDateFilterButton extends StatelessWidget {
   const BookingDateFilterButton({
     super.key,
@@ -78,13 +75,6 @@ class BookingDateFilterButton extends StatelessWidget {
   }
 }
 
-/// The active date filter, with the stepping the mode allows.
-///
-/// One strip serves all three modes, which is what keeps the section short:
-/// a day and a month get the arrows (stepping by a day and by a month
-/// respectively — a vendor working through a week does not want the sheet
-/// every time), and a range gets its window read out with a clear button.
-/// Nothing is shown at all while the filter is off.
 class BookingDateFilterStrip extends StatelessWidget {
   const BookingDateFilterStrip({
     super.key,
@@ -96,7 +86,6 @@ class BookingDateFilterStrip extends StatelessWidget {
 
   final BookingDateFilter filter;
 
-  /// Called with -1 / +1 for the previous / next day or month.
   final ValueChanged<int> onStep;
   final VoidCallback onEdit;
   final VoidCallback onClear;
@@ -239,9 +228,6 @@ class _StripArrow extends StatelessWidget {
   }
 }
 
-/// What the date sheet came back with: the window, and the order the rows are
-/// listed in. Both are chosen in the same place because both answer "which
-/// bookings, in what order" — separating them cost the row a second control.
 final class BookingDateFilterResult {
   const BookingDateFilterResult({required this.filter, required this.order});
 
@@ -249,8 +235,6 @@ final class BookingDateFilterResult {
   final BookingDateOrder order;
 }
 
-/// Opens the date filter sheet. Returns the chosen filter and order, or null
-/// when the sheet was dismissed without applying.
 Future<BookingDateFilterResult?> showBookingDateFilterSheet(
   BuildContext context, {
   required BookingDateFilter current,
@@ -270,12 +254,6 @@ Future<BookingDateFilterResult?> showBookingDateFilterSheet(
   );
 }
 
-/// One sheet for all three ways of narrowing by date.
-///
-/// The mode selector at the top swaps only the body beneath it, so the three
-/// modes are alternatives rather than three filters that could each be half
-/// filled in — which is what made the old two-field range sheet ambiguous
-/// about whether a single date meant "that day" or "from that day".
 class _BookingDateFilterSheet extends StatefulWidget {
   const _BookingDateFilterSheet({
     required this.initial,
@@ -301,8 +279,6 @@ class _BookingDateFilterSheetState extends State<_BookingDateFilterSheet> {
   late BookingDateMode _mode;
   late BookingDateOrder _order;
 
-  /// Each mode keeps its own working value, so flipping between them to
-  /// compare does not throw away what was already picked.
   late DateTime _day;
   late DateTime _month;
   DateTime? _from;
@@ -364,8 +340,6 @@ class _BookingDateFilterSheetState extends State<_BookingDateFilterSheet> {
     context,
   ).pop(BookingDateFilterResult(filter: _value, order: _order));
 
-  /// Clears the window but keeps the order: the order is how the list is read,
-  /// not part of what is being filtered out.
   void _clear() => Navigator.of(context).pop(
     BookingDateFilterResult(
       filter: const BookingDateFilter.all(),
@@ -730,8 +704,6 @@ class _DayModeBody extends StatelessWidget {
   }
 }
 
-/// A year stepper over a grid of the twelve months — quicker than scrolling a
-/// day picker when the whole month is what is wanted.
 class _MonthModeBody extends StatelessWidget {
   const _MonthModeBody({required this.month, required this.onChanged});
 
@@ -884,8 +856,6 @@ class _RangeModeBody extends StatelessWidget {
   }
 }
 
-/// The shortcuts that cover most of what a vendor actually asks for, so the
-/// common cases never need the picker.
 class _QuickPicks extends StatelessWidget {
   const _QuickPicks({required this.picks});
 

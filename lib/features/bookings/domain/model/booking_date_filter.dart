@@ -2,41 +2,25 @@ import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:intl/intl.dart';
 
-/// How the futsal bookings list is narrowed by date.
 enum BookingDateMode {
-  /// Every date — the date filter is off.
   all('all'),
 
-  /// One day. The arrows step a day at a time.
   day('day'),
 
-  /// A whole calendar month. The arrows step a month at a time.
   month('month'),
 
-  /// An arbitrary from/to window.
   range('range');
 
   const BookingDateMode(this.query);
 
-  /// The value the endpoint's `date_filter` parameter takes.
   final String query;
 }
 
-/// The date filter on the futsal bookings list.
-///
-/// All three modes are the same thing to whatever does the filtering — a
-/// [fromDate]/[toDate] window — so the list, the summary strip and the sheet
-/// all read one value instead of a mode flag plus three sets of dates that can
-/// disagree with each other. The mode is kept only because the *user* means
-/// something different by each: it decides what the arrows step by and how the
-/// window is described.
 final class BookingDateFilter extends Equatable {
   const BookingDateFilter._({required this.mode, this.from, this.to});
 
-  /// No date filter.
   const BookingDateFilter.all() : this._(mode: BookingDateMode.all);
 
-  /// A single day.
   factory BookingDateFilter.day(DateTime day) {
     final DateTime start = _startOfDay(day);
     return BookingDateFilter._(
@@ -46,7 +30,6 @@ final class BookingDateFilter extends Equatable {
     );
   }
 
-  /// The whole calendar month [anchor] falls in.
   factory BookingDateFilter.month(DateTime anchor) {
     return BookingDateFilter._(
       mode: BookingDateMode.month,
@@ -57,11 +40,6 @@ final class BookingDateFilter extends Equatable {
     );
   }
 
-  /// An arbitrary window. Either end may be open.
-  ///
-  /// Ends given the wrong way round are swapped rather than rejected: the
-  /// sheet lets them be picked in either order, and a window that excludes
-  /// everything is never what was meant.
   factory BookingDateFilter.range({DateTime? from, DateTime? to}) {
     final DateTime? start = from == null ? null : _startOfDay(from);
     final DateTime? end = to == null ? null : _startOfDay(to);
@@ -82,10 +60,8 @@ final class BookingDateFilter extends Equatable {
 
   final BookingDateMode mode;
 
-  /// Inclusive first day of the window, or null when it is open-ended.
   final DateTime? from;
 
-  /// Inclusive last day of the window, or null when it is open-ended.
   final DateTime? to;
 
   DateTime? get fromDate => from;
@@ -93,16 +69,11 @@ final class BookingDateFilter extends Equatable {
 
   bool get isActive => mode != BookingDateMode.all;
 
-  /// Which day or month the arrows move from.
   DateTime get anchor => from ?? to ?? _startOfDay(DateTime.now());
 
-  /// True where stepping makes sense: a day and a month have a next one, an
-  /// arbitrary range does not.
   bool get canStep =>
       mode == BookingDateMode.day || mode == BookingDateMode.month;
 
-  /// The same filter moved [steps] units — days in [BookingDateMode.day],
-  /// months in [BookingDateMode.month] — which is what the arrows do.
   BookingDateFilter stepped(int steps) => switch (mode) {
     BookingDateMode.day => BookingDateFilter.day(
       DateTime(anchor.year, anchor.month, anchor.day + steps),
@@ -113,7 +84,6 @@ final class BookingDateFilter extends Equatable {
     BookingDateMode.all || BookingDateMode.range => this,
   };
 
-  /// How the window reads in the summary strip.
   String get label => switch (mode) {
     BookingDateMode.all => 'All dates',
     BookingDateMode.day => AppDateFormat.format(anchor, _dayPattern),
@@ -121,7 +91,6 @@ final class BookingDateFilter extends Equatable {
     BookingDateMode.range => _rangeLabel,
   };
 
-  /// What kind of window this is, for the strip's leading pill.
   String get modeLabel => switch (mode) {
     BookingDateMode.all => 'All dates',
     BookingDateMode.day => 'Day',
@@ -145,12 +114,6 @@ final class BookingDateFilter extends Equatable {
     return 'Until ${AppDateFormat.format(to!, _shortDayPattern)}';
   }
 
-  /// The date parameters this window contributes to a booking-list request.
-  ///
-  /// `from_date`/`to_date` are filled in every mode, day and month included —
-  /// they *are* the window, and `date`/`month` are only that mode's own
-  /// shorthand for it. So the server needs one date-range implementation, not
-  /// three, and reads `date_filter` only to know what it was asked for.
   Map<String, dynamic> toQueryParameters() => <String, dynamic>{
     'date_filter': mode.query,
     if (mode == BookingDateMode.day) 'date': _ymd(anchor),

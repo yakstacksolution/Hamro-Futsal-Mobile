@@ -12,30 +12,16 @@ import 'package:intl/intl.dart';
 import 'package:scroll_datetime_picker/scroll_datetime_picker.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Variants supported by [showCustomDatePicker]. Each variant ships with
-/// sensible defaults for min/max/initial dates, title, and display format so
-/// callers only need to pick a type for the common cases.
 enum CustomDatePickerType {
-  /// Past-only picker tuned for capturing a user's date of birth.
   dateOfBirth,
 
-  /// Any date in the past (e.g. payment date, document issue date).
   pastDate,
 
-  /// Any date in the future (e.g. expiry date, scheduled booking).
   futureDate,
 
-  /// Unrestricted picker covering a wide window around today.
   anyDate,
 }
 
-/// Single entry point for every in-app date picker. The [type] resolves the
-/// default bounds, title, and date format; callers can still override any of
-/// them via [initialDate], [minDate], [maxDate], [title], and [dateFormat].
-///
-/// Follows the reader's calendar ([AppCalendarController]) unless [calendar]
-/// is given: AD shows the wheel sheet, BS the Bikram Sambat calendar. Either
-/// way the result is a Gregorian date, so callers need no changes.
 Future<DateTime?> showCustomDatePicker(
   BuildContext context, {
   CustomDatePickerType type = CustomDatePickerType.anyDate,

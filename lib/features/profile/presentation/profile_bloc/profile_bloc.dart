@@ -297,8 +297,6 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     };
   }
 
-  /// Points the app's pickers and dates at the profile's calendar. Skipped
-  /// while the server does not send `use_nepali_calendar`.
   void _applyCalendar(UserData user) {
     final bool? useNepali = user.useNepaliCalendar;
     if (useNepali == null) return;

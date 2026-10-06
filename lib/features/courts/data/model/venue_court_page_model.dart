@@ -19,8 +19,6 @@ final class VenueCourtPageModel extends Equatable {
   final int perPage;
   final int total;
 
-  /// 1-based index of the first and last venue of this page within [total].
-  /// Both are 0 when the page came back empty.
   final int from;
   final int to;
   final bool hasMorePages;

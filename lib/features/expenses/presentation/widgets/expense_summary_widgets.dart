@@ -10,8 +10,6 @@ import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_comm
 import 'package:syncfusion_flutter_charts/sparkcharts.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Total-spend hero card: animated count-up total, per-day/entries subtitle
-/// and a sparkline of the server-computed trend series.
 class ExpenseHeroCard extends StatelessWidget {
   const ExpenseHeroCard({super.key, required this.report});
 
@@ -100,7 +98,6 @@ class ExpenseHeroCard extends StatelessWidget {
   }
 }
 
-/// Percentage delta pill — red when spend went up, green when it went down.
 class ExpenseTrendPill extends StatelessWidget {
   const ExpenseTrendPill({super.key, required this.value, required this.up});
 
@@ -147,7 +144,6 @@ class ExpenseKpiGrid extends StatelessWidget {
 
   final ExpenseReport report;
 
-  /// Tiles per row; by default four on desktop and two otherwise.
   final int? columns;
 
   @override

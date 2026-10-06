@@ -7,12 +7,10 @@ sealed class VendorOpsEvent extends Equatable {
   List<Object?> get props => <Object?>[];
 }
 
-/// Loads the vendor's courts, then the selected date's bookings.
 final class VendorOpsStarted extends VendorOpsEvent {
   const VendorOpsStarted();
 }
 
-/// Moves the whole dashboard to [date], keeping filters and the selection.
 final class VendorOpsDateChanged extends VendorOpsEvent {
   const VendorOpsDateChanged(this.date);
 
@@ -22,8 +20,6 @@ final class VendorOpsDateChanged extends VendorOpsEvent {
   List<Object?> get props => <Object?>[date];
 }
 
-/// Refetches the date's bookings. [completer] resolves when it is done, for
-/// pull-to-refresh.
 final class VendorOpsRefreshed extends VendorOpsEvent {
   const VendorOpsRefreshed({
     this.silent = false,
@@ -39,7 +35,6 @@ final class VendorOpsRefreshed extends VendorOpsEvent {
   List<Object?> get props => <Object?>[silent, background, completer];
 }
 
-/// Empty means every venue.
 final class VendorOpsVenuesFiltered extends VendorOpsEvent {
   const VendorOpsVenuesFiltered(this.venueIds);
 
@@ -49,7 +44,6 @@ final class VendorOpsVenuesFiltered extends VendorOpsEvent {
   List<Object?> get props => <Object?>[venueIds];
 }
 
-/// Empty means every court of the selected venues.
 final class VendorOpsCourtsFiltered extends VendorOpsEvent {
   const VendorOpsCourtsFiltered(this.courtIds);
 
@@ -86,7 +80,6 @@ final class VendorOpsVenueCollapsed extends VendorOpsEvent {
   List<Object?> get props => <Object?>[venueId];
 }
 
-/// Adds a free slot to the selection, or removes it if already selected.
 final class VendorOpsSlotToggled extends VendorOpsEvent {
   const VendorOpsSlotToggled(this.cell);
 
@@ -109,8 +102,6 @@ final class VendorOpsSelectionCleared extends VendorOpsEvent {
   const VendorOpsSelectionCleared();
 }
 
-/// Switches the availability section between the day board and the
-/// per-court week table.
 final class VendorOpsViewChanged extends VendorOpsEvent {
   const VendorOpsViewChanged(this.view);
 
@@ -120,7 +111,6 @@ final class VendorOpsViewChanged extends VendorOpsEvent {
   List<Object?> get props => <Object?>[view];
 }
 
-/// Picks the court the week table shows.
 final class VendorOpsWeekCourtChanged extends VendorOpsEvent {
   const VendorOpsWeekCourtChanged(this.courtId);
 
@@ -130,7 +120,6 @@ final class VendorOpsWeekCourtChanged extends VendorOpsEvent {
   List<Object?> get props => <Object?>[courtId];
 }
 
-/// Sets where the Week table's days begin.
 final class VendorOpsWeekStartChanged extends VendorOpsEvent {
   const VendorOpsWeekStartChanged(this.mode);
 

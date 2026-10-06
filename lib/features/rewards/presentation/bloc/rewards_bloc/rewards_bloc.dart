@@ -10,10 +10,6 @@ import 'package:hamro_futsal/features/rewards/domain/usecase/rewards_usecase.dar
 part 'rewards_event.dart';
 part 'rewards_state.dart';
 
-/// Owns the reward wallet, its paginated history and coupon generation.
-///
-/// Summary and history are tracked with separate statuses so a failing history
-/// page never blanks out a balance that loaded fine.
 class RewardsBloc extends Bloc<RewardsEvent, RewardsState> {
   RewardsBloc(this._useCase, {int perPage = 20})
     : _perPage = perPage,

@@ -7,7 +7,6 @@ sealed class PaymentQrEvent extends Equatable {
   List<Object?> get props => <Object?>[];
 }
 
-/// Fetches the payment QR for [courtId] (`GET /courts/{court_id}/payment-qr`).
 class LoadPaymentQrEvent extends PaymentQrEvent {
   const LoadPaymentQrEvent(this.courtId);
 

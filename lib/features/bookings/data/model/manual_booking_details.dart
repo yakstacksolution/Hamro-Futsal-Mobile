@@ -13,8 +13,6 @@ class ManualBookingDetails {
   final String customerName;
   final String customerPhone;
 
-  /// What the booking should cost, when the counter agreed a price the slot
-  /// rates do not produce. Null leaves the pricing to the server.
   final double? totalAmount;
   final String paymentMethod;
   final String paymentType;

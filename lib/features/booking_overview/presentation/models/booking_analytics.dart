@@ -12,7 +12,6 @@ extension BookingPeriodLabel on BookingPeriod {
     BookingPeriod.custom => 'Custom',
   };
 
-  /// The `date_filter` query value the API expects.
   String get key => name;
 
   static BookingPeriod fromKey(String? key) {
@@ -39,7 +38,6 @@ class BookingRange {
 
   int get days => end.difference(start).inDays.clamp(1, 400);
 
-  /// Builds a range from the API's inclusive `date_from`/`date_to` strings.
   factory BookingRange.fromApi(String from, String to) {
     final start = DateTime.tryParse(from) ?? DateTime.now();
     final end = DateTime.tryParse(to) ?? start;
@@ -50,9 +48,6 @@ class BookingRange {
   }
 }
 
-/// Presentation-facing view over the server's pre-computed overview payload.
-/// Every widget reads from these getters, so the raw API shape stays contained
-/// to the data layer.
 class BookingAnalytics {
   BookingAnalytics({
     required this.data,
@@ -76,29 +71,22 @@ class BookingAnalytics {
   double get avgPaidBookingValue => data.summary.avgRevenuePerPaidBooking;
   double get avgBookingValue => data.summary.avgRevenuePerBooking;
 
-  /// 0..1
   double get occupancy =>
       (data.summary.occupancyPercentage / 100).clamp(0.0, 1.0);
 
-  /// Server-computed profit margin, in percent.
   double get profitMargin => data.netProfit.margin;
 
-  /// Server-computed revenue change vs the previous period, in percent.
   double get revenueChangePct => data.netEarnings.changePercentage;
 
-  /// `Sep 21 - Sep 27 · 9 bookings · NPR 8,400`, straight from the server.
   String get summaryLine => data.header.summaryLine;
 
-  /// KPI tile from `overview.snapshot`, or null if the server omitted it.
   OverviewCard? card(String key) => data.cards[key];
 
-  /// Server subtext for a KPI tile, or [fallback] when missing/blank.
   String cardSubtext(String key, String fallback) {
     final String sub = data.cards[key]?.subtext ?? '';
     return sub.isEmpty ? fallback : sub;
   }
 
-  /// Server label for a KPI tile, or [fallback] when missing/blank.
   String cardLabel(String key, String fallback) {
     final String label = data.cards[key]?.label ?? '';
     return label.isEmpty ? fallback : label;
@@ -119,7 +107,6 @@ class BookingAnalytics {
 
   double get cancelRate => totalBookings == 0 ? 0 : cancelled / totalBookings;
 
-  /// Status rows in server order; falls back to every status at zero.
   List<StatusMixEntry> get statusMix => data.statusMix.isNotEmpty
       ? data.statusMix
       : [
@@ -146,8 +133,6 @@ class BookingAnalytics {
   List<int> get series =>
       data.trend.buckets.map((b) => b.value).toList(growable: false);
 
-  /// The server's labels — rewritten as Nepali dates in the Nepali calendar
-  /// where a bucket names its day. Day names (`Mon`) read the same in both.
   List<String> get seriesLabels => data.trend.buckets
       .map(
         (b) => AppDateFormat.isBs && b.date != null
@@ -162,7 +147,6 @@ class BookingAnalytics {
   String get seriesLabel =>
       data.trend.chartTitle.isEmpty ? 'Revenue' : data.trend.chartTitle;
 
-  /// `Avg NPR 1,200` from the server, computed from the buckets otherwise.
   String get averageLabel {
     if (data.trend.averageLabel.isNotEmpty) return data.trend.averageLabel;
     final values = series;

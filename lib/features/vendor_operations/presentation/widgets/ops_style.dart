@@ -4,16 +4,8 @@ import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 
-/// Opens a booking's details without leaving the page.
 typedef OpsBookingTap = void Function(BookingModel booking);
 
-/// How each board state looks. Every state carries an icon and a label as
-/// well as a colour, so the board reads without relying on colour alone.
-///
-/// On the board's boxes: green to sell (light when free, solid when
-/// picked), solid red when booked, light red when closed, grey once the time
-/// has gone. The booking's phase (pending, confirmed, …) is spelled out on
-/// the box and in its details, in [opsPhaseStyle]'s colours.
 @immutable
 class OpsCellStyle {
   const OpsCellStyle({
@@ -31,7 +23,6 @@ class OpsCellStyle {
   final Color border;
   final Color foreground;
 
-  /// A filled box with light text on it.
   final bool solid;
 }
 
@@ -52,8 +43,6 @@ OpsCellStyle opsSelectedStyle() => OpsCellStyle(
   solid: true,
 );
 
-/// Every booked box, whatever the booking's phase: solid red, with the
-/// phase's own icon and label.
 OpsCellStyle opsBookedStyle([OpsBookingPhase? phase]) {
   final OpsCellStyle? of = phase == null ? null : opsPhaseStyle(phase);
   return OpsCellStyle(
@@ -74,7 +63,6 @@ OpsCellStyle opsClosedStyle() => OpsCellStyle(
   foreground: LightColor.onRedLightColor,
 );
 
-/// Time gone by — slots that can no longer be sold.
 OpsCellStyle opsPastStyle() => OpsCellStyle(
   label: 'Past',
   icon: Icons.history_rounded,
@@ -167,14 +155,11 @@ IconData opsPaymentIcon(OpsPaymentState state) {
   }
 }
 
-/// A compact price for a slot: `1,200` — the currency is implied on the
-/// board and spelled out everywhere money is totalled.
 String opsCompactPrice(double? price) {
   if (price == null) return '—';
   return Money.npr(price).replaceFirst('NPR ', '');
 }
 
-/// Payment state as a small labelled dot.
 class OpsPaymentBadge extends StatelessWidget {
   const OpsPaymentBadge({
     super.key,
@@ -185,11 +170,8 @@ class OpsPaymentBadge extends StatelessWidget {
 
   final OpsPaymentState state;
 
-  /// Icon only, for tight board cells; the label is still announced.
   final bool compact;
 
-  /// Sits on a filled box (a booked slot): the icon gets a light disc so
-  /// red, amber and green all still show on red.
   final bool onSolid;
 
   @override
@@ -230,13 +212,9 @@ class OpsPaymentBadge extends StatelessWidget {
   }
 }
 
-/// A key of the board's states.
-/// A key of the board's states: two even rows that scroll sideways, so it
-/// stays two lines tall on any screen.
 class OpsLegend extends StatelessWidget {
   const OpsLegend({super.key});
 
-  /// Every item gets the same width, so the two rows line up as columns.
   static const double _itemWidth = 104;
   static const double _rowGap = 6;
 
@@ -306,9 +284,6 @@ class OpsLegend extends StatelessWidget {
   }
 }
 
-/// Courts' weeks from the server did not load: what shows is worked out from
-/// the courts' own schedules, which cannot show holds or blocks set
-/// elsewhere.
 class OpsLiveSlotsNotice extends StatelessWidget {
   const OpsLiveSlotsNotice({super.key, required this.onRetry});
 

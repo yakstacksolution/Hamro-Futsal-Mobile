@@ -12,10 +12,6 @@ import 'package:hamro_futsal/features/bookings/domain/usecase/get_bookings_use_c
 import 'package:hamro_futsal/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
 import 'package:hamro_futsal/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 
-/// Picker for the "I have already booked a venue" branch: lists the courts the
-/// user has already booked (upcoming, not cancelled) so the request reuses a
-/// real booking instead of re-typing the venue. Pops with the tapped booking,
-/// or null when dismissed.
 Future<BookingModel?> showExistingBookingSheet(BuildContext context) {
   return showModalBottomSheet<BookingModel>(
     context: context,
@@ -47,8 +43,6 @@ class _ExistingBookingSheet extends StatefulWidget {
 class _ExistingBookingSheetState extends State<_ExistingBookingSheet> {
   String _query = '';
 
-  /// Only bookings that can still host a match: confirmed or pending, and not
-  /// already in the past.
   List<BookingModel> _selectable(List<BookingModel> all) {
     final DateTime cutoff = DateTime.now().subtract(const Duration(hours: 3));
     final String q = _query.trim().toLowerCase();

@@ -21,20 +21,14 @@ import 'package:hamro_futsal/features/profile/presentation/widgets/vendor_reques
 import 'package:hamro_futsal/features/rewards/presentation/widgets/profile_rewards_badge.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Space above and below the app-version line, so it sits centred in its own
-/// gap instead of hanging off the last section.
 const double _kVersionGap = AppDimens.paddingX22;
 
-/// Tablet: one centred column at this width.
 const double _kSingleColumnMaxWidth = 720;
 
-/// Desktop: the profile card and the menu side by side, up to this width.
 const double _kTwoColumnMaxWidth = 1120;
 
-/// Content width from which the two-column layout is used.
 const double _kTwoColumnFrom = 860;
 
-/// Desktop: width of the profile card's column.
 const double _kSideColumnWidth = 320;
 
 class ProfilePage extends StatefulWidget {
@@ -79,9 +73,6 @@ class _ProfilePageState extends State<ProfilePage> {
     ),
   ];
 
-  /// The vendor section. A test account has no real money behind it, so
-  /// finance and payouts are left out for one rather than opened onto an
-  /// empty ledger.
   List<_ProfileItem> _vendorItems(UserData? user) => <_ProfileItem>[
     _ProfileItem(
       title: StringConstants.yourVenues,
@@ -159,9 +150,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  /// Pull to refresh: re-fetches the signed-in user's profile only. Resolves
-  /// once the fetch settles so the indicator tracks the real request; the
-  /// profile already on screen stays put meanwhile.
   Future<void> _refreshProfile() async {
     final ProfileBloc bloc = context.read<ProfileBloc>();
     if (bloc.state.status != ProfileStatus.loading) {
@@ -555,8 +543,6 @@ class _ProfileRow extends StatelessWidget {
   }
 }
 
-/// Desktop: the signed-in user as a card heading the left column — a larger
-/// avatar, name and email, and a button to the full profile.
 class _ProfileSideCard extends StatelessWidget {
   const _ProfileSideCard({
     required this.profile,

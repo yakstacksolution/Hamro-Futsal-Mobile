@@ -9,12 +9,6 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/attachment_viewer.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/payment_qr_model.dart';
 
-/// Manual-payment QR card — the QR image (tap to zoom), payee details, note,
-/// and an emphasized amount row. Shared by booking checkout and the
-/// opponent-request accept flow.
-///
-/// A court with several QRs (eSewa, a bank, ...) shows them as a swipeable
-/// carousel with a page indicator; zoom and save act on the QR in view.
 class PaymentQrCard extends StatefulWidget {
   const PaymentQrCard({
     super.key,
@@ -27,11 +21,9 @@ class PaymentQrCard extends StatefulWidget {
 
   final PaymentQrModel? qr;
 
-  /// True while the QR is still being fetched — shows a spinner placeholder.
   final bool isLoading;
   final String fallbackPayeeName;
 
-  /// Amount row under the divider, e.g. "Advance to pay" / "Rs 300".
   final String? amountLabel;
   final String? amountValue;
 
@@ -46,7 +38,6 @@ class _PaymentQrCardState extends State<PaymentQrCard> {
   List<PaymentQrImage> get _images =>
       widget.qr?.images ?? const <PaymentQrImage>[];
 
-  /// The QR in view, or null when there is none to show.
   PaymentQrImage? get _current {
     final List<PaymentQrImage> images = _images;
     if (images.isEmpty) return null;
@@ -76,7 +67,6 @@ class _PaymentQrCardState extends State<PaymentQrCard> {
     return (name != null && name.isNotEmpty) ? name : widget.fallbackPayeeName;
   }
 
-  /// [image], filling whatever square box the caller gives it.
   Widget _qrImage(PaymentQrImage? image) {
     if (image != null && image.bytes != null) {
       return Image.memory(
@@ -135,11 +125,6 @@ class _PaymentQrCardState extends State<PaymentQrCard> {
     );
   }
 
-  /// Save action for [image], or nothing when there is no QR to save.
-  ///
-  /// The QR is what the player scans in their banking app, and that app is not
-  /// this one — so keeping the image is the whole point, exactly as it is for a
-  /// payment proof on the booking-details card.
   Widget? _downloadAction(PaymentQrImage? image, {Color? color}) {
     if (image == null || !image.hasImage) return null;
     return AttachmentDownloadAction(
@@ -154,8 +139,6 @@ class _PaymentQrCardState extends State<PaymentQrCard> {
     );
   }
 
-  /// A payee-stamped name, so QRs for two venues — or two QRs of one venue —
-  /// do not collide in the user's files.
   String _fileName(PaymentQrImage image) {
     final String payee = _payeeName
         .trim()
@@ -203,7 +186,6 @@ class _PaymentQrCardState extends State<PaymentQrCard> {
     );
   }
 
-  /// The QR box: a single image, or a swipeable pager when there are several.
   Widget _qrViewport(BuildContext context) {
     final List<PaymentQrImage> images = _images;
     if (images.length <= 1) {
@@ -224,7 +206,6 @@ class _PaymentQrCardState extends State<PaymentQrCard> {
     );
   }
 
-  /// "1 of 2" with dots under a multi-QR carousel; tapping a dot jumps to it.
   Widget _pageIndicator(BuildContext context) {
     final int count = _images.length;
     final textTheme = FutsalTheme.getTextTheme(context);

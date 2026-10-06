@@ -32,8 +32,6 @@ const List<String> weekdayOptions = <String>[
 // and could not read the "06 : 00 PM" the time field returns — so an hourly
 // closure could never be applied.
 
-/// A closure time for display, e.g. "6:00 PM", whichever format it was stored
-/// in (picked in the app, or "06:00" from the server).
 String _displayTime(String value) {
   final TimeOfDay? time = timeOfDayFromString(value);
   if (time == null) return value.trim();
@@ -183,7 +181,6 @@ class _SlotScheduleViewState extends State<_SlotScheduleView> {
   }
 }
 
-/// Inline loading indicator shown while the slot list is being fetched.
 class _SlotsLoadingIndicator extends StatelessWidget {
   const _SlotsLoadingIndicator();
 
@@ -204,8 +201,6 @@ class _SlotsLoadingIndicator extends StatelessWidget {
   }
 }
 
-/// Delete-confirmation dialog whose action button shows a loading state while
-/// the slot is being deleted, and only closes once the backend confirms.
 class _SlotDeleteDialog extends StatefulWidget {
   const _SlotDeleteDialog({required this.onConfirm});
 
@@ -311,8 +306,6 @@ class _SlotDeleteDialogState extends State<_SlotDeleteDialog> {
   }
 }
 
-/// Read-only slot summary row with an Update / Delete menu. Editing happens in
-/// the [_SlotFormSheet] bottom sheet.
 class _SlotListTile extends StatelessWidget {
   const _SlotListTile({
     super.key,
@@ -326,8 +319,6 @@ class _SlotListTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  /// Secondary line under the slot name. Defaults to the booking days; the
-  /// pricing sub-step passes a price summary instead.
   final String? infoText;
 
   @override
@@ -543,9 +534,6 @@ class _SlotListTile extends StatelessWidget {
   }
 }
 
-/// Bottom sheet to create or edit a slot (label, booking days, start/end time).
-/// Performs the save itself so the action button can show a loading state and
-/// the sheet only closes once the backend confirms success.
 class _SlotFormSheet extends StatefulWidget {
   const _SlotFormSheet({required this.cubit, this.slot});
 
@@ -802,7 +790,6 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
 String _slotDisplayTitle(SlotPricingDraft slot) =>
     slot.label.trim().isEmpty ? 'Untitled slot' : slot.label.trim();
 
-/// `NPR 100` or `10%` — a discount reads differently depending on its type.
 String _discountAmountLabel(SlotPricingDraft slot) {
   final double? value = slot.discountPrice;
   if (value == null) return '—';
@@ -811,11 +798,9 @@ String _discountAmountLabel(SlotPricingDraft slot) {
       : Money.npr(value);
 }
 
-/// The short form worn on the tile: `-NPR 100` / `-10%`.
 String _discountTagLabel(SlotPricingDraft slot) =>
     '-${_discountAmountLabel(slot)}';
 
-/// A small tinted tag beside a slot's name.
 class _SlotTag extends StatelessWidget {
   const _SlotTag({required this.label, required this.color});
 
@@ -861,9 +846,6 @@ String _slotDaysSummary(SlotPricingDraft slot) {
   return ordered.join(', ');
 }
 
-/// Compact dropdown used by both the slot schedule and pricing sub-steps to
-/// quickly jump to a single slot (or show all). Each entry shows the slot name,
-/// time, and booking days; [selectedId] of null means "All slots".
 class _SlotFilterDropdown extends StatelessWidget {
   const _SlotFilterDropdown({
     required this.slots,
@@ -1226,11 +1208,6 @@ class _SlotPricingViewState extends State<_SlotPricingView> {
     );
   }
 
-  /// Price summary shown under the slot name in place of booking days.
-  ///
-  /// The base price is part of it: a slot priced only at weekends used to read
-  /// as though it had no weekday price at all. The discount follows the slot's
-  /// own switch, not a leftover amount.
   String _pricingSummary(SlotPricingDraft slot) {
     final List<String> parts = <String>[];
     final double? basePrice = slot.price ?? widget.court.basePrice;
@@ -1309,9 +1286,6 @@ class _SlotPricingViewState extends State<_SlotPricingView> {
   }
 }
 
-/// Bottom sheet to update a slot's pricing (weekend / holiday / discount and
-/// custom date prices). Edits a working copy and saves via the cubit, only
-/// closing once the backend confirms success.
 class _SlotPricingSheet extends StatefulWidget {
   const _SlotPricingSheet({
     required this.cubit,
@@ -1347,8 +1321,6 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
     });
   }
 
-  /// Turning the discount off clears what it was, so a slot never carries a
-  /// half-set discount the vendor cannot see. Turning it back on starts blank.
   void _setDiscountEnabled(bool enabled) {
     FocusScope.of(context).unfocus();
     if (enabled) {
@@ -1365,9 +1337,6 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
     );
   }
 
-  /// Date first, then time — one moment, picked in two steps, using the same
-  /// pickers as the rest of the app. Backing out of either step leaves the
-  /// field untouched.
   Future<void> _pickDiscountMoment({required bool isStart}) async {
     FocusScope.of(context).unfocus();
     final DateTime? existing = isStart
@@ -1706,11 +1675,6 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
   }
 }
 
-/// One end of the discount window: a tappable field showing the chosen moment,
-/// or "Any time" when that end is open.
-///
-/// Both ends are optional — a discount with no window runs for as long as it
-/// is switched on — so each carries a clear button rather than forcing a date.
 class _DiscountWindowField extends StatelessWidget {
   const _DiscountWindowField({
     required this.label,
@@ -2236,9 +2200,6 @@ class _ClosedDateCollectionCard extends StatelessWidget {
     this.blockedDates = const <String, String>{},
   });
 
-  /// Dates the API refused on the last save, keyed by `yyyy-MM-dd`, with the
-  /// server's reason. Those chips are drawn in the error colour and the reasons
-  /// are listed under the card, so the vendor can see which day to drop.
   final Map<String, String> blockedDates;
   final String title;
   final String subtitle;
@@ -2449,7 +2410,6 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
   late DateTime _visibleMonth;
   String? _selectedDate;
 
-  /// Set when Apply is tapped with no date, cleared once one is picked.
   bool _highlightMissingDate = false;
   bool _isFullDay = true;
   // In the field's own format, so the defaults read like a picked time.
@@ -2699,7 +2659,6 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
     );
   }
 
-  /// Why the closure cannot be applied yet, or null when it can.
   String? get _applyBlocker {
     if (_selectedDate == null) return StringConstants.selectClosureDate;
     if (_isFullDay) return null;
@@ -3119,8 +3078,6 @@ String _formatIsoDate(DateTime date) {
   return '${date.year}-$month-$day';
 }
 
-/// A stored `yyyy-MM-dd` date as shown in a chip: unchanged in AD, written
-/// in BS when the user reads Bikram Sambat.
 String _displayIsoDate(String iso) {
   final DateTime? date = AppDateFormat.isBs ? DateTime.tryParse(iso) : null;
   return date == null ? iso : AppDateFormat.date(date);

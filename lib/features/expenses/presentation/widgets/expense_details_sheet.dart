@@ -10,8 +10,6 @@ import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_utils.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Bottom sheet showing an expense's full details with edit and delete
-/// actions. Pops with [editAction] or [deleteAction] accordingly.
 class ExpenseDetailsSheet extends StatelessWidget {
   const ExpenseDetailsSheet({
     super.key,
@@ -175,8 +173,6 @@ class ExpenseDetailsSheet extends StatelessWidget {
   }
 }
 
-/// Inline preview of the attached document: images render as a photo;
-/// PDFs / Word files render as a file row.
 class _DocumentPreview extends StatelessWidget {
   const _DocumentPreview({required this.document});
 
@@ -256,7 +252,6 @@ class _DocumentPreview extends StatelessWidget {
   }
 }
 
-/// Outlined action button used by the sheet footer (Edit / Delete).
 class _SheetAction extends StatelessWidget {
   const _SheetAction({
     required this.label,

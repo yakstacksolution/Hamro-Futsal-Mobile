@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart' show ResponseType;
 import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
 import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_futsal/core/api/api_client/result.dart';
@@ -37,7 +38,6 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/me');
   }
 
-  /// Permanently deletes the signed-in user's account.
   Future<Result> deleteAccount({required Map<String, dynamic> data}) {
     return _delete(url: '$_baseUrl/auth/account', data: data);
   }
@@ -309,7 +309,6 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/settlement-breakdown');
   }
 
-  /// Payment QRs the platform accepts a commission payment on.
   Future<Result> getQrCodes() {
     return _get(url: '$_baseUrl/auth/qr-codes');
   }
@@ -321,8 +320,6 @@ class ApiClient {
     );
   }
 
-  /// The account ledger, paged. Backs the full "Account statement" screen;
-  /// the account summary carries only a short preview of the same rows.
   Future<Result> getSettlementRecentActivity({Map<String, dynamic>? query}) {
     return _get(
       url: '$_baseUrl/auth/settlement-recent-activity',
@@ -398,8 +395,6 @@ class ApiClient {
     );
   }
 
-  /// Editing a group: its name (`title`), its picture (`image_id`), or both.
-  /// The server returns the updated conversation.
   Future<Result> updateConversation({
     required int conversationId,
     required dynamic data,
@@ -410,14 +405,10 @@ class ApiClient {
     );
   }
 
-  /// Leaving a group the signed-in user is a member of. The server drops them
-  /// from `participants` and keeps the conversation for everyone else.
   Future<Result> leaveConversation({required int conversationId}) {
     return _post(url: '$_baseUrl/conversations/$conversationId/leave');
   }
 
-  /// Answering a group invitation. `accept` joins the conversation; the
-  /// decline endpoint drops the user from it.
   Future<Result> respondToConversationInvitation({
     required int conversationId,
     required bool accept,
@@ -437,7 +428,6 @@ class ApiClient {
     return _get(url: '$_baseUrl/presence/$userId');
   }
 
-  /// Public profile of a chat counterpart — name, address, gender and image.
   Future<Result> getMessageProfile({required int userId}) {
     return _get(url: '$_baseUrl/message-profile/$userId');
   }
@@ -540,7 +530,6 @@ class ApiClient {
     return _get(url: '$_baseUrl/hosted-by/$venueId');
   }
 
-  /// One page of a venue's reviews, newest first as the server orders them.
   Future<Result> getVenueReviews({
     required int venueId,
     int page = 1,
@@ -552,8 +541,6 @@ class ApiClient {
     );
   }
 
-  /// Asks the venue's admin to let the signed-in user edit or delete their own
-  /// review. `data` carries `request_type` (`edit`/`delete`) and `reason`.
   Future<Result> submitReviewChangeRequest({
     required int reviewId,
     required Map<String, dynamic> data,
@@ -561,8 +548,6 @@ class ApiClient {
     return _post(url: '$_baseUrl/reviews/$reviewId/change-request', data: data);
   }
 
-  /// Addressed by the venue's slug, not its id — the slug is the venue's
-  /// public identifier, and it is what a shared link carries.
   Future<Result> getVenueDescription({required String venueSlug}) {
     return _get(
       url: '$_baseUrl/venue-description/${Uri.encodeComponent(venueSlug)}',
@@ -596,9 +581,6 @@ class ApiClient {
     );
   }
 
-  /// [bookingType] scopes what the server reports as bookable: a vendor's
-  /// walk-in (`manual`) may see slots a player's own booking (`regular`)
-  /// cannot.
   Future<Result> getVenueSlots({
     required int venueId,
     required String date,
@@ -687,8 +669,6 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/court/$courtId');
   }
 
-  /// One court's slots with their status for every day from [startDate] to
-  /// [endDate] (`yyyy-MM-dd`, inclusive) — the vendor Week table.
   Future<Result> getCourtAvailabilitySlots({
     int? venueId,
     int? courtId,
@@ -794,14 +774,6 @@ class ApiClient {
     );
   }
 
-  /// [status] is the endpoint's own filter — `all`, `pending`, `confirmed`,
-  /// `completed`, `cancelled` or `rejected`. Filtering on the server rather
-  /// than over the page in hand: a status filtered on-device only ever sees
-  /// the rows already fetched, so it hid matches sitting on later pages.
-  /// [query] is the whole payload, built by `BookingListQuery` — page,
-  /// per_page, status, the date window and the sort order. Passed through
-  /// rather than reassembled here so the two booking endpoints cannot drift
-  /// apart, and so the contract is testable without a socket.
   Future<Result> getMyBookings({required Map<String, dynamic> query}) {
     return _get(url: '$_baseUrl/bookings', query: query);
   }
@@ -810,8 +782,6 @@ class ApiClient {
     return _get(url: '$_baseUrl/bookings/$bookingId');
   }
 
-  /// Same `status` filter as [getMyBookings].
-  /// Same payload as [getMyBookings].
   Future<Result> getFutsalBookings({required Map<String, dynamic> query}) {
     return _get(url: '$_baseUrl/futsal-bookings', query: query);
   }
@@ -820,29 +790,30 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/candidates', query: query);
   }
 
-  /// Aggregated booking analytics. All filter params are optional — omit the
-  /// [query] entirely to let the server apply its default window.
   Future<Result> getBookingOverview({Map<String, dynamic>? query}) {
     return _get(url: '$_baseUrl/booking-overview', query: query);
+  }
+
+  Future<Result> exportBookingsOverView({Map<String, dynamic>? query}) {
+    return _get(
+      url: '$_baseUrl/booking-overview/export',
+      query: query,
+      responseType: ResponseType.bytes,
+    );
   }
 
   Future<Result> cancelBooking({required int bookingId}) {
     return _delete(url: '$_baseUrl/bookings/$bookingId');
   }
 
-  /// Returns whether the booking is still within its allowed cancellation
-  /// window.
   Future<Result> getBookingCancelBoundary({required int bookingId}) {
     return _get(url: '$_baseUrl/bookings/$bookingId/cancel-boundary');
   }
 
-  /// The review this customer left on the booking, if any. A 404 here is a
-  /// normal answer — it means "not reviewed yet", not a failure.
   Future<Result> getBookingReview({required int bookingId}) {
     return _get(url: '$_baseUrl/bookings/$bookingId/review');
   }
 
-  /// Submits `{ rating, review }` for a completed booking.
   Future<Result> submitBookingReview({
     required int bookingId,
     required Map<String, dynamic> data,
@@ -950,10 +921,6 @@ class ApiClient {
 
   // ── Opponent-match requests ──
 
-  /// One opponent request by id. Authenticated (`/auth`) so the response is
-  /// scoped to the caller — the unauthenticated variant does not answer for a
-  /// request the caller is part of, which is what reading a request back after
-  /// accepting it needs.
   Future<Result> getOpponentRequest({required String requestId}) {
     return _get(url: '$_baseUrl/auth/opponent-requests/$requestId');
   }
@@ -978,9 +945,6 @@ class ApiClient {
     );
   }
 
-  /// Loads one server-defined opponent-request tab. The API must always know
-  /// which slice is requested; `tab=all` is not a valid replacement for the
-  /// `my_requests`, `need_opponent`, and `settled` screens.
   Future<Result> getOpponentRequests({
     required String tab,
     int page = 1,
@@ -1006,9 +970,6 @@ class ApiClient {
     );
   }
 
-  /// Sends the wizard's cost step (step three) — the split rule the accepting
-  /// team sees before it pays. PUT, like the venue step: this replaces a
-  /// section of a request that already exists.
   Future<Result> saveOpponentRequestCost({
     required String requestId,
     required Map<String, dynamic> data,
@@ -1019,12 +980,6 @@ class ApiClient {
     );
   }
 
-  /// Publishes a draft request — the last wizard step, which flips it out of
-  /// `draft` so eligible teams can see it. Only the optional `message` travels;
-  /// every other section was saved by its own step.
-  ///
-  /// POST, unlike the `/venue` and `/cost` steps: publishing is an action on
-  /// the request, not a section being replaced.
   Future<Result> publishOpponentRequest({
     required String requestId,
     required Map<String, dynamic> data,
@@ -1035,8 +990,6 @@ class ApiClient {
     );
   }
 
-  /// Places a single-use accept hold and returns the authoritative advance
-  /// quote + payment QR.
   Future<Result> createOpponentAcceptQuote({
     required String requestId,
     required Map<String, dynamic> data,
@@ -1047,8 +1000,6 @@ class ApiClient {
     );
   }
 
-  /// Finalizes the accept — multipart [data] carries the hold token, team and
-  /// the `payment_proof` file.
   Future<Result> acceptOpponentRequest({
     required String requestId,
     required dynamic data,
@@ -1059,9 +1010,6 @@ class ApiClient {
     );
   }
 
-  /// The confirmed match behind a settled request: fixture, linked venue,
-  /// agreed split and the chat room the server opened with it. Only answers
-  /// once an opponent has been selected.
   Future<Result> getOpponentMatchDetails({required String requestId}) {
     return _get(
       url: '$_baseUrl/auth/opponent-requests/$requestId/match-details',
@@ -1088,9 +1036,6 @@ class ApiClient {
     );
   }
 
-  /// Requester confirms one of the teams that accepted: the match is created
-  /// with that invitation and every other invitation on the request is
-  /// rejected by the server.
   Future<Result> acceptOpponentInvitation({
     required String requestId,
     required String invitationId,
@@ -1106,12 +1051,10 @@ class ApiClient {
     return _post(url: '$_baseUrl/opponent-requests/$requestId/decline');
   }
 
-  /// Requester approves the accepter's advance-payment proof.
   Future<Result> verifyOpponentPayment({required String requestId}) {
     return _patch(url: '$_baseUrl/opponent-requests/$requestId/payment/verify');
   }
 
-  /// Requester rejects the proof — the request re-opens for other teams.
   Future<Result> rejectOpponentPayment({
     required String requestId,
     required Map<String, dynamic> data,
@@ -1122,8 +1065,6 @@ class ApiClient {
     );
   }
 
-  /// Removes one of my own requests — drafts included. Owner-scoped, hence the
-  /// `/auth` path.
   Future<Result> deleteOpponentRequest({required String requestId}) {
     return _delete(url: '$_baseUrl/auth/opponent-requests/$requestId');
   }
@@ -1132,6 +1073,7 @@ class ApiClient {
     required String url,
     Map<String, dynamic>? query,
     dynamic data,
+    ResponseType? responseType,
   }) {
     return _apiCallWrapper.makeRequest(
       url: url,
@@ -1139,6 +1081,7 @@ class ApiClient {
       method: HttpVerb.get,
       query: query,
       data: data,
+      responseType: responseType,
     );
   }
 

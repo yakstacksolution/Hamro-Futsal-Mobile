@@ -33,8 +33,6 @@ class VendorOnboardingStepContent extends StatelessWidget {
   final double errorSpacing;
   final double contentSpacing;
 
-  /// False when the steps are shown in a [VendorOnboardingStepRail] beside
-  /// the form instead (desktop).
   final bool showStepper;
 
   @override
@@ -99,8 +97,6 @@ class VendorOnboardingStepContent extends StatelessWidget {
   }
 }
 
-/// The desktop step rail for the onboarding's current category, with the
-/// same statuses and navigation as [VendorOnboardingStepContent]'s stepper.
 class VendorOnboardingStepRail extends StatelessWidget {
   const VendorOnboardingStepRail({
     super.key,

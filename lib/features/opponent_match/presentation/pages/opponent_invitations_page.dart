@@ -18,13 +18,9 @@ import 'package:hamro_futsal/features/opponent_match/presentation/pages/opponent
 import 'package:hamro_futsal/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 import 'package:hamro_futsal/features/opponent_match/presentation/widgets/opponent_common.dart';
 
-/// The requester's side of the flow after publishing: every team that accepted
-/// the request arrives here as an invitation. The requester can wait for more,
-/// review each one, then select a single opponent — which rejects the rest.
 class OpponentInvitationsPage extends StatefulWidget {
   const OpponentInvitationsPage({super.key, required this.requestId});
 
-  /// Read from the bloc by id so the page follows list refreshes.
   final String requestId;
 
   @override
@@ -198,8 +194,6 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
                   : null,
             );
 
-            /// The invitations, or what stands in for them. [columns] > 1
-            /// lays the cards out in rows (desktop).
             List<Widget> invitationList({int columns = 1}) {
               if (invitations.isEmpty &&
                   state.isLoadingInvitations(request.id)) {
@@ -397,8 +391,6 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
   static const double _singleColumnMaxWidth = 760;
   static const double _twoColumnMaxWidth = 1200;
 
-  /// The card currently marked for confirmation: the requester's tap, the
-  /// server's selection, or — with a single invitation — that one.
   OpponentInvitationModel? _resolveSelection(OpponentRequestModel request) {
     final OpponentInvitationModel? confirmed = request.selectedInvitation;
     if (confirmed != null) return confirmed;
@@ -410,14 +402,9 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
   }
 }
 
-/// Placeholder cards standing in for the invitations being fetched. Shaped like
-/// the real ones so the list does not jump when they land, and carrying one
-/// spinner so the wait is legible as work in progress.
 class _InvitationsLoading extends StatelessWidget {
   const _InvitationsLoading();
 
-  /// Two is enough to read as a list without pretending to know how many
-  /// invitations are coming.
   static const int _cards = 2;
 
   @override
@@ -476,7 +463,6 @@ class _InvitationsLoading extends StatelessWidget {
   }
 }
 
-/// Grey bar standing in for a line of text that has not arrived.
 class _LoadingBar extends StatelessWidget {
   const _LoadingBar({
     required this.widthFactor,
@@ -502,8 +488,6 @@ class _LoadingBar extends StatelessWidget {
   }
 }
 
-/// Quiet "checking for new invitations" line, shown above a list that already
-/// has rows so a refresh never blanks them out.
 class _RefreshingStrip extends StatelessWidget {
   const _RefreshingStrip();
 
@@ -535,8 +519,6 @@ class _RefreshingStrip extends StatelessWidget {
   }
 }
 
-/// The invitations call failed — say so and offer a retry, rather than showing
-/// the "waiting for acceptances" card for a request that may well have some.
 class _InvitationsError extends StatelessWidget {
   const _InvitationsError({required this.message, required this.onRetry});
 
@@ -575,7 +557,6 @@ class _InvitationsError extends StatelessWidget {
   }
 }
 
-/// Compact reminder of what was published, above the invitation list.
 class _RequestStrip extends StatelessWidget {
   const _RequestStrip({required this.request});
 
@@ -649,11 +630,6 @@ class _InvitationCard extends StatelessWidget {
   final VoidCallback onSelect;
   final VoidCallback? onMessage;
 
-  /// What this team carries of the court fee.
-  ///
-  /// Under a result-keyed rule nothing is owed by a side until the match is
-  /// played, and `yourShare` is 0 for it — so `totalFee - yourShare` quoted the
-  /// whole fee as "their share", which is not what either team agreed to.
   String _shareLine() {
     if (invitation.share > 0) {
       return 'Their share ${OpponentFmt.npr(invitation.share)}';
@@ -668,8 +644,6 @@ class _InvitationCard extends StatelessWidget {
     return 'Their share ${OpponentFmt.npr(request.totalFee - request.yourShare)}';
   }
 
-  /// The subtitle under the team name: who is behind the invitation and when it
-  /// arrived or was answered.
   String _metaLine() => <String>[
     if (invitation.captainName.isNotEmpty) invitation.captainName,
     if (invitation.playerCount > 0) '${invitation.playerCount} players',
@@ -886,7 +860,6 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-/// "Wait for more invitations" state, straight off the diagram's decision.
 class _WaitingCard extends StatelessWidget {
   const _WaitingCard();
 
@@ -1005,14 +978,10 @@ class _SelectFooter extends StatelessWidget {
     required this.onConfirm,
   });
 
-  /// Desktop: a card in the left column rather than a bar across the foot
-  /// of the window.
   final bool inline;
 
   final bool enabled;
 
-  /// The confirm call is in flight — the button spins rather than accepting a
-  /// second tap that would try to confirm the same invitation twice.
   final bool busy;
   final int othersCount;
   final VoidCallback? onConfirm;

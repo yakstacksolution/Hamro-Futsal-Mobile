@@ -6,8 +6,6 @@ import 'package:hamro_futsal/features/bookings/domain/model/paginated_bookings.d
 import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
 
 abstract class BookingRepository {
-  /// [query] carries the whole request: the page, the status, the date
-  /// window and the sort order.
   Future<Either<AppException, PaginatedBookings>> getMyBookings(
     BookingListQuery query,
   );
@@ -19,8 +17,6 @@ abstract class BookingRepository {
 
   Future<Either<AppException, bool>> getCancelBoundary(int bookingId);
 
-  /// The customer's review of this booking, or null when they have not left
-  /// one yet.
   Future<Either<AppException, BookingReviewModel?>> getBookingReview(
     int bookingId,
   );

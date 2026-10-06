@@ -43,20 +43,10 @@ import 'package:hamro_futsal/features/public/presentation/bloc/public_court_opti
 import 'package:hamro_futsal/features/public/presentation/bloc/public_venue/public_venue_bloc.dart';
 import 'package:hamro_futsal/features/opponent_match/presentation/widgets/venue_search_sheet.dart';
 
-/// "Venue already booked?" — the branch that opens the venue step.
 enum _VenuePlan { alreadyBooked, findAvailable }
 
-/// How an already-booked venue is supplied: reuse one of my bookings, or type
-/// the details of a court booked outside the app.
 enum _BookedSource { existingBooking, manual }
 
-/// The wizard steps, in the order of the opponent-request journey:
-/// team + match details → venue → cost split → publish.
-///
-/// Team selection and the match details used to be separate steps. They answer
-/// one question between them — who plays and what kind of match — and both are
-/// short pickers, so they share a step; the venue step keeps its own because of
-/// its two branches.
 enum _Step { match, venue, cost, publish }
 
 extension _StepX on _Step {
@@ -67,7 +57,6 @@ extension _StepX on _Step {
     _Step.publish => 'Publish',
   };
 
-  /// One-line explanation under the title in the desktop step list.
   String get hint => switch (this) {
     _Step.match => 'Your team, format and level',
     _Step.venue => 'Attach the court booking',
@@ -76,22 +65,11 @@ extension _StepX on _Step {
   };
 }
 
-/// Tablet: one centred column for the tracker, form and actions.
 const double _kWizardColumnMaxWidth = 760;
 
-/// Desktop: the step list and the form side by side, up to this width.
 const double _kWizardTwoColumnMaxWidth = 1120;
 const double _kWizardStepListWidth = 280;
 
-/// Full-page wizard to compose and publish one opponent request.
-///
-/// Teams are managed on the "My Teams" tab — here you only pick one.
-/// Pops with `true` after the request is dispatched.
-///
-/// Pass [draft] to resume an unpublished request from "My Requests": its match
-/// section is pre-selected, the wizard opens on the step the backend stopped at
-/// (`main_step`), and the first-step submit patches that request instead of
-/// opening a second one.
 class CreateOpponentRequestPage extends StatefulWidget {
   const CreateOpponentRequestPage({super.key, this.draft});
 
@@ -113,44 +91,29 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   late final PublicVenueBloc _publicVenueBloc;
   late final PublicCourtOptionsBloc _optionsBloc;
 
-  /// Match formats come from their own bloc, so a resumed draft has to watch it
-  /// too — not just the shared [OpponentMatchBloc].
   StreamSubscription<PublicCourtOptionsState>? _optionsSub;
 
   _Step _step = _Step.match;
 
-  /// Armed by a system back press on the first step, and disarmed a couple of
-  /// seconds later. The wizard holds several steps of work, and the OS back
-  /// gesture is easy to trigger by accident, so leaving takes two presses.
   Timer? _exitArmedTimer;
 
   bool get _exitArmed => _exitArmedTimer?.isActive ?? false;
 
   TeamModel? _team;
 
-  /// Selected match format from `/match-formate`. The payload needs its
-  /// server id, so the old local 5v5/6v6/7v7 enum cannot drive this any more.
   PublicOptionModel? _format;
 
-  /// Selected opponent level from `/opponent-levels`; defaults to the first
-  /// fetched level (see [_resolveLevel]) until the user picks one.
   OpponentLevelModel? _level;
   DateTime _date = DateTime.now();
   TimeOfDay _time = const TimeOfDay(hour: 18, minute: 0);
   _VenuePlan _venuePlan = _VenuePlan.alreadyBooked;
   _BookedSource _bookedSource = _BookedSource.existingBooking;
 
-  /// The booked window on the "booked elsewhere" path. The server requires both
-  /// ends for an external venue, so they are part of that branch rather than
-  /// derived from step one's preferred time.
   TimeOfDay _externalStart = const TimeOfDay(hour: 18, minute: 0);
   TimeOfDay _externalEnd = const TimeOfDay(hour: 19, minute: 0);
 
-  /// The booking picked on the already-booked path.
   BookingModel? _existingBooking;
 
-  /// The venue picked on the find-available path, and the slot confirmed for
-  /// it. [_confirmedSlot] is what "Confirm venue booking" produced.
   PublicListingVenueModel? _preferredVenue;
   BookingDraft? _confirmedSlot;
 
@@ -160,30 +123,14 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   int _loserPercent = 70;
   bool _submitted = false;
 
-  /// Resuming a draft: true once every selection the payload described has been
-  /// matched against its lookup list, so the pickers are not re-seeded over a
-  /// choice the user has since changed.
   bool _draftApplied = false;
 
-  /// The court fee the server stored for this request, read back after the
-  /// venue step. Fills the gap when the branch cannot work the fee out locally
-  /// — a platform booking whose total the slot draft never carried, for
-  /// instance — so the cost step shows the real figure instead of nothing.
   int? _serverCourtFee;
 
-  /// True while a summary edit sheet is open. The venue flow can be reached
-  /// from there too, and the sheet owns its own save — so the step must not
-  /// advance underneath it.
   bool _editSheetOpen = false;
 
-  /// Bumped by every [setState]. The summary's edit sheets live on their own
-  /// route, so a page rebuild does not reach them — they listen to this instead
-  /// and re-run the very same section builders step one to three use.
   final ValueNotifier<int> _editRevision = ValueNotifier<int>(0);
 
-  /// True once the server's copy of the draft (`GET /auth/opponent-requests/
-  /// {id}`) has filled the plain fields — date, time, message, venue, step.
-  /// One-shot, so a later refetch never overwrites the user's edits.
   bool _draftHydrated = false;
 
   @override
@@ -237,9 +184,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     return null;
   }
 
-  /// The backend's 1-based `main_step` mapped onto the wizard's steps. An
-  /// unknown or out-of-range value lands on the first step, which is always
-  /// safe to re-submit.
   _Step _stepFromMainStep(int mainStep) => switch (mainStep) {
     2 => _Step.venue,
     3 => _Step.cost,
@@ -247,10 +191,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     _ => _Step.match,
   };
 
-  /// Fills the wizard's plain fields from the fetched draft: the kickoff its
-  /// match step saved, the note, and whatever its venue step settled — the
-  /// booking itself for a court booked here, the typed fields for one booked
-  /// elsewhere.
   void _hydrateFromDraft(OpponentRequestModel draft) {
     // The kickoff the match step saved — not the booked slot, which `dateTime`
     // prefers and which the venue step owns. Only the booked-elsewhere branch
@@ -322,12 +262,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     if (draft.dateTime != draft.preferredDateTime) _date = draft.dateTime;
   }
 
-  /// Re-selects the draft's team, format and level once their lookup lists have
-  /// landed. Runs on every bloc emission until each one is matched, because the
-  /// lists arrive from three independent fetches.
-  /// Picks up the fee the server stored, for any request the wizard is working
-  /// on — new or resumed. Runs on every emission because the venue step is what
-  /// produces it.
   void _syncServerCourtFee(OpponentMatchState state) {
     final int? fee = state.draftDetail?.totalFee;
     if (fee == null || fee <= 0 || fee == _serverCourtFee || !mounted) return;
@@ -404,14 +338,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
 
   // ───────────────────────────── derived state ─────────────────────────────
 
-  /// The court fee the requester typed — manual already-booked path only.
   int? get _enteredCourtFee => int.tryParse(_courtFeeCtrl.text.trim());
 
-  /// The real court fee behind the current venue choice, when one is known.
-  ///
-  /// The local answer wins so an edit shows immediately; [_serverCourtFee] only
-  /// fills in when this branch cannot name a fee itself. Never falls back to the
-  /// per-format table — see [OpponentCostSplit.courtFee].
   int? get _resolvedCourtFee => _localCourtFee ?? _serverCourtFee;
 
   int? get _localCourtFee {
@@ -426,12 +354,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     return subtotal > 0 ? subtotal.round() : null;
   }
 
-  /// Display label of the chosen format, e.g. `5v5`.
   String get _formatLabel => _format?.name ?? '';
 
-  /// The chosen format mapped back onto the local enum, which still drives the
-  /// court-fee table used before a real venue is settled. Falls back to the
-  /// smallest tier when the server's label is one the table does not know.
   MatchFormat get _formatTier => MatchFormat.values.firstWhere(
     (MatchFormat f) => f.label.toLowerCase() == _formatLabel.toLowerCase(),
     orElse: () => MatchFormat.fiveASide,
@@ -449,7 +373,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     overrideCourtFee: _resolvedCourtFee,
   );
 
-  /// Match kickoff, resolved from whichever venue branch supplied it.
   DateTime get _kickoff {
     final BookingModel? booking = _existingBooking;
     if (_venuePlan == _VenuePlan.alreadyBooked &&
@@ -469,15 +392,10 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     return _combine(_date, _time);
   }
 
-  /// The date half of the kickoff line. When a slot range is shown next to it
-  /// the range already carries the time, so repeating it read as two different
-  /// times — "Tomorrow, 6:00 AM · 6:00 AM – 7:00 AM". Only a kickoff with no
-  /// range keeps its time here.
   String get _kickoffWhen => _slotLabel.isEmpty
       ? OpponentFmt.friendlyDateTime(_kickoff)
       : OpponentFmt.friendlyDate(_kickoff);
 
-  /// Human-readable slot for the current venue choice.
   String get _slotLabel {
     final BookingModel? booking = _existingBooking;
     if (_venuePlan == _VenuePlan.alreadyBooked &&
@@ -500,7 +418,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     return OpponentFmt.slot(_time);
   }
 
-  /// The venue line the request is published with; empty while unresolved.
   String get _venueLabelText {
     if (_venuePlan == _VenuePlan.alreadyBooked) {
       if (_bookedSource == _BookedSource.existingBooking) {
@@ -523,14 +440,11 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     return _venueLabel(venue, courtName: slot.courtName);
   }
 
-  /// Minutes past midnight, for comparing the two ends of the booked window.
   static int _minutes(TimeOfDay time) => time.hour * 60 + time.minute;
 
-  /// The booked window has to actually be a window.
   bool get _externalWindowValid =>
       _minutes(_externalEnd) > _minutes(_externalStart);
 
-  /// Whether the venue step has everything the request needs.
   bool get _venueSettled {
     if (_venuePlan == _VenuePlan.alreadyBooked) {
       if (_bookedSource == _BookedSource.existingBooking) {
@@ -597,12 +511,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     _goTo(_Step.values[_step.index + 1]);
   }
 
-  /// `POST /auth/opponent-requests` the first time, then
-  /// `PATCH /auth/opponent-requests/{id}/match` on every later pass.
-  ///
-  /// Returns false when the call failed, with the reason already on screen —
-  /// the wizard stays on this step, and a summary edit sheet stays open, until
-  /// the change is actually saved.
   Future<bool> _saveMatchStep() async {
     final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
     final int? teamId = int.tryParse(_team?.id ?? '');
@@ -649,15 +557,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     return true;
   }
 
-  /// `PUT /auth/opponent-requests/{id}/venue` — sent for every venue branch.
-  ///
-  /// A court booked through this platform travels as its booking id
-  /// (`venue_source: booking`); a court booked elsewhere is described field by
-  /// field (`venue_source: external`).
-  ///
-  /// Returns false when the call failed, with the reason already on screen —
-  /// the wizard stays on this step, and a summary edit sheet stays open, until
-  /// the change is actually saved.
   Future<bool> _saveVenueStep() async {
     final OpponentVenueStepRequest? request = _venueStepRequest();
     if (request == null) return false;
@@ -688,8 +587,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     return true;
   }
 
-  /// Builds the venue body for whichever branch the user completed. Null means
-  /// the branch has nothing submittable, which [_stepComplete] already guards.
   OpponentVenueStepRequest? _venueStepRequest() {
     if (_venuePlan == _VenuePlan.alreadyBooked) {
       if (_bookedSource == _BookedSource.existingBooking) {
@@ -746,12 +643,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     );
   }
 
-  /// `PUT /auth/opponent-requests/{id}/cost` — the split rule the accepting
-  /// team sees before it pays.
-  ///
-  /// Returns false when the call failed, with the reason already on screen —
-  /// the wizard stays on this step, and a summary edit sheet stays open, until
-  /// the change is actually saved.
   Future<bool> _saveCostStep() async {
     final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
     bloc.add(SaveOpponentCostStepEvent(_costStepRequest()));
@@ -773,9 +664,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     return true;
   }
 
-  /// Maps the card's selections onto the cost payload. An even split carries no
-  /// percentage; a custom one is keyed either to the side (the requester's fixed
-  /// share) or to the result (what the losing side carries).
   OpponentCostStepRequest _costStepRequest() {
     if (_split == SplitMode.even) return const OpponentCostStepRequest.even();
     return _basis == SplitBasis.result
@@ -789,7 +677,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           );
   }
 
-  /// Server id of the chosen format, once the lookup has landed.
   int? get _selectedFormatId {
     final PublicOptionModel? format = _resolveFormat(
       _optionsBloc.state.matchFormats,
@@ -805,10 +692,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     _goTo(_Step.values[_step.index - 1]);
   }
 
-  /// The OS back gesture used to close the whole wizard from any step, which
-  /// threw away the steps the user had filled in. It now walks back through
-  /// them the way the Back button does, and leaving from the first step asks
-  /// for a second press.
   void _handleSystemBack() {
     if (_step != _Step.match) {
       _goTo(_Step.values[_step.index - 1]);
@@ -919,8 +802,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     });
   }
 
-  /// Court → date & time → confirm, on the venue's live slot calendar. The
-  /// returned draft is the confirmed venue booking for this request.
   Future<void> _confirmVenueBooking() async {
     final PublicListingVenueModel? venue = _preferredVenue;
     if (venue == null || venue.id == null) {
@@ -1001,13 +882,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
 
   // ───────────────────────────── summary editing ─────────────────────────────
 
-  /// Opens one summary row's controls in a sheet, so a late correction never
-  /// costs the user their place on the publish step.
-  ///
-  /// [body] is the same section builder the wizard step uses — there is no
-  /// second copy of any form. [save] is the step endpoint that owns those
-  /// fields; the sheet closes only once it succeeds, so a rejected change stays
-  /// on screen with its reason.
   Future<void> _openEditSheet({
     required String title,
     required IconData icon,
@@ -1062,8 +936,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         _selectedFormatId == null ? 'Pick a match type to continue.' : null,
   );
 
-  /// Kickoff and venue are the same answer — the attached booking settles both,
-  /// so both rows open this one sheet.
   Future<void> _editVenue() => _openEditSheet(
     title: 'Kickoff & venue',
     icon: Icons.stadium_outlined,
@@ -1081,12 +953,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
 
   // ───────────────────────────── publish ─────────────────────────────
 
-  /// Last step: `POST /auth/opponent-requests/{id}/publish`, carrying only the
-  /// message. Every other section already lives on the server, saved by its own
-  /// step, so nothing else is re-sent.
-  ///
-  /// Pops with `true` once the server confirms; the confirmation message itself
-  /// is shown by the screen underneath, from the bloc's success message.
   Future<void> _publish() async {
     setState(() => _submitted = true);
     if (_team == null) {
@@ -1123,17 +989,12 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
 
   // ───────────────────────────── helpers ─────────────────────────────
 
-  /// Levels come from the API; until they land (or if the fetch failed) the
-  /// static defaults keep the picker usable.
   List<OpponentLevelModel> _levelOptions(OpponentMatchState state) =>
       state.levels.isEmpty ? OpponentLevelModel.defaults : state.levels;
 
-  /// The active selection — the user's pick, or the first option.
   OpponentLevelModel _resolveLevel(List<OpponentLevelModel> levels) =>
       _level ?? levels.first;
 
-  /// The active format — the user's pick, or the first one the server sent.
-  /// Null only while the list is still loading or failed.
   PublicOptionModel? _resolveFormat(List<PublicOptionModel> formats) {
     if (formats.isEmpty) return null;
     final PublicOptionModel? picked = _format;
@@ -1151,7 +1012,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       '${time.hour.toString().padLeft(2, '0')}:'
       '${time.minute.toString().padLeft(2, '0')}';
 
-  /// `18:30` → 6:30 PM; null when the value isn't `HH:mm`.
   TimeOfDay? _parseApiTime(String raw) {
     final parts = raw.trim().split(':');
     if (parts.length < 2) return null;
@@ -1403,8 +1263,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     );
   }
 
-  /// Back + Continue / Publish. [inline]: under the form on desktop, rather
-  /// than a bar across the foot of the window.
   Widget _wizardActions(OpponentMatchState state, {bool inline = false}) {
     return _BottomBar(
       inline: inline,
@@ -1426,9 +1284,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
 
   // ── Step 1: team + match details ──
 
-  /// Team plus format/level in one step. The team blocks progress; the format
-  /// and level below it both have a sensible default. The schedule is not asked
-  /// here — it comes from the booking attached on the venue step.
   List<Widget> _matchStep(OpponentMatchState state) => <Widget>[
     const OpponentGuidanceCard(
       icon: Icons.sports_soccer_rounded,
@@ -1446,7 +1301,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     ..._matchPreviewSection(state),
   ];
 
-  /// Team picker. Shared by step one and the summary's "Team" edit sheet.
   List<Widget> _teamSection(OpponentMatchState state) => <Widget>[
     const OpponentSectionLabel('Select / create team'),
     // Teams arrive asynchronously, so "no teams" is only true once the fetch
@@ -1513,8 +1367,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     ],
   ];
 
-  /// Match type + opponent level. Shared by step one and the summary's "Match"
-  /// edit sheet.
   List<Widget> _matchDetailsSection(OpponentMatchState state) => <Widget>[
     const OpponentSectionLabel('Match format'),
     OpponentCard(
@@ -1577,8 +1429,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     ),
   ];
 
-  /// Reads back the three answers step one owns, so the step ends on a
-  /// statement instead of trailing off after the last pill row.
   List<Widget> _matchPreviewSection(OpponentMatchState state) => <Widget>[
     const OpponentSectionLabel('Match preview'),
     OpponentCard(
@@ -1624,8 +1474,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     ..._venueSection(),
   ];
 
-  /// The whole venue branch — arrangement, then whichever form it opens.
-  /// Shared by step two and the summary's "Kickoff"/"Venue" edit sheet.
   List<Widget> _venueSection() => <Widget>[
     const OpponentSectionLabel('Venue arrangement'),
     _VenuePlanOption(
@@ -1818,8 +1666,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     ],
   ];
 
-  /// Start of the externally booked window. Nudges the end along so the window
-  /// stays valid — an hour after the new start, the usual court slot.
   Future<void> _pickExternalStart() async {
     final TimeOfDay? picked = await customCupertinoTimePicker(
       context,
@@ -1943,8 +1789,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     ..._costSection(),
   ];
 
-  /// The split rule card. Shared by step three and the summary's "Cost split"
-  /// edit sheet.
   List<Widget> _costSection() => <Widget>[
     const OpponentSectionLabel('Cost split'),
     OpponentCostSplitCard(
@@ -2057,12 +1901,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   }
 }
 
-/// One summary row's controls, hosted on their own route.
-///
-/// It renders the wizard's own section builders — nothing is duplicated — and
-/// rebuilds from [revision] whenever the page's state changes, since a page
-/// rebuild does not reach a sheet route. Save runs the step endpoint that owns
-/// these fields and pops only on success.
 class _EditSheet extends StatefulWidget {
   const _EditSheet({
     required this.title,
@@ -2079,7 +1917,6 @@ class _EditSheet extends StatefulWidget {
   final List<Widget> Function(OpponentMatchState state) body;
   final Future<bool> Function() save;
 
-  /// Returns why the change cannot be saved yet, or null when it can.
   final String? Function()? validate;
 
   @override
@@ -2210,7 +2047,6 @@ class _EditSheetState extends State<_EditSheet> {
   }
 }
 
-/// Empty / error state inside a step, with one call to action.
 class _StepMessageCard extends StatelessWidget {
   const _StepMessageCard({
     required this.icon,
@@ -2290,18 +2126,10 @@ class _StepMessageCard extends StatelessWidget {
   }
 }
 
-/// Padding for a pill in a [_PillRow], where the column already sets the
-/// width — kept tight so a long label has room before it ellipsises.
 const EdgeInsets _kPillRowPadding = EdgeInsets.symmetric(
   horizontal: AppDimens.paddingX6,
 );
 
-/// Wrapping row of option pills.
-///
-/// The level options come from `/opponent-levels`, so the count isn't known at
-/// build time. A fixed row of equal columns ellipsised longer names ("Interme…")
-/// once there were more than three; wrapping keeps every label readable and
-/// spills onto a second line instead.
 class _PillWrap extends StatelessWidget {
   const _PillWrap({required this.children});
 
@@ -2317,17 +2145,6 @@ class _PillWrap extends StatelessWidget {
   }
 }
 
-/// Options across one row, every pill the same width.
-///
-/// A [Wrap] sized each pill to its label, so `5v5 6v6 7v7` and
-/// `Beginner Intermediate Advanced` came out as two ragged rows that did not
-/// line up with each other. Equal columns make the two fields read as one
-/// block, and a long label ellipsises inside its share rather than pushing the
-/// row onto a second line.
-///
-/// Falls back to [_PillWrap] past [_maxInRow] options, where equal columns
-/// would be too narrow to read — the level list comes from the server, so the
-/// count is not guaranteed.
 class _PillRow extends StatelessWidget {
   const _PillRow({required this.children});
 
@@ -2350,7 +2167,6 @@ class _PillRow extends StatelessWidget {
   }
 }
 
-/// Horizontal step tracker across the top of the wizard.
 class _StepTracker extends StatelessWidget {
   const _StepTracker({
     required this.current,
@@ -2411,8 +2227,6 @@ class _StepTracker extends StatelessWidget {
   }
 }
 
-/// Desktop: the wizard's steps as a vertical list beside the form — number or
-/// tick, title and a one-line hint. Steps already reached can be tapped.
 class _VerticalStepList extends StatelessWidget {
   const _VerticalStepList({
     required this.current,
@@ -2524,7 +2338,6 @@ class _VerticalStepList extends StatelessWidget {
   }
 }
 
-/// Track between two step dots. [passed] tints it in the brand green.
 class _StepConnector extends StatelessWidget {
   const _StepConnector({required this.passed});
 
@@ -2615,8 +2428,6 @@ class _StepDot extends StatelessWidget {
   }
 }
 
-/// Placeholder occupying a [_PillRow]'s height while its options load, so the
-/// card does not jump when they arrive.
 class _PillRowLoading extends StatelessWidget {
   const _PillRowLoading();
 
@@ -2637,7 +2448,6 @@ class _PillRowLoading extends StatelessWidget {
   }
 }
 
-/// Back + primary action footer for the wizard.
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
     required this.text,
@@ -2649,7 +2459,6 @@ class _BottomBar extends StatelessWidget {
     this.inline = false,
   });
 
-  /// Desktop: under the form, flat, without the bar's rounded top and shadow.
   final bool inline;
 
   final String text;
@@ -2762,7 +2571,6 @@ class _BottomBar extends StatelessWidget {
   }
 }
 
-/// Radio-style option row for the "venue already booked?" decision.
 class _VenuePlanOption extends StatelessWidget {
   const _VenuePlanOption({
     required this.title,
@@ -2861,7 +2669,6 @@ class _VenuePlanOption extends StatelessWidget {
   }
 }
 
-/// Selectable card used for the team list.
 class _SelectableTile extends StatelessWidget {
   const _SelectableTile({
     required this.title,
@@ -2950,8 +2757,6 @@ class _SelectableTile extends StatelessWidget {
   }
 }
 
-/// Tap-to-open row with a trailing action label, used for the venue and
-/// booking pickers.
 class _PickerTile extends StatelessWidget {
   const _PickerTile({
     required this.icon,
@@ -3050,7 +2855,6 @@ class _PickerTile extends StatelessWidget {
   }
 }
 
-/// Confirmation card shown once the venue behind the request is settled.
 class _ConfirmedVenueCard extends StatelessWidget {
   const _ConfirmedVenueCard({
     required this.title,
@@ -3156,7 +2960,6 @@ class _MiniLine extends StatelessWidget {
   }
 }
 
-/// Review row on the publish step, with a shortcut back to its step.
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({
     required this.icon,
@@ -3220,7 +3023,6 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-/// Inline "couldn't load — retry" strip used inside a step's card.
 class _InlineRetry extends StatelessWidget {
   const _InlineRetry({required this.message, required this.onRetry});
 

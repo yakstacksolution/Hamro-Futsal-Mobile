@@ -9,15 +9,6 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 enum _TeamAction { edit, delete }
 
-/// One team with its roster, collapsible.
-///
-/// Header (initials avatar, name, roster mix, expand chevron, options menu) ·
-/// flat divider-separated player rows · full-width "Add Player" footer action.
-///
-/// The roster collapses because a captain with several teams of a dozen
-/// players each otherwise scrolls past hundreds of rows to reach the next
-/// team. Collapsed, every team is one header line, and the summary under the
-/// name ("11 players · 1 GK · 4 DEF") still says what is inside.
 class OpponentTeamCard extends StatefulWidget {
   const OpponentTeamCard({
     super.key,
@@ -33,16 +24,12 @@ class OpponentTeamCard extends StatefulWidget {
   final TeamModel team;
   final VoidCallback onAddPlayer;
 
-  /// Receives the server member id of the player to remove.
   final ValueChanged<String> onDelPlayer;
 
-  /// Receives the player whose name/position should be edited.
   final ValueChanged<PlayerModel> onEditPlayer;
   final VoidCallback onEditTeam;
   final VoidCallback onDeleteTeam;
 
-  /// Whether the roster starts open. The list opens a lone team and keeps the
-  /// rest closed, so one team behaves exactly as it did before.
   final bool initiallyExpanded;
 
   @override
@@ -230,8 +217,6 @@ class _OpponentTeamCardState extends State<OpponentTeamCard> {
   }
 }
 
-/// The affordance that says the roster can be opened, and how many players
-/// are waiting behind it when it is shut.
 class _RosterChevron extends StatelessWidget {
   const _RosterChevron({required this.expanded, required this.onTap});
 
@@ -265,8 +250,6 @@ class _RosterChevron extends StatelessWidget {
   }
 }
 
-/// Compact three-dot options menu shared by the team header and each player
-/// row — short "Update" / "Delete" entries on a small surface.
 class _CardOptionsMenu extends StatelessWidget {
   const _CardOptionsMenu({
     required this.tooltip,

@@ -9,12 +9,6 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
-/// A session for Google's Map Tiles API, shared by every desktop map.
-///
-/// Tile requests must carry a session token from `createSession`; one lasts
-/// about two weeks, so it is fetched once and reused until shortly before it
-/// expires. Resolves to null when the API is unavailable — not enabled for the
-/// key, offline — and callers then fall back to a static map.
 abstract final class GoogleMapTilesSession {
   static String? _token;
   static DateTime? _expiresAt;
@@ -22,7 +16,6 @@ abstract final class GoogleMapTilesSession {
 
   static String get _key => AppEnvironment.read('GOOGLE_MAPS_API_KEY');
 
-  /// `{z}/{x}/{y}` template for [TileLayer], or null without a session.
   static Future<String?> urlTemplate() async {
     final String? token = await _session();
     if (token == null) return null;
@@ -91,24 +84,14 @@ abstract final class GoogleMapTilesSession {
   }
 }
 
-/// OpenStreetMap's public tiles: no key needed. The fallback while Google's
-/// Map Tiles API is unavailable (not enabled for the key, quota), so a map
-/// that must be interactive — the location picker — still works.
 abstract final class OsmTiles {
   static const String urlTemplate =
       'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   static const String attribution = '© OpenStreetMap contributors';
 
-  /// OSM serves tiles up to zoom 19.
   static const int maxNativeZoom = 19;
 }
 
-/// A draggable, zoomable Google map of one point for macOS / desktop, where
-/// `google_maps_flutter` has no implementation: Google's own tiles (Map Tiles
-/// API, same key as Android and iOS) drawn by `flutter_map`.
-///
-/// Drag to pan, scroll / pinch / double-click to zoom. [controller] lets the
-/// page drive zoom and recentre buttons.
 class GoogleTilesMap extends StatelessWidget {
   const GoogleTilesMap({
     super.key,
@@ -125,29 +108,22 @@ class GoogleTilesMap extends StatelessWidget {
     this.maxNativeZoom = 20,
   });
 
-  /// From [GoogleMapTilesSession.urlTemplate].
   final String urlTemplate;
   final double latitude;
   final double longitude;
   final MapController controller;
   final double initialZoom;
 
-  /// Keeps the attribution clear of anything floating over the map's foot.
   final double bottomPadding;
 
-  /// False while nothing is pinned yet (a location picker).
   final bool showMarker;
 
-  /// A tap on the map, at that point (a location picker pins it).
   final void Function(double latitude, double longitude)? onTap;
 
-  /// [controller] may be driven only after this fires.
   final VoidCallback? onMapReady;
 
-  /// Credit for [urlTemplate]'s tiles, drawn on the map as their terms ask.
   final String attribution;
 
-  /// Deepest zoom [urlTemplate] serves; deeper zooms upscale it.
   final int maxNativeZoom;
 
   static const double minZoom = 3;

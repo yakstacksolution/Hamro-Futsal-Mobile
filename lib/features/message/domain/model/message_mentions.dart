@@ -1,20 +1,11 @@
-/// Mentions in a chat message: `@Ram` targets one participant, `@all` targets
-/// every one of them.
-///
-/// The body is the source of truth. A mention only counts when the text still
-/// contains the `@name` that produced it, so deleting the text deletes the
-/// mention — the alternative, tracking ids as the user edits, silently sends
-/// mentions for names that are no longer on screen.
 library;
 
-/// Someone who can be mentioned: a participant of the conversation.
 class MentionCandidate {
   const MentionCandidate({required this.userId, required this.name});
 
   final int userId;
   final String name;
 
-  /// The token typed after `@`, with the spaces the name itself has.
   String get handle => name.trim();
 
   bool matchesQuery(String query) {
@@ -24,23 +15,19 @@ class MentionCandidate {
   }
 }
 
-/// What a body resolves to when it is sent.
 class ResolvedMentions {
   const ResolvedMentions({
     this.userIds = const <int>[],
     this.mentionAll = false,
   });
 
-  /// Participants named in the body, in the order they first appear.
   final List<int> userIds;
 
-  /// True when the body says `@all` (or `@everyone`).
   final bool mentionAll;
 
   bool get isEmpty => userIds.isEmpty && !mentionAll;
 }
 
-/// One `@…` run found in a body.
 class MentionSpan {
   const MentionSpan({
     required this.start,
@@ -53,27 +40,18 @@ class MentionSpan {
   final int start;
   final int end;
 
-  /// The matched text including the leading `@`.
   final String text;
 
-  /// The participant it resolves to, or null for `@all`.
   final int? userId;
   final bool isAll;
 }
 
-/// The tokens that mean "everyone".
 const Set<String> kMentionAllTokens = <String>{'all', 'everyone', 'channel'};
 
-/// A character that can continue a name being typed after `@`.
 bool _isNameChar(String ch) {
   return RegExp(r"[A-Za-z0-9_.'-]").hasMatch(ch);
 }
 
-/// Finds every `@mention` in [body] that resolves against [candidates].
-///
-/// Names can contain spaces ("Dilli Bhandari"), so the longest candidate that
-/// matches at a given `@` wins; that stops `@Dilli` swallowing a mention of
-/// `@Dilli Bhandari` and leaving a stray surname behind.
 List<MentionSpan> findMentionSpans(
   String body,
   List<MentionCandidate> candidates,
@@ -146,7 +124,6 @@ List<MentionSpan> findMentionSpans(
   return spans;
 }
 
-/// The mention payload for a body: `mentions` ids and the `mention_all` flag.
 ResolvedMentions resolveMentions(
   String body,
   List<MentionCandidate> candidates,
@@ -163,17 +140,11 @@ ResolvedMentions resolveMentions(
   return ResolvedMentions(userIds: ids, mentionAll: all);
 }
 
-/// True when a mention ends at a boundary rather than mid-word, so `@Rama`
-/// does not count as a mention of `@Ram`.
 bool _endsCleanly(String body, int end) {
   if (end >= body.length) return true;
   return !_isNameChar(body[end]);
 }
 
-/// The `@query` the caret sits in, or null when the caret is not writing one.
-///
-/// Used by the composer to decide whether to offer the participant list, and
-/// what to filter it by.
 ({int start, String query})? activeMentionQuery(String text, int caret) {
   if (caret < 0 || caret > text.length) return null;
 
@@ -194,8 +165,6 @@ bool _endsCleanly(String body, int end) {
   return null;
 }
 
-/// Replaces the `@query` at [start]..[caret] with `@Name ` and returns the new
-/// text and where the caret should land.
 ({String text, int caret}) insertMention({
   required String text,
   required int start,

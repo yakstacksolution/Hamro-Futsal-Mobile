@@ -73,8 +73,6 @@ final class CourtOnboardingResponseModel {
   final Set<String> holidayDates;
   final List<ClosedDateDraft> closedDates;
 
-  /// Booking slots parsed from `slot_schedules` (label, days, and times).
-  /// Pricing from `slot_pricings` is layered on top during [mergeInto].
   final List<SlotPricingDraft> slotConfigs;
 
   factory CourtOnboardingResponseModel.fromJson(Map<String, dynamic> json) {
@@ -189,9 +187,6 @@ final class CourtOnboardingResponseModel {
   }
 }
 
-/// Replaces the draft slots with the backend schedules while carrying over any
-/// pricing the vendor already entered locally (matched by remote id, then by
-/// label). Keeps the existing slots untouched when no schedules are returned.
 List<SlotPricingDraft> _mergeSlotConfigs(
   List<SlotPricingDraft> existing,
   List<SlotPricingDraft> schedules,
@@ -307,13 +302,6 @@ Set<int> _idSetFromAny(Object? value) {
       .toSet();
 }
 
-/// The court's payment QRs.
-///
-/// `payment_qr_media_list` is the source of truth: the files the court keeps
-/// (copied into court storage, so their ids differ from the library's). The
-/// single `payment_qr_media` beside it is the legacy field and can point at an
-/// older library file, so it is only read when the list is absent altogether —
-/// an empty list means the court has no QRs, not "use the legacy one".
 List<UploadRef> _paymentQrsFromAny(Map<String, dynamic> data) {
   for (final String key in const <String>[
     'payment_qr_media_list',
@@ -328,7 +316,6 @@ List<UploadRef> _paymentQrsFromAny(Map<String, dynamic> data) {
   return <UploadRef>[?_uploadRefFromAny(raw)];
 }
 
-/// A row may wrap its file under `media`; the media id is the one to send.
 List<UploadRef> _paymentQrListFrom(List<dynamic> raw) {
   return _uploadsFromAny(<Object?>[
     for (final Object? item in raw)
@@ -363,8 +350,6 @@ UploadRef? _uploadRefFromAny(Object? value) {
   );
 }
 
-/// The API joins its host and storage path with a doubled slash
-/// (`…com//storage/…`); collapse it after the scheme.
 String? _collapseUrlSlashes(String? url) {
   if (url == null) return null;
   final int schemeEnd = url.indexOf('://');
@@ -422,8 +407,6 @@ List<SlotPricingDraft> _slotSchedulesFromAny(
       .toList(growable: false);
 }
 
-/// Normalizes backend day codes (lowercase, e.g. `sun`) to the capitalized
-/// short labels the slot UI uses (`Sun`).
 Set<String> _slotDaysFromAny(Object? value) {
   if (value is! List) return const <String>{};
   return value
@@ -432,9 +415,6 @@ Set<String> _slotDaysFromAny(Object? value) {
       .toSet();
 }
 
-/// Converts a backend time (`HH:mm` or `HH:mm:ss`, 24-hour) into the 12-hour
-/// display string the time picker produces (e.g. `23:36:00` -> `11 : 36 PM`),
-/// so the field shows it and re-serializes cleanly. Empty when unparseable.
 String _timeFromApi(Object? value) {
   final String raw = _asTrimmedString(value);
   if (raw.isEmpty) return '';

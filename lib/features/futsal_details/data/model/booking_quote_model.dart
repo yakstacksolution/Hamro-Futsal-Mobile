@@ -1,5 +1,3 @@
-/// The `quote` object returned alongside a booking hold — the server's
-/// authoritative pricing for the held slot(s).
 class BookingQuoteModel {
   const BookingQuoteModel({
     this.bookingSummary,
@@ -17,7 +15,6 @@ class BookingQuoteModel {
 
   bool get hasCoupon => coupon != null;
 
-  /// Whether this quote carries any price figures to show.
   bool get hasPricing =>
       priceDetails != null || calculationList.isNotEmpty || items.isNotEmpty;
 
@@ -31,7 +28,6 @@ class BookingQuoteModel {
     'balance_due_later',
   ].any(json.containsKey);
 
-  /// The advance the per-session [items] add up to; null when none says.
   double? get itemsAdvance {
     final Iterable<double> parts = items
         .map((BookingSessionItemModel i) => i.advanceAmount)
@@ -39,9 +35,6 @@ class BookingQuoteModel {
     return parts.isEmpty ? null : parts.fold<double>(0, (a, b) => a + b);
   }
 
-  /// Several holds' own quotes as one — each prices its own slot, so the
-  /// booking is their sum: totals added, items and calculation lines
-  /// (matched by key) combined. A figure stays null only if no quote has it.
   static BookingQuoteModel? combine(List<BookingQuoteModel> quotes) {
     if (quotes.isEmpty) return null;
     if (quotes.length == 1) return quotes.single;
@@ -121,7 +114,6 @@ class BookingQuoteModel {
   }
 }
 
-/// `quote.price_details` — the totals shown in the price breakdown.
 class BookingPriceDetailsModel {
   const BookingPriceDetailsModel({
     this.subtotal,
@@ -139,11 +131,6 @@ class BookingPriceDetailsModel {
   final double? balanceDueLater;
   final double? taxAmount;
 
-  /// The server names these figures more than one way — the booking itself
-  /// says `advance_amount` / `payable_now` / `total_amount` where a quote
-  /// says `advance_payable_now` / `booking_total` — so every spelling is
-  /// read. Only `advance_payable_now` used to be, and a quote spelling it
-  /// otherwise showed "Advance to pay: Rs 0", then "Calculating…" for good.
   factory BookingPriceDetailsModel.fromJson(Map<String, dynamic> json) {
     final double? total = _asDouble(
       json['booking_total'] ?? json['total_amount'] ?? json['total'],
@@ -171,7 +158,6 @@ class BookingPriceDetailsModel {
   }
 }
 
-/// One line from `quote.calculation_list`.
 class BookingCalculationLineModel {
   const BookingCalculationLineModel({this.label, this.key, this.amount});
 
@@ -187,7 +173,6 @@ class BookingCalculationLineModel {
     );
   }
 
-  /// Other spellings of the keys the checkout looks for, folded onto them.
   static String? _canonicalKey(String? key) => switch (key) {
     'payable_now' || 'advance_amount' || 'advance' => 'advance_payable_now',
     'total_amount' || 'total' => 'booking_total',
@@ -196,7 +181,6 @@ class BookingCalculationLineModel {
   };
 }
 
-/// One per-session row from `quote.items`.
 class BookingSessionItemModel {
   const BookingSessionItemModel({
     this.bookingDate,
@@ -226,7 +210,6 @@ class BookingSessionItemModel {
   }
 }
 
-/// `quote.booking_summary`.
 class BookingSummaryQuoteModel {
   const BookingSummaryQuoteModel({
     this.venueId,
@@ -278,7 +261,6 @@ class BookingSummaryQuoteModel {
   }
 }
 
-/// `quote.coupon` (null when no coupon is applied to the quote).
 class QuoteCouponModel {
   const QuoteCouponModel({
     this.id,

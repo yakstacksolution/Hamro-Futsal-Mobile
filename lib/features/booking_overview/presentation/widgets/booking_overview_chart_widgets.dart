@@ -8,7 +8,6 @@ import 'package:hamro_futsal/features/booking_overview/presentation/utils/bookin
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_common.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-/// Revenue trend bar chart bucketed by the selected period.
 class BookingTrendCard extends StatelessWidget {
   const BookingTrendCard({super.key, required this.analytics});
 
@@ -137,8 +136,6 @@ class _TrendPoint {
   final int value;
 }
 
-/// Stacked status bar + per-status legend tiles, driven by the server's
-/// `status_mix` (labels, colors and percentages as sent).
 class BookingStatusCard extends StatelessWidget {
   const BookingStatusCard({super.key, required this.analytics});
 

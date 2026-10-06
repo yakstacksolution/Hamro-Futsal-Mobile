@@ -3,8 +3,6 @@ import 'dart:typed_data';
 
 import 'package:image_picker/image_picker.dart';
 
-/// Waits for camera providers that return before the captured file is flushed,
-/// then snapshots the image into an app-owned temporary file.
 Future<XFile?> stabilizePickedMedia(XFile source) async {
   Uint8List bytes = Uint8List(0);
 

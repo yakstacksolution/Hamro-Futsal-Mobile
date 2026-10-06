@@ -9,8 +9,6 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 class ExpandableFocusSearchBar extends StatefulWidget {
   final ValueChanged<String>? onChanged;
 
-  /// Fired when the user commits a search (keyboard "search", tapping a recent
-  /// entry, or clearing the field — which submits an empty string).
   final ValueChanged<String>? onSubmitted;
   final VoidCallback? onFilterTap;
   final int filterCount;
@@ -78,8 +76,6 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
     super.dispose();
   }
 
-  /// Commits a search: persists a non-empty term, syncs the field, dismisses
-  /// the keyboard and notifies the parent. An empty term resets the search.
   void _submit(String raw) {
     final String term = raw.trim();
     if (term.isNotEmpty) {

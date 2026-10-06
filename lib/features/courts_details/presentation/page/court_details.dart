@@ -19,10 +19,6 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 class CourtDetailModel {
   final int? venueId;
 
-  /// The venue's public identifier. `/venue-description/{slug}` is addressed
-  /// by this rather than by [venueId], so it has to travel with the model —
-  /// the details page is reached from several places and only some of them
-  /// have the venue payload to hand.
   final String? venueSlug;
   final String name;
   final String location;

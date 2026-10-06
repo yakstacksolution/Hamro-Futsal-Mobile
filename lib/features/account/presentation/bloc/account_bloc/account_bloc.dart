@@ -20,22 +20,14 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
 
   final AccountUseCase useCase;
 
-  /// Settlement history page size.
   static const int _settlementsPerPage = 20;
 
-  /// Ledger page size.
   static const int _activityPerPage = 10;
 
   bool _loadingSettlements = false;
   bool _loadingBreakdown = false;
   bool _loadingActivity = false;
 
-  /// Loads the account summary, which is everything the main screen renders:
-  /// balances, commission, and the inline ledger.
-  ///
-  /// The per-futsal breakdown and the settlement history are deliberately not
-  /// here. Each backs exactly one detail screen and is fetched when that screen
-  /// opens, so the main screen costs one request instead of three.
   Future<void> _onLoad(
     LoadAccountEvent event,
     Emitter<AccountState> emit,
@@ -93,10 +85,6 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     );
   }
 
-  /// Loads the per-futsal breakdown on demand.
-  ///
-  /// Idempotent: reopening the screen with a breakdown already held is a no-op
-  /// unless [LoadSettlementBreakdownEvent.refresh] asks for a refetch.
   Future<void> _onLoadBreakdown(
     LoadSettlementBreakdownEvent event,
     Emitter<AccountState> emit,
@@ -132,9 +120,6 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     _loadingBreakdown = false;
   }
 
-  /// Ledger paging. `loadMore` appends the next page; otherwise page 1
-  /// replaces the list. Rows are deduped by id so a movement that shifted
-  /// between pages server-side cannot appear twice.
   Future<void> _onLoadRecentActivity(
     LoadRecentActivityEvent event,
     Emitter<AccountState> emit,
@@ -194,11 +179,6 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     );
   }
 
-  /// Appends only rows this list does not already hold.
-  ///
-  /// Keyed on [AccountEntryModel.identity] rather than `id`: the ledger
-  /// endpoint sends no ids, and skipping the check for those rows let a row
-  /// that shifted across the page boundary appear twice.
   static List<AccountEntryModel> _mergeEntries(
     List<AccountEntryModel> existing,
     List<AccountEntryModel> incoming,
@@ -212,9 +192,6 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     ];
   }
 
-  /// Settlement history paging. `loadMore` appends the next page; `refresh`
-  /// (and the first load) replaces the list with page 1. Rows are deduped by
-  /// id so a request that shifted between pages server-side cannot double up.
   Future<void> _onLoadSettlements(
     LoadSettlementsEvent event,
     Emitter<AccountState> emit,
@@ -287,9 +264,6 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     );
   }
 
-  /// Submits the payout request and then refetches the server-authoritative
-  /// balance and canonical settlement record. Financial state is never
-  /// mutated optimistically.
   Future<void> _onRequestSettlement(
     RequestSettlementEvent event,
     Emitter<AccountState> emit,

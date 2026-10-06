@@ -32,10 +32,6 @@ class CourtHostedBySection extends StatelessWidget {
   final double? responseRate;
   final VoidCallback? onMessage;
 
-  /// Laid out for the desktop booking panel: flat (the panel is already the
-  /// card), the name given room to wrap, the figures as a plain row and the
-  /// chat as a full-width button — instead of the phone's card, which nested
-  /// a card in a card and clipped the name and labels at that width.
   final bool inPanel;
 
   @override
@@ -319,7 +315,6 @@ class CourtHostedBySection extends StatelessWidget {
   }
 }
 
-/// The host card's one call to action: a full-width filled button.
 class _HostChatPrompt extends StatelessWidget {
   const _HostChatPrompt({required this.onTap});
 
@@ -348,8 +343,6 @@ class _HostChatPrompt extends StatelessWidget {
   }
 }
 
-/// One figure in the panel's stats row: the value over its label, centred,
-/// with no tile behind it.
 class _PanelStat extends StatelessWidget {
   const _PanelStat({required this.value, required this.label, this.leading});
 

@@ -15,14 +15,28 @@ final class LoadBookingOverviewEvent extends BookingOverviewEvent {
     this.venueIds,
   });
 
-  /// Named window (`today`/`week`/`month`/`year`/`custom`). Null = server default.
   final String? dateFilter;
 
-  /// `yyyy-MM-dd`, only sent alongside a `custom` filter.
   final String? dateFrom;
   final String? dateTo;
 
-  /// Selected venue ids; empty/null means all venues.
+  final List<String>? venueIds;
+
+  @override
+  List<Object?> get props => [dateFilter, dateFrom, dateTo, venueIds];
+}
+
+final class ExportBookingOverviewEvent extends BookingOverviewEvent {
+  const ExportBookingOverviewEvent({
+    this.dateFilter,
+    this.dateFrom,
+    this.dateTo,
+    this.venueIds,
+  });
+
+  final String? dateFilter;
+  final String? dateFrom;
+  final String? dateTo;
   final List<String>? venueIds;
 
   @override

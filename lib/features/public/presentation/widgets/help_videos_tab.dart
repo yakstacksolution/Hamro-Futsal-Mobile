@@ -8,12 +8,6 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/public/data/model/help_video_model.dart';
 import 'package:hamro_futsal/features/public/presentation/pages/help_video_player_page.dart';
 
-/// The Videos tab of Help & FAQ.
-///
-/// A player sees the player guides straight away. A vendor also runs the
-/// player side of the app, so they get a Player / Vendor switch above the list
-/// and start on the vendor guides. Guides marked for everyone show on both
-/// sides.
 class HelpVideosTab extends StatefulWidget {
   const HelpVideosTab({
     super.key,
@@ -24,10 +18,8 @@ class HelpVideosTab extends StatefulWidget {
 
   final bool isVendor;
 
-  /// Every guide from `GET /youtube-videos`, both audiences.
   final List<HelpVideo> videos;
 
-  /// Pull-to-refresh; completes when the refetch has finished.
   final Future<void> Function() onRefresh;
 
   @override
@@ -143,7 +135,6 @@ class _HelpVideosTabState extends State<HelpVideosTab> {
   }
 }
 
-/// Segmented Player / Vendor switch, shown to vendors only.
 class _AudienceSwitch extends StatelessWidget {
   const _AudienceSwitch({required this.value, required this.onChanged});
 
@@ -236,7 +227,6 @@ class _AudienceOption extends StatelessWidget {
   }
 }
 
-/// Title + subtitle + count badge above the list.
 class _IntroHeader extends StatelessWidget {
   const _IntroHeader({required this.audience, required this.count});
 
@@ -328,7 +318,6 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// Large 16:9 card for the first video of the list.
 class _FeaturedVideoCard extends StatelessWidget {
   const _FeaturedVideoCard({
     super.key,
@@ -437,8 +426,6 @@ class _FeaturedVideoCard extends StatelessWidget {
   }
 }
 
-/// Compact row: thumbnail on the left, title and meta on the right. Also used
-/// for the player page's "Up next" list.
 class HelpVideoRow extends StatelessWidget {
   const HelpVideoRow({super.key, required this.video, required this.onTap});
 
@@ -528,7 +515,6 @@ class HelpVideoRow extends StatelessWidget {
   }
 }
 
-/// The video's thumbnail — the server's own, else YouTube's.
 class _VideoThumbnail extends StatelessWidget {
   const _VideoThumbnail({required this.video});
 
@@ -545,7 +531,6 @@ class _VideoThumbnail extends StatelessWidget {
   }
 }
 
-/// White disc with a YouTube-red play glyph.
 class _PlayButton extends StatelessWidget {
   const _PlayButton({required this.size});
 
@@ -576,7 +561,6 @@ class _PlayButton extends StatelessWidget {
   }
 }
 
-/// Small translucent-dark label over a thumbnail (duration, "Start here").
 class _OverlayChip extends StatelessWidget {
   const _OverlayChip({required this.label, this.icon, this.dense = false});
 

@@ -17,8 +17,6 @@ class VendorCategorySwitcher extends StatefulWidget {
   final VendorCategory activeCategory;
   final ValueChanged<VendorCategory> onCategorySelected;
 
-  /// Courts belong to a saved venue, so the tab stays closed — greyed out and
-  /// tapping it only explains why — until the futsal itself is created.
   final bool isCourtLocked;
 
   @override

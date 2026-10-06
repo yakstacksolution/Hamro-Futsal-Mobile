@@ -467,8 +467,6 @@ class VendorSelectableChip extends StatelessWidget {
   final VoidCallback onTap;
   final IconData? icon;
 
-  /// Network URL of a leading icon (e.g. facility icon from the API). Takes
-  /// precedence over [icon] when provided.
   final String? imageUrl;
 
   @override
@@ -587,15 +585,11 @@ class VendorUploadSection extends StatelessWidget {
   final ValueChanged<UploadRef>? onRemove;
   final ValueChanged<UploadRef>? onReplace;
 
-  /// When provided (and there are 2+ files), the list becomes drag-to-reorder.
   final void Function(int oldIndex, int newIndex)? onReorder;
   final String actionLabel;
   final IconData actionIcon;
   final bool previewAsImage;
 
-  /// Renders the files as a two-column grid of document tiles whose actions
-  /// follow the verification status: rejected → replace + remove, fresh
-  /// (not yet reviewed) → remove, pending/approved → locked (no actions).
   final bool asGrid;
 
   @override
@@ -951,7 +945,6 @@ class VendorUploadSection extends StatelessWidget {
   }
 }
 
-/// An uploaded image, remote or still on the device.
 class VendorUploadImageView extends StatelessWidget {
   const VendorUploadImageView({
     super.key,
@@ -961,7 +954,6 @@ class VendorUploadImageView extends StatelessWidget {
 
   final UploadRef file;
 
-  /// [BoxFit.contain] for anything that must stay whole, such as a QR code.
   final BoxFit fit;
 
   String get _rawImageSource => (file.remoteUrl ?? '').trim();
@@ -1001,7 +993,6 @@ class VendorUploadImageView extends StatelessWidget {
   }
 }
 
-/// Simple red remove icon used on hero / thumbnail previews.
 class _ThumbDeleteButton extends StatelessWidget {
   const _ThumbDeleteButton({required this.onTap, this.small = false});
 
@@ -1058,7 +1049,6 @@ class _DocumentGridTile extends StatelessWidget {
         path.endsWith('.gif');
   }
 
-  /// Small white circular badge holding the corner status icon.
   Widget _cornerBadge({required Widget child, String? tooltip}) {
     final Widget badge = Container(
       width: AppDimens.sizeX22,
@@ -1197,8 +1187,6 @@ class VendorUploadItem extends StatelessWidget {
   final UploadRef file;
   final bool previewAsImage;
 
-  /// Forces the compact file-row (list) layout even for image files —
-  /// used for the company-documents list.
   final bool forceFileLayout;
   final VoidCallback? onRemove;
   final VoidCallback? onReplace;
@@ -1212,8 +1200,6 @@ class VendorUploadItem extends StatelessWidget {
     return _hasImageContent;
   }
 
-  /// Whether the file is an image (by extension), regardless of layout mode —
-  /// drives the document-row thumbnail.
   bool get _hasImageContent {
     if (_rawImageSource.isEmpty) return false;
     final String path = _pathWithoutQuery(_rawImageSource).toLowerCase();
@@ -1929,7 +1915,6 @@ IconData _vendorFieldIcon(String label, TextInputType? keyboardType) {
   return Icons.edit_outlined;
 }
 
-/// A location search field with autocomplete suggestions from Nominatim.
 class VendorLocationSearchField extends StatefulWidget {
   const VendorLocationSearchField({
     super.key,

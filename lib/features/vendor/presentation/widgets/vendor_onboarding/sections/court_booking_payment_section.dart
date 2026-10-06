@@ -23,12 +23,6 @@ class CourtBookingPaymentSection extends StatelessWidget {
   final CourtDraft court;
   final int subsectionIndex;
 
-  /// Adds QRs from the library to the ones the court already has.
-  ///
-  /// It adds rather than replaces: a saved court's QRs live in court storage
-  /// (`payment_qr_media_list`, ids of their own), not in the library, so they
-  /// never show as selected there — replacing with the library selection
-  /// would silently drop them. A QR is removed from its own tile instead.
   Future<void> _openPaymentQrLibrary(BuildContext context) async {
     final int remaining = kMaxCourtPaymentQrs - court.paymentQrs.length;
     if (remaining <= 0) return;
@@ -179,8 +173,6 @@ class _AdvancePaymentSectionState extends State<_AdvancePaymentSection> {
 
   String get _minimumPercentLabel => kMinimumAdvancePercent.toStringAsFixed(0);
 
-  /// The lowest flat amount allowed for this court: the minimum share of the
-  /// base price. Null while no base price has been entered.
   double? get _minimumFlatAmount {
     final double? base = widget.court.basePrice;
     if (base == null || base <= 0) return null;
@@ -421,9 +413,6 @@ class _AdvanceTypeOption extends StatelessWidget {
   }
 }
 
-/// Every payment QR the court accepts, as square tiles (a QR must never be
-/// cropped), with an "Add QR" tile until the limit. Tapping a tile opens a
-/// full-screen viewer that swipes between all of them.
 class _PaymentQrGallery extends StatelessWidget {
   const _PaymentQrGallery({
     required this.qrs,
@@ -654,7 +643,6 @@ class _AddPaymentQrTile extends StatelessWidget {
   }
 }
 
-/// Full-screen QR preview: swipe between QRs, pinch to zoom.
 class _PaymentQrViewer extends StatefulWidget {
   const _PaymentQrViewer({required this.qrs, required this.initialIndex});
 

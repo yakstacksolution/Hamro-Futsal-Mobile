@@ -46,17 +46,8 @@ class CustomButton extends StatelessWidget {
   final FontWeight fontWeight;
   final EdgeInsetsGeometry? margin;
 
-  /// Whether a tap answers with the standard light haptic tick.
-  ///
-  /// Almost every button in the app is a [CustomButton], so the feedback is
-  /// defined once here instead of at each call site. Turn it off for a button
-  /// that fires repeatedly (a stepper's +/-) or whose action already buzzes.
   final bool enableHapticFeedback;
 
-  /// The tap handler with the haptic tick attached.
-  ///
-  /// Null while loading or when no handler was given, which is also what
-  /// disables the underlying [TextButton].
   VoidCallback? get _onTap {
     final VoidCallback? callback = onPressed;
     if (isLoading || callback == null) return null;
@@ -205,16 +196,6 @@ class CustomButton extends StatelessWidget {
   }
 }
 
-/// Fills the width it is offered when that width is bounded, and shrink-wraps
-/// its child when it is not — a button in a `Row` without an `Expanded`, or in
-/// a horizontal scrollable, is measured with unbounded width.
-///
-/// A `LayoutBuilder` used to make that decision here. It cannot answer an
-/// intrinsic measurement, so every ancestor that asks for one — `AlertDialog`
-/// lays its actions out in an `OverflowBar`, and `IntrinsicWidth` and
-/// `DataTable` do the same — threw "LayoutBuilder does not support returning
-/// intrinsic dimensions" instead of laying out. This reports intrinsics
-/// straight from the child.
 class _FillWidthIfBounded extends SingleChildRenderObjectWidget {
   const _FillWidthIfBounded({required Widget super.child});
 

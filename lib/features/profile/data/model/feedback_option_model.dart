@@ -16,7 +16,6 @@ class FeedbackOptionModel extends Equatable {
   final String? _colorHex;
   String get colorHex => _colorHex ?? '';
 
-  /// Optional relation back to a feedback type for category filtering.
   final String typeId;
   final Map<String, dynamic> raw;
 

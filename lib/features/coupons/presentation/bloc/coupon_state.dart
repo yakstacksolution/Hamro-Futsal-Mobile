@@ -13,25 +13,17 @@ final class CouponState extends Equatable {
     this.applyError,
   });
 
-  /// Status of loading the active-coupons list.
   final CouponStatus status;
 
-  /// Whether the venue currently has any active coupon. May be true even when
-  /// [coupons] is empty (the server only returns a flag), in which case manual
-  /// code entry is still offered.
   final bool hasActiveCoupon;
   final List<CouponModel> coupons;
 
-  /// The coupon currently applied to the booking (server-confirmed), or null.
   final AppliedCouponModel? applied;
 
-  /// Whether an apply-coupon request is in flight.
   final bool isApplying;
 
-  /// Error from loading the coupons list.
   final String? errorMessage;
 
-  /// Error from the last apply-coupon attempt.
   final String? applyError;
 
   bool get isLoading => status == CouponStatus.loading;

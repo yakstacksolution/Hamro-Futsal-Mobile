@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:hamro_futsal/core/utils/compress_upload_image.dart';
 
-/// Application-wide limits for multipart uploads.
 const int kUploadMaxFileBytes = 10 * 1024 * 1024;
 const int kUploadImageTargetBytes = 1536 * 1024;
 const int kUploadMaxFilesPerRequest = 5;
@@ -25,7 +24,6 @@ const Set<String> kUploadDocumentExtensions = <String>{
   'docx',
 };
 
-/// Constraints applied before an attachment is allowed into feature state.
 class UploadPolicy {
   const UploadPolicy({
     this.allowedExtensions = kUploadDocumentExtensions,
@@ -54,7 +52,6 @@ enum UploadValidationCode {
   requestTooLarge,
 }
 
-/// A local validation failure that can be shown directly to the user.
 class UploadValidationException implements Exception {
   const UploadValidationException(this.code, this.message);
 
@@ -65,10 +62,6 @@ class UploadValidationException implements Exception {
   String toString() => message;
 }
 
-/// Immutable upload input captured while the picker result is still readable.
-///
-/// [sourcePath] exists only for local preview/OCR. Multipart requests must use
-/// [bytes], never read the picker-owned path again.
 final class UploadAttachment {
   UploadAttachment({
     required String filename,
@@ -115,8 +108,6 @@ typedef UploadImageOptimizer =
       int targetBytes,
     });
 
-/// Validates and, for large images, optimizes bytes before feature state keeps
-/// them. This is the single entrance into every active multipart upload flow.
 Future<UploadAttachment> normalizeUploadAttachment({
   required Uint8List bytes,
   required String filename,
@@ -185,7 +176,6 @@ Future<UploadAttachment> normalizeUploadAttachment({
   );
 }
 
-/// Reads a picker-owned path once and immediately turns it into durable bytes.
 Future<UploadAttachment> loadUploadAttachment({
   required String path,
   required String filename,

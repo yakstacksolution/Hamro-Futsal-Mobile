@@ -19,8 +19,6 @@ abstract class PublicRemoteDataSource {
     double? longitude,
   });
 
-  /// `GET /venues` narrowed to one venue by slug and/or id — what a shared
-  /// link carries.
   Future<Result> getVenueByLink({
     String? slug,
     int? id,

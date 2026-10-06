@@ -1,4 +1,3 @@
-/// How a coupon's value is applied to the order total.
 enum CouponDiscountType {
   percentage,
   fixed;
@@ -12,7 +11,6 @@ enum CouponDiscountType {
   }
 }
 
-/// A coupon returned by `GET /coupons/active`.
 class CouponModel {
   const CouponModel({
     this.id,
@@ -33,29 +31,22 @@ class CouponModel {
   final CouponDiscountType discountType;
   final double discountValue;
 
-  /// Cap on the discount for percentage coupons (null = uncapped).
   final double? maxDiscount;
 
-  /// Minimum order amount required for the coupon to be valid.
   final double? minOrderAmount;
   final DateTime? expiresAt;
 
   bool get isPercentage => discountType == CouponDiscountType.percentage;
 
-  /// Short human label, e.g. `10% off` or `Rs 100 off`.
   String get label {
     if (title != null && title!.trim().isNotEmpty) return title!.trim();
     if (isPercentage) return '${_trimNumber(discountValue)}% off';
     return 'Rs ${_trimNumber(discountValue)} off';
   }
 
-  /// Whether [subtotal] satisfies the coupon's [minOrderAmount].
   bool meetsMinimum(double subtotal) =>
       minOrderAmount == null || subtotal >= minOrderAmount!;
 
-  /// Client-side discount estimate, used to preview savings before the server
-  /// confirms via `apply-coupon`. Honours [maxDiscount] and never exceeds the
-  /// subtotal.
   double estimatedDiscount(double subtotal) {
     if (!meetsMinimum(subtotal)) return 0;
     double discount = isPercentage
@@ -114,8 +105,6 @@ class CouponModel {
     );
   }
 
-  /// Parses the `GET /coupons/active` payload, tolerating both a bare list and
-  /// a `{ data: [...] }` / `{ data: { coupons: [...] } }` envelope.
   static List<CouponModel> listFromResponse(dynamic payload) {
     final List<dynamic> items = _listFromAny(payload);
     return items

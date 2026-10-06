@@ -4,12 +4,6 @@ import 'package:hamro_futsal/core/theme/app_theme_controller.dart';
 
 export 'package:hamro_futsal/core/theme/app_theme_colors.dart';
 
-/// Brand palette + brightness-aware semantic aliases.
-///
-/// Anything that must flip between light and dark is a **getter** resolving
-/// through [AppThemeColors]; only true brand constants stay `const`. Prefer
-/// `context.appColors.<token>` in widgets — these statics exist for call sites
-/// that have no [BuildContext] to hand.
 class LightColor {
   LightColor._();
 
@@ -49,18 +43,12 @@ class LightColor {
   // ---------------------------------------------------------------------------
   // Brand.
   // ---------------------------------------------------------------------------
-  /// Brand FILL. Deliberately identical in both themes — a filled brand button
-  /// should look the same everywhere, and white on it clears AA contrast.
-  /// For a brand tone used as *text/icon on the page background*, where this
-  /// green would be unreadable in dark mode, use [brandTextColor] instead.
   static Color get primaryColor => secondaryColor;
   static Color get buttonColor => primaryColor;
   static Color get successColor => _semantic.success;
 
-  /// Foreground that stays legible on [primaryColor] / filled brand surfaces.
   static Color get inverseTextColor => _semantic.onAccent;
 
-  /// Opaque near-white/near-black card surface. Historically `0xffFAFAFA`.
   static Color get whiteColor => _semantic.surfaceElevated;
 
   // ---------------------------------------------------------------------------
@@ -78,17 +66,10 @@ class LightColor {
   static Color get buttonDisabledColor => _semantic.disabled;
   static Color get iconGrey => _semantic.iconMuted;
 
-  /// A QR code's ground stays light in BOTH themes — scanners rely on the
-  /// contrast, and QR art with a transparent background vanishes on a dark
-  /// surface. Content drawn on it must use [onQrSurface] / [onQrSurfaceMuted]
-  /// rather than the theme's text tokens.
   static const Color qrSurface = Color(0xFFFFFFFF);
   static const Color onQrSurface = Color(0xFF14181A);
   static const Color onQrSurfaceMuted = Color(0xFF6B7280);
 
-  /// Tint for supplied monochrome glyphs — the amenity/facility marks the API
-  /// serves as flat single-colour art. They carry no hue of their own to
-  /// preserve, so they invert with the ground: black on light, white on dark.
   static Color get monoIconColor =>
       _isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
 
@@ -102,8 +83,6 @@ class LightColor {
   static Color get inputBorderColor => _semantic.inputBorder;
   static Color get inputFocusBorderColor => primaryColor;
 
-  /// Drop shadow at a caller-tuned strength. Dark mode deepens the alpha,
-  /// because a faint black shadow is invisible against a dark ground.
   static Color shadowOf(double alpha) =>
       Color.fromRGBO(0, 0, 0, _isDark ? (alpha * 2.2).clamp(0.0, 0.8) : alpha);
 
@@ -142,14 +121,8 @@ class LightColor {
   static const Color secondaryDark = Color(0xFF059669);
   static const Color primaryDark = Color(0xFF14532D);
 
-  /// Text/icon colour for content sitting on a brand gradient surface.
   static const Color onBrandSurface = Color(0xFFFFFFFF);
 
-  /// Brand tone for *text/icons on the page background*.
-  ///
-  /// Light mode is the brand green itself, so swapping a foreground from
-  /// [secondaryColor] to this token is a no-op there. Dark mode steps up to a
-  /// light mint, because the brand green only manages ~3:1 on a dark surface.
   static Color get brandTextColor =>
       _isDark ? const Color(0xFF5FD3A6) : secondaryColor;
 
@@ -162,7 +135,6 @@ class LightColor {
   // instead of forcing every call site to maintain a second dark palette.
   // ---------------------------------------------------------------------------
 
-  /// The hue, lightened in dark mode so it stays legible on a dark ground.
   static Color categoryAccent(Color base) {
     if (!_isDark) return base;
     final HSLColor hsl = HSLColor.fromColor(base);
@@ -174,10 +146,6 @@ class LightColor {
         .toColor();
   }
 
-  /// For third-party brand marks (Facebook blue, YouTube red, …), whose hue is
-  /// part of the brand and must survive theming. Only lifts colours that are
-  /// genuinely too dark to read on the dark background — e.g. TikTok's black —
-  /// and leaves every already-legible brand hue untouched.
   static Color brandSafe(Color base) {
     if (!_isDark) return base;
     final HSLColor hsl = HSLColor.fromColor(base);
@@ -185,7 +153,6 @@ class LightColor {
     return hsl.withLightness(0.72).toColor();
   }
 
-  /// Tinted fill that pairs with [categoryAccent] for the same hue.
   static Color categoryContainer(Color base) {
     final HSLColor hsl = HSLColor.fromColor(base);
     return _isDark

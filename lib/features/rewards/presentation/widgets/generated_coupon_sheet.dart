@@ -10,8 +10,6 @@ import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/features/rewards/data/model/rewards_model.dart';
 import 'package:hamro_futsal/features/rewards/presentation/utils/rewards_ui.dart';
 
-/// Success sheet for a freshly generated reward coupon: the code, its value and
-/// a copy action.
 class GeneratedCouponSheet extends StatelessWidget {
   const GeneratedCouponSheet({super.key, required this.coupon});
 
@@ -112,7 +110,6 @@ class GeneratedCouponSheet extends StatelessWidget {
   }
 }
 
-/// Dashed-border ticket holding the coupon code.
 class _CodeTicket extends StatelessWidget {
   const _CodeTicket({required this.code, required this.onCopy});
 
@@ -164,7 +161,6 @@ class _CodeTicket extends StatelessWidget {
   }
 }
 
-/// Points used / balance left / validity, whichever the server reported.
 class _CouponMeta extends StatelessWidget {
   const _CouponMeta({required this.coupon});
 

@@ -19,8 +19,6 @@ final class FetchPublicFacilitiesEvent extends PublicCourtOptionsEvent {
   const FetchPublicFacilitiesEvent();
 }
 
-/// Loads `GET /match-formate` on its own, for screens that need the formats
-/// (and their ids) without the rest of the court-options payload.
 final class FetchPublicMatchFormatsEvent extends PublicCourtOptionsEvent {
   const FetchPublicMatchFormatsEvent();
 }

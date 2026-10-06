@@ -2,17 +2,6 @@ import 'package:hamro_futsal/core/utils/kathmandu_time.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 
-/// Maps a `GET /court-availability-slots` response to
-/// [OpsCourtWeekAvailability].
-///
-/// Accepts the day list under `data` directly or under `days`, `dates`,
-/// `week`, `availability` or `slots`; days as a list of `{date, slots}` or a
-/// `date → slots` map; or one flat slot list where each slot carries its own
-/// `date`. A slot without a readable start time is skipped.
-///
-/// Staging answers with `data.days[].slots[]` (a sample is in
-/// `test/vendor_operations/court_week_slots_test.dart`); `data.grid` repeats
-/// the same slots keyed by time and is not read.
 abstract final class CourtAvailabilitySlotsModel {
   static const List<String> _dayListKeys = <String>[
     'days',
@@ -57,15 +46,6 @@ abstract final class CourtAvailabilitySlotsModel {
     );
   }
 
-  /// Maps a `type=day` response — every court of every venue the vendor has,
-  /// under `data.venues[].courts[]` — to the whole Day board: the courts,
-  /// each court's slots on [date], and the bookings those slots carry. A
-  /// court listed with no slots gets an empty day (the server says it has
-  /// nothing to sell).
-  ///
-  /// A court's slots are read from `days[].slots[]` when the server sends
-  /// days, else from its flat `slots[]` — never both, since they repeat the
-  /// same slots.
   static OpsDayAvailability fromDayResponse(
     dynamic payload, {
     required DateTime date,
@@ -132,7 +112,6 @@ abstract final class CourtAvailabilitySlotsModel {
     );
   }
 
-  /// Courts under `data.venues[].courts[]`, or `data.courts[]`.
   static Iterable<Map<String, dynamic>> _dayCourts(dynamic payload) sync* {
     dynamic data = payload;
     while (data is Map && data['venues'] == null && data['courts'] == null) {
@@ -154,7 +133,6 @@ abstract final class CourtAvailabilitySlotsModel {
     yield* mapsOf(data['courts']);
   }
 
-  /// Strips `{status, message, data: …}` envelopes.
   static dynamic _unwrap(dynamic payload) {
     dynamic current = payload;
     while (current is Map &&
@@ -265,10 +243,6 @@ abstract final class CourtAvailabilitySlotsModel {
     );
   }
 
-  /// The booking a slot carries (`booking_detail`, else `booking`), read the
-  /// way the bookings list reads one. Its `slots` are the booking's slot rows
-  /// — a booking over several slots is not one block — and the slot fills in
-  /// the court and venue when the booking does not name them.
   static BookingModel? _booking(
     dynamic json, {
     required Map<String, dynamic> slot,
@@ -300,10 +274,6 @@ abstract final class CourtAvailabilitySlotsModel {
     }
   }
 
-  /// `cell_type` says how the cell is drawn and is the most specific — a
-  /// past slot is `status: unavailable` but `cell_type: past`. Then
-  /// `status`, then boolean flags. A slot this vendor holds is still theirs
-  /// to book.
   static OpsServerSlotState _state(Map<String, dynamic> map) {
     if (_bool(map['held_by_me']) == true) return OpsServerSlotState.available;
     for (final dynamic raw in <dynamic>[
@@ -371,7 +341,6 @@ abstract final class CourtAvailabilitySlotsModel {
     return OpsServerSlotState.available;
   }
 
-  /// `past_slot_not_bookable` → `Past slot not bookable`.
   static String? _humanize(dynamic v) {
     final String? text = _string(v)?.replaceAll(RegExp(r'[_\s]+'), ' ');
     if (text == null) return null;

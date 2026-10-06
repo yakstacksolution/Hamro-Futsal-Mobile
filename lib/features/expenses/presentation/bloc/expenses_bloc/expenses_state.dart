@@ -18,9 +18,6 @@ final class ExpensesState extends Equatable {
     this.errorMessage,
   });
 
-  /// Venues + courts come from one API, categories from another and the
-  /// expenses list from a third — each fetch tracks its own status so a
-  /// failure in one never blocks the others.
   final ExpensesStatus venueCourtsStatus;
   final ExpensesStatus categoriesStatus;
   final ExpensesStatus expensesStatus;
@@ -29,18 +26,12 @@ final class ExpensesState extends Equatable {
   final List<ExpenseCategoryModel> categories;
   final List<ExpenseModel> expenses;
 
-  /// Server-computed summary + analytics for the Overview/Analytics tabs.
   final ExpenseReport report;
 
-  /// The active server-side filter (date_filter, venue, payment method).
   final ExpenseFilter filter;
 
-  /// True while a silent filter refetch is in flight — drives the slim
-  /// refresh bar without tearing down the current data.
   final bool refreshing;
 
-  /// Bumped on every successful load so the UI can cross-fade content
-  /// exactly when fresh data arrives (not when the filter chip is tapped).
   final int reportVersion;
   final String? errorMessage;
 

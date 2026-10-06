@@ -13,7 +13,6 @@ double _toDouble(dynamic v) {
   return double.tryParse(v?.toString() ?? '') ?? 0;
 }
 
-/// One ranked entity in the summary block: top category / venue / court.
 class ExpenseTopRef {
   const ExpenseTopRef({
     required this.id,
@@ -37,7 +36,6 @@ class ExpenseTopRef {
   }
 }
 
-/// `data.summary` — server-computed headline numbers for the Overview tab.
 class ExpenseSummary {
   const ExpenseSummary({
     required this.totalSpend,
@@ -76,8 +74,6 @@ class ExpenseTrendBucket {
   final int value;
 }
 
-/// `data.analytics.trend` — the spend chart series. [granularity] changes
-/// with the selected date filter (hourly → daily → monthly).
 class ExpenseTrend {
   const ExpenseTrend({
     required this.granularity,
@@ -118,8 +114,6 @@ class ExpenseTrend {
     );
   }
 
-  /// Legacy fallback: build a monthly trend from a flat `monthly_spend` list
-  /// of `{label, total}` items.
   factory ExpenseTrend.fromMonthlySpend(List raw) {
     final buckets = <ExpenseTrendBucket>[];
     for (final b in raw) {
@@ -139,7 +133,6 @@ class ExpenseTrend {
   }
 }
 
-/// `data.analytics.by_category` — one slice of the category breakdown.
 class ExpenseCategorySpend {
   const ExpenseCategorySpend({
     required this.id,
@@ -159,7 +152,6 @@ class ExpenseCategorySpend {
   final double fraction;
   final double percentage;
 
-  /// Maps onto the local enum (for accent color / fallback icon).
   ExpenseCategory get asEnum => ExpenseCategoryModel(
     id: id,
     name: title,
@@ -186,7 +178,6 @@ class ExpenseCategorySpend {
   }
 }
 
-/// `data.analytics.by_court` — one slice of the court breakdown.
 class ExpenseCourtSpend {
   const ExpenseCourtSpend({
     required this.id,

@@ -13,10 +13,6 @@ import 'package:hamro_futsal/features/rewards/data/repositories/rewards_reposito
 import 'package:hamro_futsal/features/rewards/presentation/bloc/rewards_bloc/rewards_bloc.dart';
 import 'package:hamro_futsal/features/rewards/presentation/widgets/rewards_loading_widgets.dart';
 
-/// The points pill that sits at the trailing edge of the profile heading.
-///
-/// Owns a short-lived [RewardsBloc] so the profile page keeps no reward state;
-/// the full rewards screen refetches when opened.
 class ProfileRewardsBadge extends StatelessWidget {
   const ProfileRewardsBadge({super.key});
 
@@ -31,8 +27,6 @@ class ProfileRewardsBadge extends StatelessWidget {
   }
 }
 
-/// Reloads the badge's points whenever the profile is asked to refresh — a
-/// redemption spends points, and this bloc otherwise loads only once.
 class _RefreshOnProfileSignal extends StatefulWidget {
   const _RefreshOnProfileSignal({required this.child});
 
@@ -68,7 +62,6 @@ class _RefreshOnProfileSignalState extends State<_RefreshOnProfileSignal> {
 class _ProfileRewardsBadgeBody extends StatelessWidget {
   const _ProfileRewardsBadgeBody();
 
-  /// Keeps the pill from growing past a couple of glyphs on a large balance.
   static String _formatPoints(int points) {
     if (points < 1000) return '$points';
     if (points < 100000) {

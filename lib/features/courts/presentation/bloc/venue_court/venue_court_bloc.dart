@@ -18,11 +18,6 @@ class VenueCourtBloc extends Bloc<VenueCourtEvent, VenueCourtState> {
     on<FetchVenueCourtEvent>(_onFetchVenueCourt);
   }
 
-  /// Which answer this bloc's screen wants from `/auth/get-venue-courts`.
-  ///
-  /// A screen's purpose never changes while it is open, so it is held here
-  /// rather than repeated on every fetch, refresh and load-more event — where
-  /// one call site forgetting it would silently ask for the other list.
   final VenueCourtPurpose purpose;
 
   final GetVenueCourtUseCase _getVenueCourtUseCase;

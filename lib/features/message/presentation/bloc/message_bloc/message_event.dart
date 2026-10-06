@@ -7,7 +7,6 @@ sealed class MessageEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Loads the conversations list. [silent] refreshes in the background.
 final class LoadConversationsEvent extends MessageEvent {
   const LoadConversationsEvent({
     this.silent = false,
@@ -19,18 +18,12 @@ final class LoadConversationsEvent extends MessageEvent {
   final bool archived;
   final bool loadMore;
 
-  /// Bypasses the short refresh throttle. Set it for loads the user asked for
-  /// directly — pull-to-refresh, a retry tap, a filter switch — so they are
-  /// never swallowed; leave it off for background polling and lifecycle
-  /// refreshes, which is what kept hitting `/conversations` repeatedly.
   final bool force;
 
   @override
   List<Object?> get props => [silent, archived, loadMore, force];
 }
 
-/// Opens a conversation: loads its messages and subscribes to its
-/// realtime streams.
 final class LoadChatEvent extends MessageEvent {
   const LoadChatEvent(this.conversationId, {this.conversation});
   final int conversationId;
@@ -40,8 +33,6 @@ final class LoadChatEvent extends MessageEvent {
   List<Object?> get props => [conversationId, conversation];
 }
 
-/// Fetches the next page of older messages for the open conversation and
-/// prepends it above what is already rendered (top-of-thread pagination).
 final class LoadOlderMessagesEvent extends MessageEvent {
   const LoadOlderMessagesEvent(this.conversationId);
   final int conversationId;
@@ -50,13 +41,9 @@ final class LoadOlderMessagesEvent extends MessageEvent {
   List<Object?> get props => [conversationId];
 }
 
-/// Leaves the active conversation (cancels realtime subscriptions).
 final class CloseChatEvent extends MessageEvent {
   const CloseChatEvent({this.conversationId});
 
-  /// The chat being closed. When another chat has been opened since — the
-  /// split view switching conversations, where the new chat loads before the
-  /// old one is disposed — the close is ignored. Null closes whatever is open.
   final int? conversationId;
 
   @override
@@ -91,8 +78,6 @@ final class ClearCreatedGroupEvent extends MessageEvent {
   const ClearCreatedGroupEvent();
 }
 
-/// Renames a group.
-/// Edits a group: its name, its picture, or both. At least one must be given.
 final class UpdateGroupConversationEvent extends MessageEvent {
   const UpdateGroupConversationEvent(
     this.conversationId, {
@@ -103,22 +88,16 @@ final class UpdateGroupConversationEvent extends MessageEvent {
 
   final int conversationId;
 
-  /// The new name, or null to leave it as it is.
   final String? title;
 
-  /// The new picture, as a media library id. Null leaves it as it is.
   final int? mediaId;
 
-  /// The picked image's URL, used to show the new picture immediately rather
-  /// than waiting for the server to echo it back.
   final String? imageUrl;
 
   @override
   List<Object?> get props => [conversationId, title, mediaId, imageUrl];
 }
 
-/// Answers a group invitation from the inbox. Accepting joins the thread and
-/// leaves it in the list; declining removes it.
 final class RespondToConversationInvitationEvent extends MessageEvent {
   const RespondToConversationInvitationEvent(
     this.conversationId, {
@@ -132,8 +111,6 @@ final class RespondToConversationInvitationEvent extends MessageEvent {
   List<Object?> get props => [conversationId, accept];
 }
 
-/// Leaves a group. The conversation stays for its other members; it drops off
-/// this user's inbox.
 final class LeaveGroupConversationEvent extends MessageEvent {
   const LeaveGroupConversationEvent(this.conversationId);
 
@@ -143,7 +120,6 @@ final class LeaveGroupConversationEvent extends MessageEvent {
   List<Object?> get props => [conversationId];
 }
 
-/// Clears [MessageState.leftConversationId] once the UI has acted on it.
 final class ClearLeftConversationEvent extends MessageEvent {
   const ClearLeftConversationEvent();
 }
@@ -157,7 +133,6 @@ final class AddGroupMembersEvent extends MessageEvent {
   List<Object?> get props => [conversationId, participantIds];
 }
 
-/// Loads the view-only profile of another user for the profile sheet.
 final class LoadMessageProfileEvent extends MessageEvent {
   const LoadMessageProfileEvent(this.userId);
   final int userId;
@@ -166,7 +141,6 @@ final class LoadMessageProfileEvent extends MessageEvent {
   List<Object?> get props => [userId];
 }
 
-/// Drops the loaded profile when the sheet closes.
 final class ClearMessageProfileEvent extends MessageEvent {
   const ClearMessageProfileEvent();
 }
@@ -218,7 +192,6 @@ final class ClearMessageActionEvent extends MessageEvent {
   const ClearMessageActionEvent();
 }
 
-/// A realtime message arrived over the socket.
 final class ChatMessageReceivedEvent extends MessageEvent {
   const ChatMessageReceivedEvent(this.message);
   final ChatMessageModel message;
@@ -227,7 +200,6 @@ final class ChatMessageReceivedEvent extends MessageEvent {
   List<Object?> get props => [message];
 }
 
-/// The other side started/stopped typing (socket).
 final class PeerTypingChangedEvent extends MessageEvent {
   const PeerTypingChangedEvent(this.conversationId, this.isTyping);
   final int conversationId;
@@ -237,7 +209,6 @@ final class PeerTypingChangedEvent extends MessageEvent {
   List<Object?> get props => [conversationId, isTyping];
 }
 
-/// The other participant read one or more messages (socket).
 final class MessagesReadEvent extends MessageEvent {
   const MessagesReadEvent(this.receipt);
   final ChatReadReceipt receipt;
@@ -250,7 +221,6 @@ final class MessagesReadEvent extends MessageEvent {
   ];
 }
 
-/// Broadcasts the signed-in user's typing state.
 final class SendTypingEvent extends MessageEvent {
   const SendTypingEvent(this.conversationId, this.typing);
   final int conversationId;

@@ -7,15 +7,6 @@ import 'package:hamro_futsal/features/profile/data/model/profile_model.dart';
 import 'package:hamro_futsal/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:hamro_futsal/features/profile/domain/usecase/profile_usecase.dart';
 
-/// Holds the user's app preferences and keeps them in sync with persistent
-/// storage. Every mutation writes through to [AppSettings] immediately and
-/// notifies listeners, so the Settings page survives restarts without any
-/// per-screen plumbing.
-///
-/// The four notification flags are server-backed: their current values are
-/// seeded from `GET /auth/me` and every toggle posts the full set to
-/// `POST /auth/notification-preferences` (optimistically — the switch flips
-/// at once and reverts if the call fails).
 class SettingsController extends ChangeNotifier {
   SettingsController({AppSettings? settings, ProfileUseCase? profileUseCase})
     : _settings = settings ?? AppSettings(),
@@ -28,7 +19,6 @@ class SettingsController extends ChangeNotifier {
   final AppSettings _settings;
   final ProfileUseCase _profileUseCase;
 
-  /// Surfaces sync failures (e.g. as a snackbar); set by the Settings page.
   ValueChanged<String>? onError;
 
   late bool _pushNotifications;
@@ -43,13 +33,9 @@ class SettingsController extends ChangeNotifier {
   bool _notificationSyncing = false;
   bool _disposed = false;
 
-  /// Signed-in user's id, from `/auth/me`. Kept for pages that need account
-  /// context; deletion itself now targets the signed-in account directly.
   int? _userId;
   bool _deletingAccount = false;
 
-  /// True once `/auth/me` has answered, either way. Distinguishes "still
-  /// loading" from "loaded, but the fetch failed" for the delete row.
   bool _profileResolved = false;
 
   bool get pushNotifications => _pushNotifications;
@@ -64,10 +50,8 @@ class SettingsController extends ChangeNotifier {
   bool get deletingAccount => _deletingAccount;
   bool get profileResolved => _profileResolved;
 
-  /// Whether the account can be deleted yet.
   bool get canDeleteAccount => !_deletingAccount;
 
-  /// Languages the app advertises in the picker.
   static const List<String> languages = <String>['English', 'नेपाली', 'हिन्दी'];
   static const Map<ThemeMode, String> themeModeOptions = <ThemeMode, String>{
     ThemeMode.light: 'Light',
@@ -86,8 +70,6 @@ class SettingsController extends ChangeNotifier {
     _syncedNotificationPrefs = _currentNotificationPrefs;
   }
 
-  /// The server is the source of truth for the notification flags — refresh
-  /// them from `/auth/me` so the toggles reflect the stored preferences.
   Future<void> _seedNotificationPrefsFromProfile() async {
     final result = await _profileUseCase.getProfile();
     _profileResolved = true;
@@ -132,8 +114,6 @@ class SettingsController extends ChangeNotifier {
         promotionalEmails: _promotionalEmails,
       );
 
-  /// Serializes full-set updates. If several switches are tapped quickly, the
-  /// newest state is posted after the in-flight request rather than racing it.
   Future<void> _scheduleNotificationSync() async {
     if (_notificationSyncing || _disposed) return;
     _notificationSyncing = true;
@@ -230,12 +210,6 @@ class SettingsController extends ChangeNotifier {
     _notifyIfActive();
   }
 
-  /// `DELETE /auth/account` — irreversible. The repository clears
-  /// the token, the biometric session and the socket on success, so the caller
-  /// only has to navigate away from the signed-in shell.
-  ///
-  /// Returns true when the account was deleted; failures are reported through
-  /// [onError] and leave the session untouched.
   Future<bool> deleteAccount({required String reason}) async {
     final String trimmedReason = reason.trim();
     if (trimmedReason.isEmpty) {

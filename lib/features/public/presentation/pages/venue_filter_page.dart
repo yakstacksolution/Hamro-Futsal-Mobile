@@ -777,7 +777,6 @@ class _OptionStateView extends StatelessWidget {
   }
 }
 
-/// Single shimmer row of pill placeholders for the Match Type section.
 class _PillRowLoading extends StatelessWidget {
   const _PillRowLoading();
 
@@ -799,7 +798,6 @@ class _PillRowLoading extends StatelessWidget {
   }
 }
 
-/// Single shimmer row of two card placeholders for the Court Type section.
 class _CourtTypeRowLoading extends StatelessWidget {
   const _CourtTypeRowLoading();
 
@@ -1089,7 +1087,6 @@ class _CourtTypeCard extends StatelessWidget {
   }
 }
 
-/// Selectable row with icon, title, time range and a trailing radio indicator.
 class _TimeSlotRow extends StatelessWidget {
   const _TimeSlotRow({
     required this.option,

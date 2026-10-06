@@ -106,8 +106,6 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     }, (_) {});
   }
 
-  /// Optimistically toggles a single notification's read flag and keeps the
-  /// unread counter and (when in the unread tab) the visible list in sync.
   NotificationState _applyReadState(String id, {required bool read}) {
     NotificationModel? target;
     for (final NotificationModel n in state.notifications) {

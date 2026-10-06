@@ -9,8 +9,6 @@ import 'package:hamro_futsal/features/opponent_match/presentation/utils/opponent
 import 'package:hamro_futsal/features/opponent_match/presentation/widgets/opponent_common.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Court-fee split configurator: even / custom-%, with by-team or by-result
-/// basis and a live breakdown of who pays what.
 class OpponentCostSplitCard extends StatelessWidget {
   const OpponentCostSplitCard({
     super.key,

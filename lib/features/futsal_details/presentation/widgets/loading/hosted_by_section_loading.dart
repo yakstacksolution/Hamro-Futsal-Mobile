@@ -6,7 +6,6 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 class HostedBySectionLoading extends StatelessWidget {
   const HostedBySectionLoading({super.key, this.inPanel = false});
 
-  /// Flat, unpadded, for the desktop booking panel (which is already the card).
   final bool inPanel;
 
   @override

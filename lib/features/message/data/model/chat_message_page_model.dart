@@ -1,12 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
 
-/// One page of `/conversations/{id}/messages`.
-///
-/// The endpoint serves newest-first, so page 1 is the tail of the thread and
-/// each further page walks backwards in time. The server may answer with a
-/// bare `{data: {items: []}}` (no `pagination` block) — in that case the flags
-/// are inferred from how full the page came back.
 final class ChatMessagePageModel extends Equatable {
   const ChatMessagePageModel({
     required this.items,
@@ -19,18 +13,15 @@ final class ChatMessagePageModel extends Equatable {
     required this.hasMorePages,
   });
 
-  /// Oldest → newest, ready to append to the rendered thread.
   final List<ChatMessageModel> items;
   final int currentPage;
   final int lastPage;
   final int perPage;
   final int total;
 
-  /// 1-based index of the first/last item of this page within [total].
   final int from;
   final int to;
 
-  /// True when older messages remain beyond [currentPage].
   final bool hasMorePages;
 
   factory ChatMessagePageModel.fromResponse(

@@ -5,11 +5,6 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/widgets/custom_date_picker.dart';
 import 'package:nepali_date_picker/nepali_date_picker.dart' as np;
 
-/// Picks one date in the reader's calendar (or [calendar]).
-///
-/// Takes and returns Gregorian dates at midnight whatever the calendar, so
-/// callers never handle BS values: AD opens the app's wheel sheet, BS opens
-/// the Bikram Sambat calendar from `nepali_date_picker`.
 Future<DateTime?> showAppDatePicker(
   BuildContext context, {
   DateTime? initialDate,
@@ -43,10 +38,6 @@ Future<DateTime?> showAppDatePicker(
   );
 }
 
-/// The Bikram Sambat calendar picker, in AD terms.
-///
-/// Bounds are clamped to the BS range the calendar data covers, and the
-/// initial date into the bounds, so no input can trip nepali_utils' asserts.
 Future<DateTime?> showBsDatePicker(
   BuildContext context, {
   required DateTime initialDate,
@@ -74,8 +65,6 @@ Future<DateTime?> showBsDatePicker(
   return picked == null ? null : AppDate.dateOnly(AppDate.toAd(picked));
 }
 
-/// Picks a date range in the reader's calendar (or [calendar]), returned as
-/// Gregorian dates.
 Future<DateTimeRange?> showAppDateRangePicker(
   BuildContext context, {
   required DateTime firstDate,
@@ -133,20 +122,16 @@ Future<DateTimeRange?> showAppDateRangePicker(
   );
 }
 
-/// [first]..[last] as dates, inside the BS-supported window.
 (DateTime, DateTime) _bsBounds(DateTime first, DateTime last) => (
   AppDate.dateOnly(AppDate.clampToBsRange(first)),
   AppDate.dateOnly(AppDate.clampToBsRange(last)),
 );
 
-/// The picker writes Nepali month names and digits under the `ne` Material
-/// locale — set per picker, so the app's own language is untouched.
 Locale? _localeFor(CalendarScript? script) =>
     (script ?? AppCalendarController.instance.script) == CalendarScript.nepali
     ? const Locale('ne')
     : null;
 
-/// The app's brand colours on the Material pickers.
 Widget _themed(BuildContext context, Widget? child) {
   final ThemeData theme = Theme.of(context);
   return Theme(

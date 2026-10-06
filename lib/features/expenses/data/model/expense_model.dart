@@ -24,10 +24,6 @@ extension ExpenseCategoryLabel on ExpenseCategory {
   };
 }
 
-/// Category fetched from the `/expense-categories` endpoint.
-///
-/// Response item shape:
-/// `{id: 2, title: Bills, slug: bills, image: https://…/image.svg}`
 class ExpenseCategoryModel {
   const ExpenseCategoryModel({
     required this.id,
@@ -40,7 +36,6 @@ class ExpenseCategoryModel {
   final String name;
   final String slug;
 
-  /// Category icon URL (svg or raster); empty when the server sent none.
   final String image;
 
   factory ExpenseCategoryModel.fromJson(Map<String, dynamic> json) =>
@@ -64,8 +59,6 @@ class ExpenseCategoryModel {
 
   bool get isSvgImage => image.toLowerCase().endsWith('.svg');
 
-  /// Maps this category onto the local enum (by slug, then name) so existing
-  /// analytics/filter code keeps working; unknown categories land in `other`.
   ExpenseCategory get asEnum => ExpenseCategory.values.firstWhere(
     (c) =>
         c.name == slug.toLowerCase() ||
@@ -97,8 +90,6 @@ class VenueModel {
   Map<String, dynamic> toJson() => {'id': id, 'name': name};
 }
 
-/// Venues together with their courts, as returned by the single
-/// venue-court endpoint.
 class VenueCourtsModel {
   const VenueCourtsModel({required this.venues, required this.courts});
 
@@ -151,29 +142,22 @@ class ExpenseModel {
   final String id;
   final DateTime date;
 
-  /// Local enum mapping (slug-based) used for colors/fallback icons.
   final ExpenseCategory category;
 
-  /// Server-side `expense_category_id`.
   final String categoryId;
 
-  /// Nested `category: {id, title, slug, image}` from the API.
   final ExpenseCategoryModel? categoryDetail;
   final String vendor;
   final int amount;
   final String venueId;
 
-  /// Nested `venue.name` from the API; UI falls back to a lookup when null.
   final String? venueName;
   final PaymentMethod method;
   final String? courtId;
 
-  /// Nested `court.name` from the API.
   final String? courtName;
   final String? note;
 
-  /// Attached document — a server URL, or a local file path right after an
-  /// optimistic create (until the silent refetch swaps in the server copy).
   final String? document;
 
   bool get hasImageDocument {
@@ -214,10 +198,6 @@ class ExpenseModel {
     'note': note,
   };
 
-  /// Parses one item of the `GET /auth/expenses` response:
-  /// `{id, amount, purpose, date, payment_method, note, document_url,
-  ///   expense_category_id, category: {id,title,slug,image},
-  ///   venue_id, venue: {id,name}, court_id, court: {id,name}, created_at}`.
   factory ExpenseModel.fromApiJson(Map<String, dynamic> json) {
     final dynamic rawCategory = json['category'] ?? json['expense_category'];
     final categoryDetail = rawCategory is Map

@@ -4,12 +4,6 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 
-/// Centred icon + title + message, with an optional action button.
-///
-/// The shared full-surface state used for empty lists and load failures. It
-/// started life inside the wishlist page; every list that reports "nothing
-/// here" or "could not load" uses this one so the states look identical
-/// wherever they appear.
 class AppMessageView extends StatelessWidget {
   const AppMessageView({
     super.key,
@@ -25,7 +19,6 @@ class AppMessageView extends StatelessWidget {
   final String title;
   final String message;
 
-  /// Label for the action button. The button is omitted when null.
   final String? actionLabel;
   final VoidCallback? onAction;
   final IconData actionIcon;

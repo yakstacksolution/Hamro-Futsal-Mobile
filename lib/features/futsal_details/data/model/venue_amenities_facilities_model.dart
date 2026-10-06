@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// Rich amenity and facility data returned by
-/// `/venue-amenities-facilities/{venue_id}`.
 final class VenueAmenitiesFacilitiesModel extends Equatable {
   const VenueAmenitiesFacilitiesModel({
     this.amenities = const <VenueAmenityFacilityItem>[],
@@ -67,7 +65,6 @@ final class VenueAmenityFacilityItem extends Equatable {
   final bool? isActive;
   final int? sortOrder;
 
-  /// Facilities may expose the same asset as both `icon` and `image`.
   String? get displayIconUrl => icon?.url ?? image?.url;
 
   factory VenueAmenityFacilityItem.fromJson(Map<String, dynamic> json) {

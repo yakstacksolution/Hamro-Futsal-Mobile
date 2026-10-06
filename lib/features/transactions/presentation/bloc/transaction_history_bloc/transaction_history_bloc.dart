@@ -10,10 +10,6 @@ import 'package:hamro_futsal/features/transactions/domain/usecase/transaction_us
 part 'transaction_history_event.dart';
 part 'transaction_history_state.dart';
 
-/// Owns the paginated `GET /auth/transaction-history` list.
-///
-/// `direction` and `type` are server-side filters, so changing either restarts
-/// from page 1; only the page cursor accumulates rows.
 class TransactionHistoryBloc
     extends Bloc<TransactionHistoryEvent, TransactionHistoryState> {
   TransactionHistoryBloc(this._useCase, {int perPage = 20})
@@ -32,12 +28,6 @@ class TransactionHistoryBloc
   final TransactionUseCase _useCase;
   final int _perPage;
 
-  /// Bumped whenever the query changes or a fresh load starts.
-  ///
-  /// Bloc runs handlers for *different* event types concurrently, so a page-2
-  /// request can still be in flight when the user changes a filter. Without
-  /// this, that stale page would be merged into the newly filtered list and
-  /// would drag its own `page` / `hasReachedMax` cursor along with it.
   int _requestSerial = 0;
 
   Future<void> _onLoad(
@@ -171,10 +161,6 @@ class TransactionHistoryBloc
     add(const LoadTransactionHistoryEvent());
   }
 
-  /// Applies everything the filter sheet returned as one change.
-  ///
-  /// The sheet can move three filters at once; dispatching them separately
-  /// costs one round trip each and briefly renders half-applied combinations.
   Future<void> _onApplyFilters(
     ApplyTransactionFiltersEvent event,
     Emitter<TransactionHistoryState> emit,
@@ -230,12 +216,6 @@ class TransactionHistoryBloc
     add(const LoadTransactionHistoryEvent());
   }
 
-  /// Chip values for the `type` filter.
-  ///
-  /// The endpoint echoes the applied filters rather than advertising the valid
-  /// ones, so the row is seeded with [kKnownTransactionSources] and widened by
-  /// whatever `source` values actually turn up. Values already shown are kept,
-  /// so filtering to one source never collapses the row.
   List<String> _typesFrom(List<TransactionHistoryItemModel> items) {
     final Set<String> sources = <String>{
       ...kKnownTransactionSources,

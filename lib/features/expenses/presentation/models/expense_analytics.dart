@@ -92,7 +92,6 @@ class ExpenseAnalytics {
   ExpenseCategory categoryEnumOf(String id) =>
       _categoryEnums[id] ?? ExpenseCategory.other;
 
-  /// Display name straight from the API response, enum label as fallback.
   String categoryName(String id) =>
       categoryDetail(id)?.name ?? categoryEnumOf(id).label;
 
@@ -110,7 +109,6 @@ class ExpenseAnalytics {
       ? null
       : byVenue.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
 
-  /// Bucketed series for the trend chart.
   late final List<ChartBucket> series = _buildSeries();
 
   List<ChartBucket> _buildSeries() {

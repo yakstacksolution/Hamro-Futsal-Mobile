@@ -8,10 +8,6 @@ import 'package:hamro_futsal/core/widgets/loading_widget.dart';
 import 'package:hamro_futsal/features/rewards/data/model/rewards_model.dart';
 import 'package:hamro_futsal/features/rewards/presentation/utils/rewards_ui.dart';
 
-/// The reward balance hero: gradient card with the point balance, tier badge,
-/// progress towards the next coupon and the redeem action.
-///
-/// Used on the rewards page and, in [compact] form, as the profile section.
 class RewardBalanceCard extends StatelessWidget {
   const RewardBalanceCard({
     super.key,
@@ -24,11 +20,8 @@ class RewardBalanceCard extends StatelessWidget {
 
   final RewardsSummaryModel summary;
 
-  /// Null hides the redeem button (e.g. the compact profile card, which taps
-  /// through to the rewards page instead).
   final VoidCallback? onRedeem;
 
-  /// Tapping anywhere on the card; used by the compact profile variant.
   final VoidCallback? onTap;
 
   final bool isRedeeming;
@@ -229,7 +222,6 @@ class _TierBadge extends StatelessWidget {
   }
 }
 
-/// Progress meter towards the next coupon, plus the "N more points" hint.
 class _RedeemProgress extends StatelessWidget {
   const _RedeemProgress({required this.summary});
 
@@ -384,7 +376,6 @@ class _RedeemButton extends StatelessWidget {
   }
 }
 
-/// Lifetime earned / redeemed / expiring tiles under the hero card.
 class RewardStatsRow extends StatelessWidget {
   const RewardStatsRow({super.key, required this.summary});
 
@@ -492,8 +483,6 @@ class _RewardStatTile extends StatelessWidget {
   }
 }
 
-/// Warning strip for points that lapse soon; renders nothing when the server
-/// does not report an expiry.
 class RewardExpiryNotice extends StatelessWidget {
   const RewardExpiryNotice({super.key, required this.summary});
 
@@ -541,7 +530,6 @@ class RewardExpiryNotice extends StatelessWidget {
   }
 }
 
-/// One reward history row.
 class RewardHistoryTile extends StatelessWidget {
   const RewardHistoryTile({super.key, required this.entry});
 
@@ -645,7 +633,6 @@ class RewardHistoryTile extends StatelessWidget {
   }
 }
 
-/// Card wrapper that draws [entries] as a divided list.
 class RewardHistoryCard extends StatelessWidget {
   const RewardHistoryCard({super.key, required this.entries});
 
@@ -679,7 +666,6 @@ class RewardHistoryCard extends StatelessWidget {
   }
 }
 
-/// Section header with an optional trailing action.
 class RewardSectionHeader extends StatelessWidget {
   const RewardSectionHeader({
     super.key,
@@ -735,8 +721,6 @@ class RewardSectionHeader extends StatelessWidget {
   }
 }
 
-/// How points are earned and spent — shown under the balance so the programme
-/// explains itself without a separate help page.
 class RewardHowItWorksCard extends StatelessWidget {
   const RewardHowItWorksCard({super.key, required this.summary});
 

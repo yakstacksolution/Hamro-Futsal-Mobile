@@ -18,10 +18,6 @@ import 'package:hamro_futsal/features/wishlist/domain/usecase/get_wishlist_use_c
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/app_message_view.dart';
 
-/// Candidate's saved venues tab — `GET /auth/wishlist`.
-///
-/// The response matches the home venue listing, so the page reuses the same
-/// model ([PublicListingVenueModel]) and card ([CourtCard]).
 class WishlistPage extends StatefulWidget {
   const WishlistPage({super.key});
 

@@ -23,14 +23,6 @@ import 'package:hamro_futsal/features/vendor_operations/presentation/bloc/vendor
 
 enum _Step { selection, details, review, result }
 
-/// The manual-booking flow, beside the board on wide screens and in a bottom
-/// sheet on phones: selection → customer & payment → review → result.
-///
-/// Holds taken for the review are released if the panel is closed without
-/// confirming — after asking, since they may be gone by the time the vendor
-/// comes back. It cannot be closed at all while a booking is being created.
-/// The selection itself lives in [VendorOpsBloc], so closing the panel never
-/// loses it.
 class OpsBookingPanel extends StatefulWidget {
   const OpsBookingPanel({
     super.key,
@@ -40,13 +32,10 @@ class OpsBookingPanel extends StatefulWidget {
     this.inSheet = false,
   });
 
-  /// Closes the panel or sheet unconditionally; the panel decides when.
   final VoidCallback onClose;
   final ManualGroupBookingService? service;
   final ScrollController? scrollController;
 
-  /// The panel is in a bottom sheet rather than beside the board. The sheet
-  /// does not drag: it closes only from the panel.
   final bool inSheet;
 
   @override
@@ -63,11 +52,8 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
   final TextEditingController _phone = TextEditingController();
   final TextEditingController _name = TextEditingController();
 
-  /// Sent as the booking's payment note.
   final TextEditingController _note = TextEditingController();
 
-  /// What was received: one line, or two when split — one in cash, the other
-  /// online. Never two lines in the same method.
   final List<_PaymentLineField> _payments = <_PaymentLineField>[
     _PaymentLineField(),
   ];
@@ -92,11 +78,8 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
   bool _showCandidatePicker = false;
   bool _applyingCandidate = false;
 
-  /// Set once the panel has asked to be closed, so a second request — a
-  /// double tap, a drag and a back press together — never closes twice.
   bool _closing = false;
 
-  /// Range that could not be held, to point at it in the selection.
   String? _conflictKey;
   List<OpsRangeTicket> _tickets = const <OpsRangeTicket>[];
   bool _acceptedRevisedPrices = false;
@@ -235,7 +218,6 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
   bool _hasUnpriced(List<OpsBookingRange> ranges) =>
       ranges.any((OpsBookingRange r) => r.estimate == null);
 
-  /// Server totals once held, the board's estimate before.
   double get _payable => _tickets.isEmpty
       ? 0
       : _tickets.fold<double>(
@@ -243,15 +225,11 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
           (double sum, OpsRangeTicket t) => sum + (t.effectiveTotal ?? 0),
         );
 
-  /// Everything received, across the payment lines.
   double get _received => _payments.fold<double>(
     0,
     (double sum, _PaymentLineField p) => sum + p.value,
   );
 
-  /// Nothing received is Pending, the whole amount is Paid, anything between
-  /// is Partly paid. With unpriced slots the estimate is only a floor, so it
-  /// never counts as paid in full.
   OpsPaymentPlan _planFor(double total, {bool unpriced = false}) {
     final double r = _received;
     if (r <= 0) return OpsPaymentPlan.pending;
@@ -259,7 +237,6 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
     return OpsPaymentPlan.partial;
   }
 
-  /// One line per method with its total — lines never repeat a method.
   OpsPayment get _payment => OpsPayment(
     lines: <OpsPaymentLine>[
       for (final MapEntry<String, double> e in <String, double>{
@@ -276,7 +253,6 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
     note: _note.text.trim().isEmpty ? null : _note.text.trim(),
   );
 
-  /// `Cash`, `Online`, or `Cash + Online` — the methods that paid something.
   String get _methodsLabel {
     final List<String> used = <String>[
       for (final _PaymentLineField p in _payments)
@@ -290,7 +266,6 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
   static String _methodLabel(String method) =>
       method == 'online' ? 'Online' : 'Cash';
 
-  /// The rest in the other method: a second line for what is still owed.
   void _addPayment(double total) {
     if (_payments.length >= _maxPayments) return;
     final _PaymentLineField line = _PaymentLineField(
@@ -306,7 +281,6 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
     setState(() => _payments.removeAt(index).dispose());
   }
 
-  /// A share of the total, made up by the last payment on top of the others.
   void _fillShare(double total, double share) {
     final _PaymentLineField last = _payments.last;
     final double others = _received - last.value;
@@ -440,12 +414,9 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
     }
   }
 
-  /// Holds that would be lost by closing now.
   bool get _holdingSlots =>
       _step == _Step.review && _tickets.any((OpsRangeTicket t) => !t.isCreated);
 
-  /// Closes the panel unless a booking is being created; asks first when
-  /// slots are held. True when it closed.
   Future<bool> _requestClose() async {
     if (_busy || _closing) return false;
     if (_holdingSlots) {
@@ -708,8 +679,6 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
     );
   }
 
-  /// Venue → court card → date → slots. Each court card carries its own
-  /// subtotal, so a mixed selection reads at a glance.
   List<Widget> _groupedRanges(
     BuildContext context,
     List<OpsBookingRange> ranges,
@@ -1820,11 +1789,9 @@ class _MoneyBox extends StatelessWidget {
   }
 }
 
-/// One payment line on the form: its method and amount.
 class _PaymentLineField {
   _PaymentLineField({this.method = 'cash'});
 
-  /// `cash` or `online`.
   String method;
   final TextEditingController amount = TextEditingController();
 
@@ -1834,7 +1801,6 @@ class _PaymentLineField {
   void dispose() => amount.dispose();
 }
 
-/// `[Cash | Online]  [ amount ]  ✕` — one amount received and how.
 class _PaymentLineRow extends StatelessWidget {
   const _PaymentLineRow({
     super.key,
@@ -1850,13 +1816,11 @@ class _PaymentLineRow extends StatelessWidget {
   final _PaymentLineField line;
   final String label;
 
-  /// Shows the line's method as fixed rather than a toggle.
   final bool locked;
   final ValueChanged<String> onMethodChanged;
   final VoidCallback onAmountChanged;
   final FormFieldValidator<String> validator;
 
-  /// Null for the only payment, which cannot be removed.
   final VoidCallback? onRemove;
 
   @override
@@ -1906,14 +1870,12 @@ class _PaymentLineRow extends StatelessWidget {
   }
 }
 
-/// Cash or Online, side by side — the one picked is filled.
 class _MethodToggle extends StatelessWidget {
   const _MethodToggle({required this.value, required this.onChanged});
 
   final String value;
   final ValueChanged<String> onChanged;
 
-  /// The amount field's height, so the two line up.
   static const double height = 48;
 
   @override
@@ -1993,7 +1955,6 @@ class _MethodToggle extends StatelessWidget {
   }
 }
 
-/// A split line's method, fixed: the toggle's size, so the rows line up.
 class _MethodChip extends StatelessWidget {
   const _MethodChip({required this.method});
 
@@ -2041,11 +2002,9 @@ class _MethodChip extends StatelessWidget {
   }
 }
 
-/// `+ Add online` (or `+ Add cash`) — the rest paid the other way.
 class _AddPaymentButton extends StatelessWidget {
   const _AddPaymentButton({required this.label, required this.onPressed});
 
-  /// The method the new line is in.
   final String label;
   final VoidCallback onPressed;
 
@@ -2068,13 +2027,11 @@ class _AddPaymentButton extends StatelessWidget {
   }
 }
 
-/// The payment status the amounts add up to — not picked, worked out.
 class _PaymentStatusLine extends StatelessWidget {
   const _PaymentStatusLine({super.key, required this.plan, this.methods});
 
   final OpsPaymentPlan plan;
 
-  /// `Cash + Online`, once something is received.
   final String? methods;
 
   @override
@@ -2155,8 +2112,6 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-/// The step's main action — the app's [CustomButton], at venue onboarding's
-/// bar height.
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({
     required this.label,
@@ -2182,8 +2137,6 @@ class _PrimaryButton extends StatelessWidget {
   }
 }
 
-/// Slots → Customer → Review, with the current step named. Done steps are
-/// ticked; the result screen has no stepper.
 class _Stepper extends StatelessWidget {
   const _Stepper({required this.step});
 
@@ -2269,8 +2222,6 @@ class _Stepper extends StatelessWidget {
   }
 }
 
-/// One court's part of the selection: its slots by date, and what they come
-/// to.
 class _CourtGroup extends StatelessWidget {
   const _CourtGroup({
     required this.ranges,
@@ -2385,11 +2336,9 @@ class _CourtGroup extends StatelessWidget {
   }
 }
 
-/// A bordered card of icon + text lines: the customer, the payment choices.
 class _InfoCard extends StatelessWidget {
   const _InfoCard({required this.lines});
 
-  /// Icon, text, and whether the line leads (the customer's name).
   final List<(IconData, String, bool)> lines;
 
   @override
@@ -2443,8 +2392,6 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-/// Back (or Done) — venue onboarding's secondary action: a light outlined
-/// box, with an optional leading icon.
 class _SecondaryButton extends StatelessWidget {
   const _SecondaryButton({
     required this.label,

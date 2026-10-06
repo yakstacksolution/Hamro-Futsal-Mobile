@@ -31,12 +31,8 @@ class NotificationsPage extends StatelessWidget {
   }
 }
 
-/// Tablet / desktop reading width of the feed.
 const double _kFeedMaxWidth = 760;
 
-/// Side padding that centres the feed at [_kFeedMaxWidth] on tablet and
-/// desktop while scroll views keep their scrollbar at the window edge; the
-/// phone's 20px gutter otherwise.
 double _feedGutter(BuildContext context) {
   if (!context.isTabletOrWider) return AppDimens.paddingX20;
   return math.max(
@@ -257,7 +253,6 @@ class _NotificationsView extends StatelessWidget {
     );
   }
 
-  /// Non-scrolling states sit in the feed's column on tablet / desktop.
   Widget _centred(BuildContext context, Widget child) {
     if (!context.isTabletOrWider) return child;
     return Align(

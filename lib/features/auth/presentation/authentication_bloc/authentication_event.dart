@@ -22,14 +22,10 @@ final class LoginEvent extends AuthenticationEvent {
   List<Object> get props => [email, password, rememberMe];
 }
 
-/// Runs the Google account picker and exchanges the Google tokens for the
-/// app session via `POST /auth/google`.
 final class GoogleLoginEvent extends AuthenticationEvent {
   const GoogleLoginEvent();
 }
 
-/// Runs the native Apple ID sheet and exchanges the Apple identity token for
-/// the app session via `POST /auth/apple-login`.
 final class AppleLoginEvent extends AuthenticationEvent {
   const AppleLoginEvent();
 }
@@ -76,8 +72,6 @@ final class LogoutEvent extends AuthenticationEvent {
   const LogoutEvent();
 }
 
-/// Asks the backend to email a password-reset OTP to [email]
-/// (`POST /auth/forgot-password`).
 final class ForgotPasswordEvent extends AuthenticationEvent {
   final String email;
 
@@ -87,8 +81,6 @@ final class ForgotPasswordEvent extends AuthenticationEvent {
   List<Object> get props => [email];
 }
 
-/// Completes the reset with the emailed OTP and the new password
-/// (`POST /auth/reset-password`).
 final class ResetPasswordEvent extends AuthenticationEvent {
   final String email;
   final String otp;

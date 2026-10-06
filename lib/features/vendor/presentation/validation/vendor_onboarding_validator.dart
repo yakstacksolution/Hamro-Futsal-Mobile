@@ -16,11 +16,6 @@ class VendorValidationResult {
 class VendorOnboardingValidator {
   const VendorOnboardingValidator._();
 
-  /// Validates one slot against the other schedules for the same court.
-  ///
-  /// Adjacent ranges (05:00–06:00 and 06:00–07:00) are allowed. Exact
-  /// duplicates, partial overlaps and ranges contained by another slot are
-  /// rejected whenever the schedules share at least one booking day.
   static String? validateSlotTiming(
     SlotPricingDraft candidate,
     Iterable<SlotPricingDraft> courtSlots,
@@ -546,10 +541,6 @@ class VendorOnboardingValidator {
     return normalized.isNotEmpty;
   }
 
-  /// A slot that reached the server carries its numeric backend id. Locally
-  /// added slots use `<courtId>_slot_<timestamp>` until they are saved, which
-  /// is the same rule the cubit applies when deciding whether a delete needs an
-  /// API call.
   static bool _isSlotPersisted(SlotPricingDraft slot) =>
       int.tryParse(slot.id) != null;
 

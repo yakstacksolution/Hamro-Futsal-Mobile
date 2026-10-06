@@ -27,7 +27,6 @@ import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops
 import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops_week_table.dart';
 import 'package:shimmer/shimmer.dart';
 
-/// The page's side margin.
 const double _kGutter = 16;
 
 double _opsGutter(BuildContext context) => context.responsive<double>(
@@ -40,8 +39,6 @@ double _opsGutter(BuildContext context) => context.responsive<double>(
 double _opsHeaderTopGap(BuildContext context) =>
     context.responsive<double>(mobile: 14, tablet: 18, desktop: 22, large: 24);
 
-/// The vendor's Home tab: today's operations across every venue and court,
-/// with manual booking on the same page.
 class VendorOperationsHome extends StatefulWidget {
   const VendorOperationsHome({
     super.key,
@@ -55,13 +52,10 @@ class VendorOperationsHome extends StatefulWidget {
     this.userName,
   });
 
-  /// Space reserved at the top for the dashboard's own chrome.
   final double topInset;
 
-  /// Injected in tests; ignored while demo data is on.
   final VendorOpsRepository? repository;
 
-  /// Starts on demo data. Defaults to [kVendorOpsDemoByDefault].
   final bool? demo;
 
   final bool operationalHomeEnabled;
@@ -69,7 +63,6 @@ class VendorOperationsHome extends StatefulWidget {
   final bool hasUnreadNotifications;
   final VoidCallback? onNotifications;
 
-  /// Who the toolbar greets — the vendor's first name.
   final String? userName;
 
   @override
@@ -139,7 +132,6 @@ class _OperationsView extends StatefulWidget {
   final VoidCallback? onNotifications;
   final String? userName;
 
-  /// Booking service for the panel; the live one when null.
   final ManualGroupBookingService? service;
 
   @override
@@ -206,10 +198,6 @@ class _OperationsViewState extends State<_OperationsView> {
     );
   }
 
-  /// Closes the booking sheet — and only the sheet. A bare `pop()` pops
-  /// whatever is on top of the navigator: called after the sheet has already
-  /// gone (a second close landing while it animates away), it would pop the
-  /// dashboard page itself, and go_router asserts it has no page left.
   void _closeSheet(BuildContext sheetContext) {
     final ModalRoute<Object?>? route = ModalRoute.of(sheetContext);
     if (route == null || !route.isActive) return;
@@ -463,8 +451,6 @@ class _ActiveContext extends StatelessWidget {
   }
 }
 
-/// Phone: the selection's size and estimate, always in reach, with Review
-/// to book it and a way to drop it.
 class _SelectionBar extends StatelessWidget {
   const _SelectionBar({required this.onReview});
 
@@ -725,8 +711,6 @@ class _AvailabilitySection extends StatefulWidget {
 }
 
 class _AvailabilitySectionState extends State<_AvailabilitySection> {
-  /// The Day board's status key, open or not — shared by its toggle, which
-  /// may sit in the pinned bar, and the key itself, under it.
   final ValueNotifier<bool> _showStatus = ValueNotifier<bool>(false);
 
   @override
@@ -752,8 +736,6 @@ class _AvailabilitySectionState extends State<_AvailabilitySection> {
     );
   }
 
-  /// Content width from which the view's own controls fit in the pinned bar
-  /// beside the title and the Day / Week tabs (they need about 700 px).
   static const double _barControlsMinWidth = 720;
 
   Widget _sections(BuildContext context, VendorOpsState state, double width) {
@@ -818,10 +800,8 @@ class _AvailabilityHeaderDelegate extends SliverPersistentHeaderDelegate {
   final OpsAvailabilityView view;
   final double gutter;
 
-  /// Shows [OpsWeekControls] between the title and the tabs.
   final bool weekControls;
 
-  /// Shows the Day board's date controls and status key there instead.
   final bool dayControls;
   final ValueChanged<OpsAvailabilityView> onChanged;
 
@@ -898,7 +878,6 @@ class _AvailabilityHeaderDelegate extends SliverPersistentHeaderDelegate {
       oldDelegate.onChanged != onChanged;
 }
 
-/// The Day board: the date row, the status key on demand, and the courts.
 class _DayAvailability extends StatelessWidget {
   const _DayAvailability({
     required this.state,
@@ -910,11 +889,8 @@ class _DayAvailability extends StatelessWidget {
   final VendorOpsState state;
   final OpsBookingTap onBookingTap;
 
-  /// The status key stays out of the way until asked for.
   final ValueNotifier<bool> showStatus;
 
-  /// The date controls and status key are in the page's pinned bar
-  /// (tablet / desktop), so the board starts with the courts.
   final bool controlsInBar;
 
   @override
@@ -976,13 +952,9 @@ class _DayAvailability extends StatelessWidget {
   }
 }
 
-/// The Day board's controls in the pinned bar (tablet / desktop): the
-/// `‹ date › Today` controls, then the status key — a panel that opens under
-/// its toggle, so it shows wherever the page has scrolled to.
 class _DayBarControls extends StatelessWidget {
   const _DayBarControls();
 
-  /// The key's two rows of four 104-px items, plus the panel's padding.
   static const double _statusPanelWidth = 4 * 104 + 32;
 
   @override
@@ -1058,8 +1030,6 @@ class _DayBarControls extends StatelessWidget {
   }
 }
 
-/// Shows or hides the key of slot and payment statuses: a quiet text
-/// button — grey while the key is hidden, brand-coloured while it shows.
 class _StatusToggle extends StatelessWidget {
   const _StatusToggle({required this.open, required this.onPressed});
 

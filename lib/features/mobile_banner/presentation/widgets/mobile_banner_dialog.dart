@@ -10,21 +10,13 @@ import 'package:hamro_futsal/features/mobile_banner/data/model/mobile_banner_mod
 import 'package:hamro_futsal/features/mobile_banner/data/repositories/mobile_banner_repository_impl.dart';
 import 'package:hamro_futsal/features/mobile_banner/domain/repository/mobile_banner_repository.dart';
 
-/// How the user left a [MobileBannerDialog].
 enum MobileBannerAction {
-  /// The close icon: hide it for now, show it again next launch.
   close,
 
-  /// "Don't show again": dismiss it on the server so it never comes back.
   dontShowAgain,
 }
 
-/// Fetches the signed-in user's banners and shows them, one full-screen dialog
-/// after another. The close icon only hides a banner for this launch; "Don't
-/// show again" dismisses it server-side so it does not come back.
 abstract final class MobileBannerPresenter {
-  /// Once per app launch: the dashboard can be rebuilt (sign out and back in,
-  /// returning from onboarding) without the banners popping up again.
   static bool _hasShownThisLaunch = false;
 
   static Future<void> showIfAny(
@@ -101,14 +93,6 @@ abstract final class MobileBannerPresenter {
   }
 }
 
-/// The banner image as a centered card over the dimmed dashboard, with a
-/// close icon floating over its top-right corner and a "Don't show again"
-/// checkbox over the bottom of the image.
-///
-/// The checkbox only records the choice; the close icon applies it, popping
-/// [MobileBannerAction.dontShowAgain] when ticked (the caller then dismisses
-/// the banner on the server) and [MobileBannerAction.close] otherwise. Pops
-/// null when left through the link.
 class MobileBannerDialog extends StatefulWidget {
   const MobileBannerDialog({super.key, required this.banner});
 
@@ -119,7 +103,6 @@ class MobileBannerDialog extends StatefulWidget {
 }
 
 class _MobileBannerDialogState extends State<MobileBannerDialog> {
-  /// Keeps the card phone-sized on tablets instead of stretching edge to edge.
   static const double _maxCardWidth = 420;
 
   bool _dontShowAgain = false;

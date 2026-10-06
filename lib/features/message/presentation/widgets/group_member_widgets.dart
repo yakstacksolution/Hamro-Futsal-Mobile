@@ -6,14 +6,9 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
 
-/// Pieces shared by the two member-picking surfaces: the create-group page and
-/// the add-members sheet. They render the same rows, the same empty states and
-/// the same footer, so the two stay consistent as either changes.
 
-/// Server-side cap on a group's size.
 const int kMaxGroupMembers = 50;
 
-/// What the create-group page hands back: everything the create call needs.
 final class GroupConversationDraft {
   const GroupConversationDraft({
     required this.title,
@@ -26,12 +21,6 @@ final class GroupConversationDraft {
   final int? venueId;
 }
 
-/// A participant's picture, falling back to the initial of their name, with
-/// the presence dot the conversation list also shows.
-///
-/// The picker used to draw initials only. People recognise a face faster than
-/// a letter, and the same URL is already on the row in the conversation list,
-/// so the two surfaces now show the same person.
 class GroupMemberAvatar extends StatelessWidget {
   const GroupMemberAvatar({
     super.key,
@@ -43,8 +32,6 @@ class GroupMemberAvatar extends StatelessWidget {
   final ParticipantModel participant;
   final double size;
 
-  /// Off for the compact chips, where a 6px dot on a 26px avatar reads as
-  /// noise rather than status.
   final bool showPresence;
 
   @override
@@ -104,11 +91,6 @@ class GroupMemberAvatar extends StatelessWidget {
   }
 }
 
-/// A section title with an optional trailing text action.
-///
-/// The old header rendered "Clear" as plain text with nothing behind it — it
-/// looked tappable and was not. Here the action only appears when it can
-/// actually do something, and it is a real button.
 class GroupSectionHeader extends StatelessWidget {
   const GroupSectionHeader({
     super.key,
@@ -121,9 +103,6 @@ class GroupSectionHeader extends StatelessWidget {
 
   final String title;
 
-  /// Compact progress pill beside the title (e.g. `4/50`). The count used to
-  /// live in a sentence under the header, where it read as help text rather
-  /// than as the number the user is tracking while picking.
   final String? countLabel;
 
   final String? trailingLabel;
@@ -198,10 +177,6 @@ class GroupSectionHeader extends StatelessWidget {
   }
 }
 
-/// The people picked so far, as a horizontal strip of removable chips.
-///
-/// Kept visible while the list is scrolled and searched: the selection is
-/// otherwise invisible once the chosen names have scrolled out of view.
 class GroupSelectedMembersStrip extends StatelessWidget {
   const GroupSelectedMembersStrip({
     super.key,
@@ -281,9 +256,6 @@ class GroupMemberTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  /// A row that cannot be selected because the group is already full. It stays
-  /// readable rather than disappearing, so the list does not shift under the
-  /// user at the moment they hit the cap.
   final bool disabled;
 
   @override
@@ -387,11 +359,6 @@ class GroupMemberTile extends StatelessWidget {
   }
 }
 
-/// The tick on a member row.
-///
-/// A round outline that fills in when picked: the square checkbox read as a
-/// form control on every row, which made a list of four people look like a
-/// column of unchecked boxes rather than a selection.
 class _SelectionTick extends StatelessWidget {
   const _SelectionTick({required this.selected, required this.disabled});
 
@@ -423,7 +390,6 @@ class _SelectionTick extends StatelessWidget {
   }
 }
 
-/// `vendor` / `client` as a quiet pill rather than another line of grey text.
 class _RoleBadge extends StatelessWidget {
   const _RoleBadge({required this.role});
 
@@ -618,7 +584,6 @@ class GroupErrorBanner extends StatelessWidget {
   }
 }
 
-/// The name to print for a participant whose `name` came back blank.
 String groupDisplayName(ParticipantModel participant) {
   final String name = participant.name.trim();
   return name.isEmpty ? StringConstants.unknownUser : name;

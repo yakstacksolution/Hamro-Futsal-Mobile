@@ -3,8 +3,6 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:shimmer/shimmer.dart';
 
-/// Skeleton for the transaction-history page's first load: summary card, filter
-/// row and a handful of rows.
 class TransactionHistoryLoadingView extends StatelessWidget {
   const TransactionHistoryLoadingView({super.key, this.horizontal});
 
@@ -62,8 +60,6 @@ class TransactionHistoryLoadingView extends StatelessWidget {
   }
 }
 
-/// Skeleton rows, shaped like a month group of [TransactionTile]s: one card,
-/// hairline-separated rows.
 class TransactionRowsSkeleton extends StatelessWidget {
   const TransactionRowsSkeleton({super.key, this.itemCount = 6});
 

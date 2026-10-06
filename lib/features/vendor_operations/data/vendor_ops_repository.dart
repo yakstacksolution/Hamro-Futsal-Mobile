@@ -12,13 +12,6 @@ import 'package:hamro_futsal/features/vendor_operations/data/data_source/vendor_
 import 'package:hamro_futsal/features/vendor_operations/data/model/court_availability_slots_model.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 
-/// Reads what the operations board is built from.
-///
-/// The Day board is one request: `GET /court-availability-slots` with
-/// `type=day` answers for every court of every venue — the courts, their
-/// slots and the bookings on them ([loadDay]). The Week table asks for one
-/// court's week ([loadCourtWeekSlots]) and that week's bookings. The server
-/// still decides what can actually be booked, when the slots are held.
 class VendorOpsRepository {
   VendorOpsRepository({
     BookingRepository? bookingRepository,
@@ -32,15 +25,11 @@ class VendorOpsRepository {
   static const int _bookingsPerPage = 50;
   static const int _maxBookingPages = 20;
 
-  /// Every booking from [from] to [to] (inclusive) — one request for the
-  /// week table rather than one per day.
   Future<Either<AppException, List<BookingModel>>> loadBookingsBetween(
     DateTime from,
     DateTime to,
   ) => _loadAll(BookingDateFilter.range(from: from, to: to));
 
-  /// The bookings [week]'s slots carry — the Week table's bookings, with no
-  /// `/futsal-bookings` call of their own.
   List<BookingModel> bookingsInWeek(OpsCourtWeekAvailability week) =>
       List<BookingModel>.unmodifiable(
         <int, BookingModel>{
@@ -50,8 +39,6 @@ class VendorOpsRepository {
         }.values,
       );
 
-  /// [courtId]'s slots, with their status, for the seven days from
-  /// [weekStart].
   Future<Either<AppException, OpsCourtWeekAvailability>> loadCourtWeekSlots({
     required int venueId,
     required int courtId,
@@ -90,9 +77,6 @@ class VendorOpsRepository {
     }
   }
 
-  /// The whole Day board for [date] — every venue's courts, their slots and
-  /// the bookings on them — in one
-  /// `GET /court-availability-slots?start_date=&type=day`.
   Future<Either<AppException, OpsDayAvailability>> loadDay(
     DateTime date,
   ) async {
@@ -119,8 +103,6 @@ class VendorOpsRepository {
     }
   }
 
-  /// Every page of [filter]'s bookings: the first page says how many there
-  /// are, and the rest are fetched together rather than one after another.
   Future<Either<AppException, List<BookingModel>>> _loadAll(
     BookingDateFilter filter,
   ) async {

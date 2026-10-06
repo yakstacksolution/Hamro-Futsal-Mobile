@@ -14,7 +14,6 @@ class HomeBodyLoading extends StatelessWidget {
 
   final int itemCount;
 
-  /// Space above the first placeholder card.
   final double topPadding;
 
   @override
@@ -70,7 +69,6 @@ class HomeBodyLoading extends StatelessWidget {
 class _CourtCardSkeleton extends StatelessWidget {
   const _CourtCardSkeleton({this.flexibleCover = false});
 
-  /// Matches `CourtCard.flexibleCover`: fills the fixed grid cell height.
   final bool flexibleCover;
 
   @override

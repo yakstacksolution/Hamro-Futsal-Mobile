@@ -17,11 +17,8 @@ import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
 part 'public_venue_event.dart';
 part 'public_venue_state.dart';
 
-/// The origin `GET /venues` measures `distance_km` from.
 typedef VenueOrigin = ({double latitude, double longitude});
 
-/// Resolves the current origin, or null when no fix is available yet. Injected
-/// so tests can supply a fixed origin instead of reaching for the device GPS.
 typedef VenueOriginResolver = VenueOrigin? Function();
 
 VenueOrigin? _deviceOrigin() {
@@ -47,11 +44,6 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
   final int _perPage;
   final VenueOriginResolver _originResolver;
 
-  /// Incremented on every first-page fetch. A response whose token no longer
-  /// matches belongs to a superseded request (the re-query fired once the GPS
-  /// fix lands overlaps the initial one) and must not be emitted — otherwise
-  /// the list paints the older result and then the newer one, which reads as
-  /// the page loading twice.
   int _fetchToken = 0;
 
   FutureOr<void> _onFetchPublicVenues(
@@ -196,7 +188,6 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
     );
   }
 
-  /// Clears the load-more failure and immediately tries the same page again.
   FutureOr<void> _onRetryLoadMore(
     RetryLoadMorePublicVenuesEvent event,
     Emitter<PublicVenueState> emit,
@@ -206,11 +197,6 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
     add(const LoadMorePublicVenuesEvent());
   }
 
-  /// Appends [next] to [current], skipping venues already loaded.
-  ///
-  /// Pages are fetched over separate requests, so a venue whose ranking changed
-  /// between them can come back twice; without this the list would show it
-  /// twice and duplicate its widget key.
   static List<PublicListingVenueModel> _appendUnique(
     List<PublicListingVenueModel> current,
     List<PublicListingVenueModel> next,

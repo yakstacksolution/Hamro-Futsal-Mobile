@@ -1,7 +1,6 @@
 import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 
-/// Payload for creating a new expense from the UI.
 class CreateExpenseEntity {
   const CreateExpenseEntity({
     required this.date,
@@ -23,12 +22,10 @@ class CreateExpenseEntity {
   final String venueId;
   final PaymentMethod method;
 
-  /// Category picked from `/expense-categories` (id, title, image).
   final ExpenseCategoryModel? categoryDetail;
   final String? courtId;
   final String? note;
 
-  /// Image/PDF/Word document captured as bytes when it was picked.
   final UploadAttachment? document;
 
   ExpenseModel toModel(String id) => ExpenseModel(
@@ -58,8 +55,6 @@ class CreateExpenseEntity {
     'note': note,
   };
 
-  /// Body for `POST /auth/expenses` (the `document` file is attached
-  /// separately as multipart by the data source).
   Map<String, dynamic> toApiMap() => {
     'expense_category_id': int.tryParse(categoryDetail?.id ?? ''),
     'venue_id': int.tryParse(venueId),

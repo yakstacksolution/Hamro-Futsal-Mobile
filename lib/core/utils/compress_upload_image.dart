@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
-/// Extensions worth recompressing. Anything else (PDF, DOC) is returned as-is:
-/// running it through an image codec would corrupt it.
 const Set<String> _compressible = <String>{
   'jpg',
   'jpeg',
@@ -12,7 +10,6 @@ const Set<String> _compressible = <String>{
   'heif',
 };
 
-/// Target for an attachment that only has to be legible, not archival.
 const int _targetBytes = 1536 * 1024; // 1.5 MB
 const int _maxEdge = 1600;
 
@@ -23,18 +20,6 @@ bool _isCompressible(String? filename) {
   return _compressible.contains(name.substring(dot + 1));
 }
 
-/// Shrinks an image attachment so it clears the server's upload ceiling.
-///
-/// A phone screenshot is routinely 3–8 MB, which is above PHP's usual
-/// `upload_max_filesize`. PHP does not reject that request outright: it drops
-/// the file, keeps the text fields, and hands the app back a part with the
-/// original **name** and a **size of 0** — which is what the server reports as
-/// "The payment proof failed to upload". No amount of client retrying fixes
-/// that, because the bytes never survive the request; the file has to be
-/// smaller before it is sent.
-///
-/// Already-small images and non-images are returned untouched. The caller
-/// validates the result and rejects it when no pass reaches the safe target.
 Future<Uint8List> compressUploadImage(
   Uint8List bytes, {
   String? filename,
@@ -84,9 +69,6 @@ Future<Uint8List> compressUploadImage(
   }
 }
 
-/// The name to send alongside [compressUploadImage] output. A recompressed
-/// PNG is JPEG data, and a mismatched extension is one more way for a strict
-/// server-side validator to reject the part.
 String compressedUploadName(String? filename, {required bool wasCompressed}) {
   final String name = (filename ?? 'attachment.jpg').trim();
   if (!wasCompressed) return name;

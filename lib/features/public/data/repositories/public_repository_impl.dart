@@ -312,13 +312,6 @@ final class PublicRepositoryImpl extends PublicRepository {
     }
   }
 
-  /// Picks the row a link points at.
-  ///
-  /// The id is checked first because it cannot change; the slug is the
-  /// fallback for the app-scheme link, which carries no id. A single result is
-  /// trusted as the answer when the backend filtered on the slug itself. A
-  /// search hit matching neither is *not* returned — opening the wrong venue
-  /// is worse than opening none.
   static PublicListingVenueModel? _matchLinkedVenue(
     List<PublicListingVenueModel> venues, {
     String? slug,
@@ -387,8 +380,6 @@ final class PublicRepositoryImpl extends PublicRepository {
     }
   }
 
-  /// Wishlisted venues — same payload shape as the public venue listing, so
-  /// it reuses [PublicListingVenuePage] wholesale.
   @override
   Future<Either<AppException, PublicListingVenuePage>> getWishlist() async {
     final response = await _remoteDataSource.getWishlist();
@@ -514,7 +505,6 @@ final class PublicRepositoryImpl extends PublicRepository {
     return List<PublicOptionModel>.unmodifiable(options);
   }
 
-  /// Sorts options with no `sort_order` after every option that has one.
   static const int _unordered = 1 << 30;
 
   PublicOptionModel? _optionFromAny(dynamic item) {

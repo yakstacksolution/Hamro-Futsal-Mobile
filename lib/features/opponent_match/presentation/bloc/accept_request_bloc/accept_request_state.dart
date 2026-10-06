@@ -12,13 +12,10 @@ class AcceptRequestState extends Equatable {
 
   final AcceptRequestStatus submitStatus;
 
-  /// The updated request returned by a successful acceptance.
   final OpponentRequestModel? result;
 
   final String? errorMessage;
 
-  /// HTTP status of the last failure — 409 (settled with another team) and
-  /// 410 (expired) get dedicated UI copy.
   final int errorStatusCode;
 
   AcceptRequestState copyWith({

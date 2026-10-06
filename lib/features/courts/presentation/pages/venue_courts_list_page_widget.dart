@@ -38,8 +38,6 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 class VenueCourtsListPage extends StatefulWidget {
   const VenueCourtsListPage({super.key, this.bloc});
 
-  /// Bloc to render from. Only for tests — in the app the page owns its own,
-  /// built on the real repository, and closes it again on the way out.
   final VenueCourtBloc? bloc;
 
   @override
@@ -153,17 +151,11 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
   }
 }
 
-/// Widest the Your Venues page grows on a tablet and on desktop.
 const double _kVenuesTabletMaxWidth = 760;
 const double _kVenuesDesktopMaxWidth = 1200;
 
-/// Courts whose editor is currently opening, keyed by venue + court, so a
-/// second tap while the route is being pushed is ignored instead of stacking
-/// another editor on top.
 final Set<String> _openingCourtEditors = <String>{};
 
-/// Opens the vendor stepper and refreshes the list once it returns — Finish
-/// pops back here, so a new or edited venue shows up straight away.
 Future<void> _openVendorStepper(
   BuildContext context, {
   Map<String, String> queryParameters = const <String, String>{},
@@ -436,7 +428,6 @@ enum _VenueMenuAction {
   deleteCourt,
 }
 
-/// The venue status badge, resolved from the API's own `status` string.
 enum _VenueApprovalStatus {
   pending,
   approved,
@@ -444,11 +435,6 @@ enum _VenueApprovalStatus {
   inactive,
   rejected;
 
-  /// Maps `status` from `/auth/get-venue-courts` onto a badge.
-  ///
-  /// Anything unrecognised — and the empty string a half-finished venue can
-  /// come back with — reads as [inactive], never as [approved]: claiming a
-  /// venue is approved is the one wrong answer here.
   static _VenueApprovalStatus fromStatus(String? status) {
     return switch (status?.trim().toLowerCase()) {
       'active' => active,
@@ -559,7 +545,6 @@ class _TopDashboardHeader extends StatelessWidget {
   }
 }
 
-/// One figure in the portfolio strip: the number first, its name beneath.
 class _PortfolioMetric extends StatelessWidget {
   const _PortfolioMetric({
     required this.label,
@@ -801,8 +786,6 @@ class _VenueCardV2 extends StatefulWidget {
   final VoidCallback onAddCourt;
   final VoidCallback onEditVenue;
 
-  /// Opens the public details page for this venue. Null for a venue with no id
-  /// yet — the details page has nothing to fetch without one.
   final VoidCallback? onOpenDetails;
 
   @override
@@ -810,8 +793,6 @@ class _VenueCardV2 extends StatefulWidget {
 }
 
 class _VenueCardV2State extends State<_VenueCardV2> {
-  /// Starts open only when there is something to show — a venue with no courts
-  /// would otherwise open onto nothing but the empty hint.
   late bool _expandedCourts = widget.entry.courts.isNotEmpty;
 
   void _handleMenuAction(_VenueMenuAction action) {
@@ -1087,14 +1068,11 @@ class _VenueCardV2State extends State<_VenueCardV2> {
   }
 }
 
-/// The venue's photo at the head of the card, or a neutral placeholder glyph
-/// when it has none.
 class _VenueCover extends StatelessWidget {
   const _VenueCover({required this.url, this.onTap});
 
   final String url;
 
-  /// Tapping the cover opens the venue's public details page.
   final VoidCallback? onTap;
 
   @override
@@ -1136,8 +1114,6 @@ class _VenueCover extends StatelessWidget {
   }
 }
 
-/// One figure on a venue card: value above, its name beneath, so the three
-/// read as a single measured row.
 class _VenueStat extends StatelessWidget {
   const _VenueStat({
     required this.label,
@@ -1188,7 +1164,6 @@ class _VenueStat extends StatelessWidget {
   }
 }
 
-/// The venue card's overflow menu — manage the venue, or add a court to it.
 class _VenueMenu extends StatelessWidget {
   const _VenueMenu({required this.onSelected});
 
@@ -1307,9 +1282,6 @@ class _VenueApprovalBadge extends StatelessWidget {
 class _CourtEmptyHintV2 extends StatelessWidget {
   const _CourtEmptyHintV2({required this.onTap});
 
-  /// The hint is the only thing in an empty venue card's court list, so the
-  /// whole row doubles as the add-court button rather than making the user
-  /// hunt for the action in the card's overflow menu.
   final VoidCallback onTap;
 
   @override
@@ -1613,9 +1585,6 @@ class _CourtRowV2 extends StatelessWidget {
   }
 }
 
-/// The one status chip this screen has: a tinted pill with a leading glyph.
-/// Venues and courts both wear it, so a standing reads the same wherever it
-/// appears.
 class _StatusChip extends StatelessWidget {
   const _StatusChip({
     required this.icon,
@@ -1663,8 +1632,6 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-/// A court's photo, ringed in its own status colour so an inactive court is
-/// readable from the thumbnail alone.
 class _CourtThumb extends StatelessWidget {
   const _CourtThumb({required this.url, required this.isLive});
 
@@ -1924,8 +1891,6 @@ class _FutsalEntry {
 
   final int? id;
 
-  /// How the venue is addressed on the wire: `/auth/get-venue/{slug}` takes
-  /// the slug, never the numeric id.
   final String? slug;
   final String title;
   final String address;
@@ -1962,8 +1927,6 @@ class _FutsalEntry {
     return false;
   }
 
-  /// Seeds the public details page, which re-fetches the rest itself once it
-  /// has the venue's id and slug.
   PublicListingVenueModel toPublicVenue() {
     return PublicListingVenueModel(
       id: id,

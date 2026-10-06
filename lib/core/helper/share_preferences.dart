@@ -58,7 +58,6 @@ class AppSettings {
     }
   }
 
-  /// Whether a usable session is stored — the app's "is the user logged in?".
   bool get hasSession =>
       _initialized && (tokenModel.accessToken?.trim().isNotEmpty ?? false);
 
@@ -162,25 +161,18 @@ class AppSettings {
       _preferences.getBool(_SettingsPreferenceKeys.vendorOperationalHome) ??
       true;
 
-  /// Where the operational home's Week table begins: `sunday` or `today`.
-  /// Null until the vendor picks one.
   set vendorOpsWeekStart(String val) =>
       _preferences.setString(_SettingsPreferenceKeys.vendorOpsWeekStart, val);
   String? get vendorOpsWeekStart => _initialized
       ? _preferences.getString(_SettingsPreferenceKeys.vendorOpsWeekStart)
       : null;
 
-  /// The signed-in user's `use_nepali_calendar` from their profile: true for
-  /// Nepali (BS), false for English (AD). Null before any profile has set it
-  /// (English then). Saved so dates and pickers are right before the profile
-  /// has loaded; cleared on logout.
   set useNepaliCalendar(bool val) =>
       _preferences.setBool(_SettingsPreferenceKeys.useNepaliCalendar, val);
   bool? get useNepaliCalendar => _initialized
       ? _preferences.getBool(_SettingsPreferenceKeys.useNepaliCalendar)
       : null;
 
-  /// Script for Bikram Sambat dates: `english` or `nepali`. Null until chosen.
   set appCalendarScript(String val) =>
       _preferences.setString(_SettingsPreferenceKeys.appCalendarScript, val);
   String? get appCalendarScript => _initialized

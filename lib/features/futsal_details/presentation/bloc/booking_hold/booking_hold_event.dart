@@ -23,7 +23,6 @@ class CreateBookingHoldEvent extends BookingHoldEvent {
   final String startTime;
   final String endTime;
 
-  /// Recurring session dates in `yyyy-MM-dd`; empty for single bookings.
   final List<String> bookingDates;
 
   @override
@@ -41,8 +40,6 @@ class MarkBookingHoldConsumedEvent extends BookingHoldEvent {
   const MarkBookingHoldConsumedEvent();
 }
 
-/// Releases the hold (`DELETE /booking-holds`). Dispatched when the
-/// app is closed/backgrounded while the checkout page is still open.
 class ReleaseBookingHoldEvent extends BookingHoldEvent {
   const ReleaseBookingHoldEvent();
 }

@@ -1,12 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/features/opponent_match/data/model/opponent_request_tab.dart';
 
-/// The `summary` block of `/auth/opponent-requests?tab=…`: how many rows every
-/// tab holds, not just the one that was asked for.
-///
-/// One call therefore answers for all four chips, so the counts are on screen
-/// from the first page instead of appearing one at a time as the user swipes
-/// each section into view.
 class OpponentRequestSummaryModel extends Equatable {
   const OpponentRequestSummaryModel({
     this.all = 0,
@@ -38,7 +32,6 @@ class OpponentRequestSummaryModel extends Equatable {
     );
   }
 
-  /// The count for one chip's tab.
   int countFor(OpponentRequestTab tab) => switch (tab) {
     OpponentRequestTab.needOpponent => needOpponent,
     OpponentRequestTab.myRequests => myRequests,

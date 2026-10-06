@@ -8,25 +8,6 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 
-/// Confirms an irreversible action by making the user type [confirmationWord].
-///
-/// A plain yes/no dialog is one stray tap away from destroying something that
-/// cannot be restored; typing the word is a deliberate act, so the confirm
-/// button stays disabled until the field matches exactly (case-insensitively,
-/// trimmed).
-///
-/// Returns true only when the user typed the word and pressed confirm —
-/// dismissing the sheet any other way returns false.
-///
-/// ```dart
-/// final bool ok = await showConfirmWordSheet(
-///   context: context,
-///   title: 'Delete your account?',
-///   message: 'This cannot be undone.',
-///   confirmationWord: 'DELETE',
-///   confirmText: 'Delete Account',
-/// );
-/// ```
 Future<bool> showConfirmWordSheet({
   required BuildContext context,
   required String title,
@@ -36,7 +17,6 @@ Future<bool> showConfirmWordSheet({
   String cancelText = 'Cancel',
   IconData icon = Icons.warning_amber_rounded,
 
-  /// Extra points the user should read before confirming, one per line.
   List<String> consequences = const <String>[],
 }) async {
   final bool? confirmed = await showModalBottomSheet<bool>(
@@ -122,7 +102,6 @@ class _ConfirmWordSheet extends StatefulWidget {
 class _ConfirmWordSheetState extends State<_ConfirmWordSheet> {
   final TextEditingController _controller = TextEditingController();
 
-  /// True once the field holds exactly the confirmation word.
   bool get _matches =>
       _controller.text.trim().toUpperCase() ==
       widget.confirmationWord.toUpperCase();

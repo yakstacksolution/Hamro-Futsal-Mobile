@@ -7,8 +7,6 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
 
-/// Countdown pill used for the accept window on request cards and on the
-/// accept page. Turns red when [urgent].
 class OpponentCountdownPill extends StatelessWidget {
   const OpponentCountdownPill({
     super.key,
@@ -17,7 +15,6 @@ class OpponentCountdownPill extends StatelessWidget {
     this.label = StringConstants.acceptWithin,
   });
 
-  /// `mm:ss` remaining.
   final String value;
   final bool urgent;
   final String label;
@@ -68,7 +65,6 @@ class OpponentCountdownPill extends StatelessWidget {
   }
 }
 
-/// Elevated surface used by every section of the opponent-match feature.
 class OpponentCard extends StatelessWidget {
   const OpponentCard({
     super.key,
@@ -101,7 +97,6 @@ class OpponentCard extends StatelessWidget {
   }
 }
 
-/// Plain-language guidance used at the start of opponent-match journeys.
 class OpponentGuidanceCard extends StatelessWidget {
   const OpponentGuidanceCard({
     super.key,
@@ -213,12 +208,6 @@ class OpponentFieldLabel extends StatelessWidget {
   }
 }
 
-/// Equal-width selectable pill used for match type / level / split choices.
-///
-/// Sized by its parent by default (one [Expanded] per option in a row). Pass
-/// [padding] to make it size to its own label instead, which is what a [Wrap]
-/// needs when the option count is server-driven and a fixed row would squeeze
-/// longer labels into an ellipsis.
 class OpponentPillChip extends StatelessWidget {
   const OpponentPillChip({
     super.key,
@@ -273,10 +262,6 @@ class OpponentPillChip extends StatelessWidget {
   }
 }
 
-/// Rounded label+count chip for tab and filter rows.
-///
-/// [filled] renders the selected state as a solid pill (tabs); otherwise the
-/// selected state is a light tint (filters).
 class OpponentCountChip extends StatelessWidget {
   const OpponentCountChip({
     super.key,
@@ -377,7 +362,6 @@ class OpponentCountChip extends StatelessWidget {
   }
 }
 
-/// Tappable label/value row used in the schedule & venue card.
 class OpponentPickerRow extends StatelessWidget {
   const OpponentPickerRow({
     super.key,
@@ -459,8 +443,6 @@ class OpponentStatusBadge extends StatelessWidget {
   const OpponentStatusBadge({super.key, required this.status, this.label});
   final RequestStatus status;
 
-  /// The server's own word for the state, when the row carried one. The tone
-  /// still comes from [status] — only the text is overridden.
   final String? label;
 
   @override
@@ -535,25 +517,17 @@ class OpponentStatusBadge extends StatelessWidget {
   }
 }
 
-/// Tablet / desktop layout for the opponent screens.
-///
-/// Phones keep their single full-width list. Wider screens centre the page at
-/// [maxContentWidth] and lay cards out in rows of [gridColumns] — each card at
-/// least [_minCardWidth] wide, so its two-line details never cramp.
 abstract final class OpponentLayout {
   static const double _minCardWidth = 440;
   static const double gap = 16;
   static const double requestCardMinWidth = 340;
 
-  /// The page column's width: the whole screen on a phone.
   static double maxContentWidth(BuildContext context) => context.isDesktop
       ? 1200
       : context.isTablet
       ? 760
       : double.infinity;
 
-  /// Cards per row for a list [width] wide (1 on a phone). [minCardWidth]
-  /// overrides the default for smaller cards.
   static int gridColumns(
     BuildContext context,
     double width, {
@@ -569,12 +543,6 @@ abstract final class OpponentLayout {
   }
 }
 
-/// One row of an opponent card grid: [columns] equal slots, the last ones
-/// left empty when [children] runs short so every card keeps the same width.
-///
-/// [equalHeight] stretches the row's cards to its tallest (request cards);
-/// leave it off for cards that grow when opened (team rosters), which then
-/// line up at the top instead.
 class OpponentGridRow extends StatelessWidget {
   const OpponentGridRow({
     super.key,

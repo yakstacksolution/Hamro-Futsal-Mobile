@@ -1,4 +1,3 @@
-/// Match format offered when challenging an opponent.
 enum MatchFormat { fiveASide, sixASide, sevenASide }
 
 extension MatchFormatX on MatchFormat {
@@ -8,7 +7,6 @@ extension MatchFormatX on MatchFormat {
     MatchFormat.sevenASide => '7v7',
   };
 
-  /// Court fee tier per format until the backend provides real pricing.
   int get courtFee => switch (this) {
     MatchFormat.fiveASide => 1200,
     MatchFormat.sixASide => 1500,
@@ -43,9 +41,6 @@ extension PlayerPositionX on PlayerPosition {
     PlayerPosition.forward => 'FW',
   };
 
-  /// Resolves a position from whatever the backend sends — a label
-  /// (`Goalkeeper`), an abbreviation (`GK`) or a numeric/string id
-  /// (`1`..`4`). Falls back to [PlayerPosition.midfielder] when unknown.
   static PlayerPosition fromAny(dynamic value) {
     if (value == null) return PlayerPosition.midfielder;
     final raw = value.toString().trim().toLowerCase();
@@ -68,8 +63,6 @@ extension PlayerPositionX on PlayerPosition {
   }
 }
 
-/// A player position as served by `GET /positions`:
-/// `{id: 1, title: Goalkeeper, slug: goalkeeper}` under `data.positions`.
 class PlayerPositionModel {
   const PlayerPositionModel({
     required this.id,
@@ -79,10 +72,8 @@ class PlayerPositionModel {
 
   final String id;
 
-  /// Display name — the API's `title`.
   final String name;
 
-  /// Stable machine key — the API's `slug` (e.g. `goalkeeper`).
   final String slug;
 
   factory PlayerPositionModel.fromJson(Map<String, dynamic> json) {
@@ -95,14 +86,10 @@ class PlayerPositionModel {
     );
   }
 
-  /// Static fallback mirroring [PlayerPosition], used until (or in case)
-  /// the API list arrives.
   static List<PlayerPositionModel> get defaults => PlayerPosition.values
       .map((p) => PlayerPositionModel(id: '', name: p.label, slug: p.name))
       .toList(growable: false);
 
-  /// Name-based equality so a default selection still matches the API row
-  /// that replaces it.
   @override
   bool operator ==(Object other) =>
       other is PlayerPositionModel &&
@@ -112,8 +99,6 @@ class PlayerPositionModel {
   int get hashCode => name.toLowerCase().hashCode;
 }
 
-/// An opponent level as served by `GET /opponent-levels` — same shape as
-/// positions: `{id, title, slug}` under `data.opponent_levels`.
 class OpponentLevelModel {
   const OpponentLevelModel({
     required this.id,
@@ -123,10 +108,8 @@ class OpponentLevelModel {
 
   final String id;
 
-  /// Display name — the API's `title`.
   final String name;
 
-  /// Stable machine key — the API's `slug`.
   final String slug;
 
   factory OpponentLevelModel.fromJson(Map<String, dynamic> json) {
@@ -139,14 +122,10 @@ class OpponentLevelModel {
     );
   }
 
-  /// Static fallback mirroring [OpponentLevel], used until (or in case)
-  /// the API list arrives.
   static List<OpponentLevelModel> get defaults => OpponentLevel.values
       .map((l) => OpponentLevelModel(id: '', name: l.label, slug: l.name))
       .toList(growable: false);
 
-  /// Name-based equality so a default selection still matches the API row
-  /// that replaces it.
   @override
   bool operator ==(Object other) =>
       other is OpponentLevelModel &&
@@ -156,14 +135,9 @@ class OpponentLevelModel {
   int get hashCode => name.toLowerCase().hashCode;
 }
 
-/// Lifecycle of an opponent request.
 enum RequestStatus {
-  /// Started in the wizard but never published — the request only exists for
-  /// its owner, who still has steps to finish.
   draft,
 
-  /// Published by its owner and waiting on an admin review before it becomes
-  /// visible to other teams.
   pendingApproval,
   fresh,
   pending,
@@ -189,33 +163,15 @@ extension RequestStatusX on RequestStatus {
     RequestStatus.cancelled => 'Cancelled',
   };
 
-  /// Still actionable (can be accepted / rejected).
   bool get isOpen =>
       this == RequestStatus.fresh || this == RequestStatus.pending;
 
-  /// A draft is neither actionable nor finished — it is still being written.
   bool get isDraft => this == RequestStatus.draft;
 
-  /// Submitted and out of the owner's hands, but not live yet either.
   bool get isAwaitingApproval => this == RequestStatus.pendingApproval;
 
-  /// Only a request that reached a final state is settled — a draft and a
-  /// request under review are both still in flight.
   bool get isSettled => !isOpen && !isDraft && !isAwaitingApproval;
 
-  /// Maps a wire status onto the UI lifecycle.
-  ///
-  /// Two vocabularies arrive here. The lifecycle one — `draft | published |
-  /// matched | closed | cancelled`, sent as `raw_status` — is what the caller
-  /// should pass. The tabbed list also sends a display bucket as `status`
-  /// (`invite | settled | closed`), which is coarser: it says which section a
-  /// row belongs to, not where the request stands. Both are understood so a
-  /// payload carrying only one of them still maps correctly.
-  ///
-  /// An `open`/`published` request is [sent] when it's mine, [fresh] while its
-  /// accept deadline is still running, [pending] when the server gave no
-  /// deadline, and shows as [expired] once the deadline has passed (until the
-  /// server sweep catches up).
   static RequestStatus fromApi(
     dynamic raw, {
     required bool isMine,
@@ -294,8 +250,6 @@ extension RequestStatusX on RequestStatus {
   }
 }
 
-/// Where an invitation (an opponent team's acceptance) stands while the
-/// requester decides between the teams that replied.
 enum InvitationStatus { pending, selected, rejected }
 
 extension InvitationStatusX on InvitationStatus {
@@ -315,8 +269,6 @@ extension InvitationStatusX on InvitationStatus {
       };
 }
 
-/// One opponent team's acceptance of my request. The requester reviews every
-/// invitation and picks a single opponent; the rest are rejected by the server.
 class OpponentInvitationModel {
   const OpponentInvitationModel({
     required this.id,
@@ -337,22 +289,16 @@ class OpponentInvitationModel {
   final String teamName;
   final InvitationStatus status;
 
-  /// The accepting captain — chat target for the requester.
   final String captainName;
   final int captainUserId;
 
-  /// Size of the accepting roster, when the API reports it.
   final int playerCount;
 
-  /// What this team owes of the court fee.
   final int share;
 
-  /// Optional note the accepting captain attached.
   final String message;
   final DateTime? acceptedAt;
 
-  /// `responded_at` — when the requester acted on this invitation. Null while
-  /// it is still waiting on a decision.
   final DateTime? respondedAt;
 
   factory OpponentInvitationModel.fromJson(Map<String, dynamic> json) {
@@ -406,7 +352,6 @@ class OpponentInvitationModel {
   }
 }
 
-/// How the court fee is divided between the two teams.
 enum SplitMode { even, custom }
 
 extension SplitModeX on SplitMode {
@@ -416,7 +361,6 @@ extension SplitModeX on SplitMode {
   };
 }
 
-/// Basis for a custom split: a fixed team percentage or the match result.
 enum SplitBasis { teams, result }
 
 extension SplitBasisX on SplitBasis {
@@ -436,29 +380,17 @@ class PlayerModel {
     this.positionId = '',
   });
 
-  /// Server-side team-member id (`teams/{team}/members/{member}`). Empty for
-  /// players built locally before they round-trip through the backend.
   final String id;
   final String name;
 
-  /// Contact address for the member, sent as `email`. Empty when the roster
-  /// entry has none — the field is optional.
   final String email;
 
   final PlayerPosition position;
 
-  /// Raw position name from the `/positions` API — this exact value is sent
-  /// back when storing/updating the player. Falls back to [position]'s label
-  /// when empty.
   final String positionName;
 
-  /// The `/positions` row id, sent to the API as `position_id` when storing
-  /// the player. Falls back to [position]'s 1-based id (1=GK … 4=FW) when
-  /// empty.
   final String positionId;
 
-  /// A team member as returned inside a team payload. Tolerant of the member's
-  /// name living either directly on the row or nested under `user`.
   factory PlayerModel.fromJson(Map<String, dynamic> json) {
     final dynamic user = json['user'];
     final userMap = user is Map ? Map<String, dynamic>.from(user) : null;
@@ -518,8 +450,6 @@ class TeamModel {
   final String name;
   final List<PlayerModel> players;
 
-  /// A team row from `GET /teams` (list) or `GET /teams/{team}` (single).
-  /// Members may arrive under `members`, `players` or `team_members`.
   factory TeamModel.fromJson(Map<String, dynamic> json) {
     final dynamic rawMembers =
         json['members'] ?? json['players'] ?? json['team_members'];
@@ -556,7 +486,6 @@ class TeamModel {
     return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
   }
 
-  /// `2 FW · 1 GK` — roster mix in position order, skipping empty positions.
   String get positionSummary {
     final buf = <String>[];
     for (final p in PlayerPosition.values) {
@@ -623,10 +552,8 @@ class OpponentRequestModel {
   final String id;
   final String team;
 
-  /// Scheduled match date + kickoff time.
   final DateTime dateTime;
 
-  /// One-line context shown under the team name (level, format, split…).
   final String summary;
   final RequestStatus status;
   final String venue;
@@ -634,116 +561,61 @@ class OpponentRequestModel {
   final int totalFee;
   final int yourShare;
 
-  /// Your side's percentage; null when the split is result-based.
   final int? myPct;
 
   final DateTime? createdAt;
 
-  /// The user who posted the request — chat target for incoming requests.
   final int requesterUserId;
   final String requesterName;
   final String requesterTeamId;
 
-  /// True when the current user posted this request.
   final bool isMine;
 
-  /// Server-owned accept window; drives the countdown on `fresh` requests.
   final DateTime? acceptDeadline;
 
-  /// Set once a team has accepted (before the requester picks an opponent
-  /// this is simply the latest acceptance).
   final String acceptedByTeamId;
   final String acceptedByTeamName;
 
-  /// The accepting captain's user id — chat target for the requester.
   final int acceptedByUserId;
 
-  /// Every opponent team that accepted this request. The API sends the list
-  /// once it supports competing acceptances; until then it carries the single
-  /// `accepted_by` team (see [_invitationsFrom]) so the review UI works either
-  /// way.
   final List<OpponentInvitationModel> invitations;
 
-  /// How far the create wizard got on a [RequestStatus.draft] row —
-  /// `main_step`/`sub_step` as the backend counts them. 0 when unknown.
   final int mainStep;
   final int subStep;
 
-  /// Server ids behind the match section, so resuming a draft in the wizard
-  /// can re-select exactly what was saved instead of guessing from labels.
   final String matchFormatId;
   final String opponentLevelId;
 
-  /// `per_player_amount` — what each player on my side owes, as the server
-  /// worked it out from the roster snapshot. 0 until the cost step has run.
   final int perPlayerAmount;
 
-  /// The `cost` block's own fields — `split_type` (`even` | `custom`),
-  /// `split_basis` (`team` | `result`) and the percentage the basis names
-  /// (`requesting_team_percent`, or `loser_pay_percent` when result-keyed) —
-  /// kept raw
-  /// so the wizard can restore the exact rule a draft saved. Empty/0 until the
-  /// cost step has run.
   final String splitType;
   final String splitBasis;
   final int requestingTeamPercent;
 
-  /// `preferred_date` + `preferred_time` exactly as the match step saved them.
-  /// Kept apart from [dateTime], which prefers the settled court's slot — the
-  /// wizard's step-one pickers must show what was submitted, not the booking.
   final DateTime? preferredDateTime;
 
-  /// The note the requester attached, as `message`. Empty when unset.
   final String message;
 
-  /// The venue block's own fields, kept alongside the flattened [venue] label
-  /// so the wizard can re-select what a draft's venue step saved:
-  /// `venue_source` (`booking` | `external` | …) plus the parts an externally
-  /// booked court is described by. [totalFee] carries `fee_amount`.
   final String venueSource;
   final String venueName;
   final String venueCourtName;
   final String venueAddress;
 
-  /// The booked window the venue step saved, as the API's `HH:mm(:ss)` strings.
-  /// Null when the venue step has not run.
   final String? venueStartTime;
   final String? venueEndTime;
 
-  /// Set when the venue is a booking made on this platform.
   final String venueBookingId;
 
-  /// The thread the server opened for this match, once an opponent is
-  /// confirmed. Empty until then — the chat action falls back to opening (or
-  /// reusing) a direct thread with [requesterUserId].
   final String conversationId;
 
-  /// The server's own word for this row's state (`invite` | `settled` |
-  /// `closed`), sent as `status_label` beside the lifecycle. Empty when the
-  /// payload carried none. Presented through [statusBadgeLabel], which title
-  /// cases it — the wire value is lowercase.
   final String serverStatusLabel;
 
-  /// The whole nested `venue.booking` payload, untouched. `booking`-sourced
-  /// venues arrive as a full booking rather than an id, and it parses straight
-  /// into a `BookingModel` — which is what lets the wizard re-select the
-  /// booking behind a resumed draft.
   final Map<String, dynamic> venueBooking;
 
-  /// `countdown.remaining_seconds`, floored. The server's own view of how long
-  /// acceptance stays open, which is what the card ticks down from — a device
-  /// clock minutes out of step would otherwise show the wrong time left, or a
-  /// live request as already gone.
   final Duration? acceptRemaining;
 
-  /// `countdown.is_expired`. Null when the payload carried no countdown.
   final bool? acceptExpired;
 
-  /// Time left on the accept window: `countdown.accept_until_at` measured
-  /// against the current moment, so it keeps falling between refreshes instead
-  /// of restating a figure the response fixed. `is_expired` still closes it
-  /// outright, and [acceptRemaining] covers a payload that carried a count but
-  /// no timestamp. Zero once closed.
   Duration get remainingToAccept {
     if (acceptExpired == true) return Duration.zero;
     final DateTime? deadline = acceptDeadline;
@@ -754,34 +626,22 @@ class OpponentRequestModel {
     return acceptRemaining ?? Duration.zero;
   }
 
-  /// True once acceptance has closed: the server's verdict when it gave one,
-  /// otherwise `accept_until_at` having gone past.
   bool get hasAcceptWindowClosed =>
       acceptExpired ??
       ((acceptDeadline != null || acceptRemaining != null) &&
           remainingToAccept == Duration.zero);
 
-  /// `cost.cost_type` — `even`, `custom`, `result`. The server's own name for
-  /// the rule, which is more direct than inferring it from split_type +
-  /// split_basis, but empty on older payloads, so both are read.
   final String costType;
 
-  /// `cost.list_display` (falling back to the `cost` block): what each side
-  /// pays under a result-keyed rule. Null when the server has not worked it out
-  /// — a request whose cost step ran before this block existed, say.
   final int? loserPayPercent;
   final int? winnerPayPercent;
   final int? loserPayAmount;
   final int? winnerPayAmount;
 
-  /// True when the fee follows the result rather than being fixed per side.
   bool get isResultCost =>
       costType.toLowerCase() == 'result' ||
       splitBasis.toLowerCase() == 'result';
 
-  /// The loser's percentage, from whichever key the payload carried. Falls back
-  /// to [requestingTeamPercent], which is what a result-keyed rule stores when
-  /// the server sends no explicit pair.
   int? get resolvedLoserPercent {
     if (loserPayPercent != null && loserPayPercent! > 0) return loserPayPercent;
     if (!isResultCost) return null;
@@ -796,8 +656,6 @@ class OpponentRequestModel {
     return loser == null ? null : 100 - loser;
   }
 
-  /// The loser's amount: the server's figure when it sent one, otherwise
-  /// derived from the percentage and the court fee.
   int? get resolvedLoserAmount {
     if (loserPayAmount != null && loserPayAmount! > 0) return loserPayAmount;
     final int? pct = resolvedLoserPercent;
@@ -811,31 +669,23 @@ class OpponentRequestModel {
     return loser == null ? null : totalFee - loser;
   }
 
-  /// Payment state of the linked booking, when the venue is one. Null for an
-  /// external court — there is no booking here to have been paid for.
   OpponentBookingPayment? get bookingPayment => venueBooking.isEmpty
       ? null
       : OpponentBookingPayment.fromBooking(venueBooking);
 
-  /// `invitations_summary` counts. The list endpoint reports only these
-  /// numbers, so they stand in for [invitations] on the cards.
   final int pendingInvitationCount;
   final int totalInvitationCount;
 
-  /// Invitation count to show: the objects when the payload carried them,
-  /// otherwise the summary the list endpoint sends.
   int get invitationCount => invitations.isNotEmpty
       ? invitations.length
       : (totalInvitationCount > 0
             ? totalInvitationCount
             : pendingInvitationCount);
 
-  /// Invitations still waiting on the requester's pick.
   List<OpponentInvitationModel> get pendingInvitations => invitations
       .where((i) => i.status == InvitationStatus.pending)
       .toList(growable: false);
 
-  /// The team the requester picked, when the choice has been made.
   OpponentInvitationModel? get selectedInvitation {
     for (final i in invitations) {
       if (i.status == InvitationStatus.selected) return i;
@@ -843,24 +693,13 @@ class OpponentRequestModel {
     return null;
   }
 
-  /// True once the match is locked in: an opponent is confirmed and the venue
-  /// is linked to the request.
   bool get isMatchConfirmed => status == RequestStatus.accepted;
 
-  /// What the status badge shows. The server's `status_label` wins so both
-  /// sides of a request read the same word and a wording change needs no app
-  /// release; the app's own copy covers a payload that sent none.
   String get statusBadgeLabel {
     if (serverStatusLabel.isEmpty) return status.label;
     return serverStatusLabel[0].toUpperCase() + serverStatusLabel.substring(1);
   }
 
-  /// A request row from `GET /opponent-requests` or
-  /// `GET /auth/opponent-requests?tab=all`. Tolerant of three payload shapes:
-  /// flat, the public list's nested `requester`/`match`/`pricing`, and the
-  /// authenticated list's `team`/`match_format`/`opponent_level`/`venue`
-  /// (which carries drafts, hence `preferred_date`/`preferred_time` and
-  /// `main_step`/`sub_step`).
   factory OpponentRequestModel.fromJson(Map<String, dynamic> json) {
     // The authenticated list names the captain who opened the request
     // `opponent_requester` ({id, name}); the public list and the detail
@@ -1162,10 +1001,6 @@ class OpponentRequestModel {
     );
   }
 
-  /// Reads the competing acceptances. When the payload only carries a single
-  /// `accepted_by` team, that team becomes the one invitation — already
-  /// `selected` on an accepted request, still `pending` while the requester
-  /// has not chosen yet.
   static List<OpponentInvitationModel> _invitationsFrom(
     Map<String, dynamic> json,
     Map<String, dynamic> acceptedBy,
@@ -1279,13 +1114,6 @@ class OpponentRequestModel {
   }
 }
 
-/// Payment state of the platform booking behind a `booking`-sourced venue.
-///
-/// Read straight off the nested `venue.booking` the list endpoint sends, so it
-/// cannot drift from what the server said. The distinction that matters is
-/// *verified* money versus *submitted* money: a cash payment sits at
-/// `verification_status: pending` with a proof image until a vendor confirms
-/// it, so `paid_amount` is still 0 while the requester has in fact paid.
 class OpponentBookingPayment {
   const OpponentBookingPayment({
     required this.bookingCode,
@@ -1360,37 +1188,28 @@ class OpponentBookingPayment {
     );
   }
 
-  /// `BK-…`, the reference the venue knows this booking by.
   final String bookingCode;
 
-  /// `paid` | `partial` | `pending` | `unpaid`, as the server reports it.
   final String paymentStatus;
 
-  /// `pending` | `confirmed` | `cancelled`, as the server reports it.
   final String bookingStatus;
 
   final int totalAmount;
 
-  /// Money the server has counted as received.
   final int paidAmount;
   final int balanceDue;
 
-  /// The deposit this booking was created against, and what was due at the
-  /// time of booking.
   final int advanceAmount;
   final int payableNow;
 
-  /// Money handed over that is still waiting on someone to verify it.
   final int submittedAmount;
   final bool awaitingVerification;
   final bool hasProof;
 
-  /// `cash`, `khalti`, … — empty when no payment has been recorded.
   final String method;
 
   bool get isFullyPaid => paymentStatus == 'paid' || balanceDue <= 0;
 
-  /// One line for the payment's state, honest about unverified money.
   String get statusLabel {
     if (isFullyPaid) return 'Paid in full';
     if (awaitingVerification) return 'Awaiting payment verification';
@@ -1405,8 +1224,6 @@ class OpponentBookingPayment {
 Map<String, dynamic> _asMap(dynamic value) =>
     value is Map ? Map<String, dynamic>.from(value) : const {};
 
-/// Like [_asInt] but keeps "the server said nothing" distinct from zero — a
-/// 0% share and an unstated one mean different things on a card.
 int? _asIntOrNull(dynamic value) {
   if (value == null) return null;
   final String raw = value.toString().trim();
@@ -1430,7 +1247,6 @@ DateTime? _asDate(dynamic value) {
   return DateTime.tryParse(raw)?.toLocal();
 }
 
-/// `18:00` → `6:00 PM`; returns the input when it isn't `HH:mm`.
 String _displayTime(String raw) {
   final parts = raw.split(':');
   if (parts.length < 2) return raw;

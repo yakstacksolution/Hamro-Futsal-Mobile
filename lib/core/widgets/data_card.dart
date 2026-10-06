@@ -3,61 +3,28 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 
-/// The shared card language for record lists — the ledger on Finance &
-/// payouts, the booking lists, and anything else that shows one record per
-/// card.
-///
-/// The parts live here rather than in each feature so the screens cannot drift
-/// apart: a card is a hairline-bordered panel with no shadow; its header is a
-/// tinted glyph, a strong title, a quiet identifying line and a right-hand
-/// figure with a status chip under it; its body is `label  value` rows whose
-/// labels share a fixed column so the values align.
-///
-/// Everything elides rather than overflowing, and a missing value drops its
-/// row instead of leaving a blank one.
 
-/// Width of the label column in [DataCardField]. Fixed so the values of every
-/// row in a card — and of every card in a list — start at the same x.
 const double kDataCardLabelWidth = 92;
 
-/// Title size for a card in a list — a point under the detail scale, so the
-/// name and the figure lead the card without heading it.
 const double kDataCardListTitleSize = 13;
 
-/// How large a card's text runs.
-///
-/// A list is scanned, so it is set tight; a details page is read, and the same
-/// facts there carry a step more size. Both use the same type, weights and
-/// colours — only the scale differs — so a card still opens into a page that
-/// looks like itself.
 enum DataCardDensity {
-  /// Lists: 10pt labels and values, 12pt titles.
   list,
 
-  /// Details pages: 12pt labels and values, 14pt titles.
   detail;
 
   bool get isDetail => this == DataCardDensity.detail;
 
-  /// Labels, captions and the quiet second line.
   double get labelSize =>
       isDetail ? AppDimens.fontBodyTextSmall : AppDimens.fontBodySubTitle;
 
-  /// Values and figures.
   double get valueSize =>
       isDetail ? AppDimens.fontBodyTextSmall : AppDimens.fontBodySubTitle;
 
-  /// A card's title and its amount.
   double get titleSize =>
       isDetail ? AppDimens.fontBodyTextMedium : AppDimens.fontBodyTextSmall;
 }
 
-/// A bordered panel holding one record.
-///
-/// [selected] marks a card the reader has acted on — a product in the cart,
-/// say. It tints the panel and accents its border with [accent] rather than
-/// changing its shape, so a selected card still sits in the same grid as the
-/// rest.
 class DataCard extends StatelessWidget {
   const DataCard({
     super.key,
@@ -73,8 +40,6 @@ class DataCard extends StatelessWidget {
   final bool selected;
   final Color? accent;
 
-  /// Eases between the plain and selected looks. Off by default: a list of
-  /// static records has nothing to animate.
   final bool animate;
 
   @override
@@ -112,7 +77,6 @@ class DataCard extends StatelessWidget {
   }
 }
 
-/// The tinted square glyph that opens a card's header.
 class DataCardIcon extends StatelessWidget {
   const DataCardIcon({super.key, required this.icon, required this.color});
 
@@ -134,11 +98,6 @@ class DataCardIcon extends StatelessWidget {
   }
 }
 
-/// A small state chip — `CREDIT`, `CONFIRMED`, `PENDING`.
-///
-/// Always carries its meaning in words: the colour is a reinforcement, never
-/// the only cue, so the card survives a greyscale screenshot or a colour-blind
-/// reader.
 class DataCardChip extends StatelessWidget {
   const DataCardChip({super.key, required this.label, required this.color});
 
@@ -169,13 +128,6 @@ class DataCardChip extends StatelessWidget {
   }
 }
 
-/// A count beside a label — the products already on a booking, say.
-///
-/// A true circle, not a pill: a badge that only sets a minimum width and lets
-/// its height fall out of the text comes out visibly wider than it is tall on
-/// a single digit. This is a fixed square with the digits centred in it, and
-/// it stretches into a rounded pill only once the count needs three
-/// characters, where a circle would clip them.
 class CountBadge extends StatelessWidget {
   const CountBadge({
     super.key,
@@ -189,8 +141,6 @@ class CountBadge extends StatelessWidget {
   final Color background;
   final Color foreground;
 
-  /// Diameter of the dot. The default fits two digits at the badge's text
-  /// size.
   final double size;
 
   @override
@@ -228,11 +178,6 @@ class CountBadge extends StatelessWidget {
   }
 }
 
-/// A card header: glyph, title, quiet identifying line, and an optional
-/// right-hand column holding a figure and a chip.
-///
-/// The right column is capped at a share of the card so a long title shortens
-/// itself rather than crowding the figure off the edge.
 class DataCardHeader extends StatelessWidget {
   const DataCardHeader({
     super.key,
@@ -253,11 +198,8 @@ class DataCardHeader extends StatelessWidget {
   final Color iconColor;
   final String title;
 
-  /// The identifying line under the title — a reference, a court, a phone.
   final String? subtitle;
 
-  /// Pre-formatted figure, shown in tabular digits so a list of cards forms a
-  /// readable column.
   final String? amount;
   final Color? amountColor;
   final String? chipLabel;
@@ -265,9 +207,6 @@ class DataCardHeader extends StatelessWidget {
   final int titleMaxLines;
   final DataCardDensity density;
 
-  /// Size for the title and the figure alone, overriding [density]. A list
-  /// card sets it just under the detail scale so the name and the amount lead
-  /// the card without heading it. See [kDataCardListTitleSize].
   final double? titleSize;
 
   @override
@@ -363,7 +302,6 @@ class DataCardHeader extends StatelessWidget {
   }
 }
 
-/// The hairline between a card's header and its fields.
 class DataCardDivider extends StatelessWidget {
   const DataCardDivider({super.key});
 
@@ -376,7 +314,6 @@ class DataCardDivider extends StatelessWidget {
   }
 }
 
-/// One `label  value` line in a card's body.
 class DataCardField extends StatelessWidget {
   const DataCardField({
     super.key,
@@ -431,10 +368,6 @@ class DataCardField extends StatelessWidget {
   }
 }
 
-/// One cell of a [DataCardGrid]: a quiet label with its value beneath.
-///
-/// Stacked rather than side by side because a cell is only half the card wide
-/// — a label column inside it would leave the value almost no room.
 class DataCardCell extends StatelessWidget {
   const DataCardCell({
     super.key,
@@ -487,13 +420,6 @@ class DataCardCell extends StatelessWidget {
   }
 }
 
-/// A card's facts as a two-column grid — four cells make the usual 2×2.
-///
-/// Cells flow in pairs, so a card with an odd number keeps its last cell at
-/// the left edge of its own row rather than stretching it across the card, and
-/// a card with more than four simply grows by another row. Both columns take
-/// exactly half the width, so the right column starts at the same x on every
-/// card in a list.
 class DataCardGrid extends StatelessWidget {
   const DataCardGrid({super.key, required this.cells});
 
@@ -530,7 +456,6 @@ class DataCardGrid extends StatelessWidget {
   }
 }
 
-/// Lays out a card's field rows with the spacing they share.
 class DataCardFields extends StatelessWidget {
   const DataCardFields({super.key, required this.children});
 

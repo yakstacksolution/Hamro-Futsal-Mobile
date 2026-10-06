@@ -66,18 +66,12 @@ final class StringConstants {
   static const String accountStatement = 'Statement';
   static const String recentActivity = 'Recent activity';
 
-  /// Direction of a ledger entry, shown as a chip and announced by a screen
-  /// reader — the sign and the colour must not be the only cue.
   static const String credit = 'Credit';
   static const String debit = 'Debit';
 
-  /// Labels on a ledger card. The two dates are different facts and are
-  /// usually days apart: the slot the money is for, and when the row was
-  /// written.
   static const String bookingDate = 'Booking date';
   static const String recorded = 'Recorded';
 
-  /// Labels and fallbacks on a booking card.
   static const String reference = 'Reference';
   static const String bookedOn = 'Booked on';
   static const String bookedBy = 'Booked by';
@@ -87,13 +81,10 @@ final class StringConstants {
       'End time must be later than start time.';
   static const String loadingBookings = 'Loading bookings…';
 
-  /// Suffix on a product's unit price in the cart: `NPR 25 each`.
   static const String each = 'each';
   static const String unknownPlayer = 'Unknown player';
   static const String futsalCourt = 'Futsal court';
 
-  /// Titles on the booking details summary when the payload names neither the
-  /// customer nor the venue.
   static const String customerBooking = 'Customer booking';
   static const String futsalBooking = 'Futsal booking';
   static const String availableBalance = 'Available balance';
@@ -364,6 +355,23 @@ final class StringConstants {
   static const String couldNotIdentifyThisCourt =
       'Could not identify this court.';
   static const String couldNotLoadBookings = 'Could not load bookings.';
+  static const String exportBookings = 'Export bookings';
+  static const String exportingBookings = 'Preparing your export…';
+  static const String couldNotExportBookings =
+      'Could not export bookings. Please try again.';
+  static const String noBookingsToExport =
+      'There are no bookings to export for these filters.';
+  static const String exportedBookings = 'Exported Bookings';
+  static const String exportDownloadedTitle =
+      'Booking overview downloaded successfully';
+  static const String exportReadyToView =
+      'Your export is saved to your device and ready to view.';
+  static const String viewExport = 'View';
+  static const String exportSavedInDownloads = 'Saved in Downloads';
+  static const String exportSavedInFiles = 'Saved in the Files app';
+  static const String couldNotOpenExport =
+      'No app found to open this file. Install Excel or Google Sheets to view it.';
+  static const String shareFile = 'Share file';
   static const String couldNotLoadCategories = 'Could not load categories.';
   static const String couldNotLoadSavedAuthenticationDetails =
       'Could not load saved authentication details.';
@@ -438,7 +446,6 @@ final class StringConstants {
   static const String couldNotSendOtpPleaseTryAgain =
       'Could not send the OTP. Please try again.';
 
-  /// Fallback only — the forgot-password endpoint returns its own message.
   static const String otpSentSuccessfully =
       'OTP sent successfully. Check your email.';
   static const String createNewPassword = 'Create New Password';
@@ -767,11 +774,8 @@ final class StringConstants {
   static const String newRental = 'New rental';
   static const String newRequest = 'New Request';
 
-  /// Title and action label for resuming an unpublished (draft) request.
   static const String completeRequest = 'Complete Request';
 
-  /// Short form for the draft card's action button, which shares its row with
-  /// Remove and has half the width of the wizard's app-bar title.
   static const String completeSetup = 'Complete';
   static const String newTeam = 'New Team';
   static const String showPlayers = 'Show players';
@@ -974,14 +978,10 @@ final class StringConstants {
   static const String removeRequest = 'Remove request?';
   static const String removeRequestAction = 'Remove Request';
 
-  /// Local stand-in for the delete confirmation when the server sends no
-  /// `message` (e.g. a 204).
   static const String requestDeleted = 'Opponent request deleted.';
 
-  /// Shown wherever a court fee is displayed before a venue has supplied one.
   static const String courtFeeNotSetYet = 'Not set yet';
 
-  /// Same, for a publish that answers without a `message`.
   static const String requestPublished = 'Opponent request published.';
   static const String renameTeam = 'Rename Team';
   static const String rentalServices = 'Rental Services';
@@ -1179,7 +1179,6 @@ final class StringConstants {
   static const String updatePassword = 'Update Password';
   static const String updatePricingForThisSlot = 'Update pricing for this slot';
 
-  /// Slot discount: the switch, and the optional window it applies over.
   static const String offerADiscountOnThisSlot =
       'Offer a discount on this slot';
   static const String discountStarts = 'Discount starts';
@@ -1604,14 +1603,8 @@ final class StringConstants {
   // Booking checkout
   static const String checkout = 'Checkout';
 
-  /// Label for the checkout's payment-reference field. The field is still
-  /// `payment_description` on the wire — only what the user reads changed,
-  /// because a transaction ID is all it was ever asking for.
   static const String transactionId = 'Transaction ID';
 
-  /// Shows the shape of the expected value rather than repeating the ask — the
-  /// label already says what the field is, and the helper line under it says
-  /// why it matters.
   static const String paymentDescriptionHint = 'e.g. 9KX2M7QF1042';
   static const String paymentDescriptionHelp =
       'The venue matches your payment against this, so enter the transaction '

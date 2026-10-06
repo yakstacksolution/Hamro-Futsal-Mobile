@@ -2,8 +2,6 @@ import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/client.dart';
 
 abstract class VendorOpsRemoteDataSource {
-  /// `GET /court-availability-slots?venue_id=&court_id=&start_date=&type=week`.
-  /// Week calls also include `end_date`.
   Future<Result> getCourtAvailabilitySlots({
     int? venueId,
     int? courtId,

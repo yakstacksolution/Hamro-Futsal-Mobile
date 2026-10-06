@@ -6,7 +6,6 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/utils/booking_ui_utils.dart';
 
-/// Standard card surface used across the booking overview feature.
 class BookingSurface extends StatelessWidget {
   const BookingSurface({
     super.key,
@@ -62,7 +61,6 @@ class BookingSectionLabel extends StatelessWidget {
   }
 }
 
-/// Compact "no data" card used by the leaderboard tables.
 class BookingEmptyMicro extends StatelessWidget {
   const BookingEmptyMicro({super.key, required this.text});
 
@@ -86,7 +84,6 @@ class BookingEmptyMicro extends StatelessWidget {
   }
 }
 
-/// `Jun 1 – Jun 30 · 84 bookings · NPR 145,200` context line.
 class BookingContextLine extends StatelessWidget {
   const BookingContextLine({
     super.key,
@@ -100,8 +97,6 @@ class BookingContextLine extends StatelessWidget {
   final int count;
   final int revenue;
 
-  /// Server-built line; used verbatim when present in the English
-  /// calendar. Its dates are Gregorian, so the Nepali calendar builds its own.
   final String summaryLine;
 
   @override

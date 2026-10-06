@@ -29,7 +29,6 @@ class CourtLocationMapSection extends StatelessWidget {
 
   static const double _mercatorLatitudeLimit = 85.05112878;
 
-  /// Close to Google's empty-map grey, shown until the map mounts.
   static const Color _mapBackgroundColor = Color(0xFFE0E0E0);
 
   bool get _hasCoordinates =>
@@ -245,14 +244,6 @@ class CourtLocationMapSection extends StatelessWidget {
   }
 }
 
-/// Builds [child] only once the enclosing route has finished its entry
-/// transition, showing a flat [placeholderColor] box until then.
-///
-/// The map is the heaviest thing on the venue page: mounting it kicks off tile
-/// requests, image decodes and its own layer tree. Doing that in the same
-/// frames as the page's fade/slide-in is what made opening the page stutter.
-/// The tiles are network-bound and blank at first either way, so waiting
-/// ~600ms to mount it is not visible.
 class _BuildAfterRouteTransition extends StatefulWidget {
   const _BuildAfterRouteTransition({
     required this.child,

@@ -1,5 +1,13 @@
+import 'package:dio/dio.dart';
+
 class IHttp {
-  get({String? url, String? token, Map? query, dynamic data}) {}
+  get({
+    String? url,
+    String? token,
+    Map? query,
+    dynamic data,
+    ResponseType? responseType,
+  }) {}
 
   post({String? url, dynamic data, Map? query, String? token}) {}
 

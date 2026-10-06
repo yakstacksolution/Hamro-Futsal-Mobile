@@ -35,49 +35,29 @@ class RequestSettlementPage extends StatefulWidget {
     this.venueId,
   });
 
-  /// Pre-fetched preview, when a caller already has one.
-  ///
-  /// Normally null: the vendor taps Pay Commission and gets this page straight
-  /// away, and it fetches the preview and the QR codes itself. Waiting on two
-  /// network calls before pushing left the button looking dead for as long as
-  /// they took.
   final SettlementPreviewModel? preview;
 
-  /// Commission the venue owes Hamro Futsal, as the account summary reports it.
-  /// A settlement pays this and nothing else, so it stands in when the preview
-  /// carries no figure of its own — never the venue's cleared earnings.
   final double commissionPayable;
 
-  /// Lifetime gross earnings, shown as context above the commission.
   final double totalEarned;
 
-  /// `/auth/qr-codes` — every QR the commission may be sent to. Empty falls
-  /// back to whatever QR the preview carried.
   final List<SettlementQrCodeModel> qrCodes;
 
-  /// Set for a per-futsal settlement; null files a consolidated one.
   final int? venueId;
 
-  /// Falls back into the scope line when the server sent no `subtitle`.
   final String venueName;
 
   @override
   State<RequestSettlementPage> createState() => _RequestSettlementPageState();
 }
 
-/// Where the page's own fetch has got to.
 enum _LoadPhase {
-  /// Fetching the preview and the QR codes.
   loading,
 
-  /// Loaded — the form is showing.
   ready,
 
-  /// The server will not take a settlement right now (already being verified,
-  /// nothing owed, or its own blocking reason). Nothing to fill in.
   blocked,
 
-  /// The fetch failed and can be retried.
   failed,
 }
 
@@ -95,31 +75,16 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   _LoadPhase _phase = _LoadPhase.loading;
   String _phaseMessage = '';
 
-  /// Only read once [_phase] is [_LoadPhase.ready] — everything that touches
-  /// it renders or runs behind the form.
   SettlementPreviewModel get _preview => _loaded!;
 
   List<SettlementQrCodeModel> get _qrCodes => _loadedQrCodes;
 
-  /// The futsal this settles. The caller names it for a per-futsal payment;
-  /// otherwise the preview reports its own scope.
   int? get _venueId => widget.venueId ?? _preview.venue?.id;
 
-  /// What this request pays: the commission owed to Hamro Futsal.
-  ///
-  /// The commission leads deliberately. `/auth/settlement-preview` returns the
-  /// vendor's *cleared balance* in `maximum_payable` — the pot the commission
-  /// was taken out of, not the debt — so honouring it billed the vendor several
-  /// times what they owed. The preview's figure is kept only as a fallback for
-  /// when the summary has no commission to report.
   double get _payable => widget.commissionPayable > 0
       ? widget.commissionPayable
       : _preview.maximumPayable;
 
-  /// What the amount field is pre-filled with. The whole commission is the
-  /// default, and the server's own `default_amount` is honoured only while it
-  /// stays within that — it is derived from the same balance as
-  /// [SettlementPreviewModel.maximumPayable] and overshoots for the same reason.
   double get _defaultAmount {
     final double preferred = _preview.defaultAmount > 0
         ? _preview.defaultAmount
@@ -127,8 +92,6 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
     return preferred > _payable ? _payable : preferred;
   }
 
-  /// The whole commission must go in one request — the field is shown
-  /// read-only rather than validated, so the rule is visible up front.
   bool get _amountLocked => _preview.exactAmountRequired;
 
   @override
@@ -148,14 +111,6 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
-  /// Fetches everything the form needs: the preview's rules and the QR codes
-  /// to pay against.
-  ///
-  /// Whether another settlement may be requested is the server's call, made in
-  /// `can_request_settlement` on the account and enforced again by the create
-  /// endpoint. This page used to re-decide it locally by counting settlements
-  /// in review, which disagreed with the server — it opened only to refuse a
-  /// vendor the account had just told us was eligible.
   Future<void> _load() async {
     if (!mounted) return;
     final AccountBloc bloc = context.read<AccountBloc>();
@@ -552,8 +507,6 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   }
 }
 
-/// What the page shows instead of the form: the server will not take a
-/// settlement right now, or the fetch failed and can be retried.
 class _PhaseMessage extends StatelessWidget {
   const _PhaseMessage({
     required this.icon,
@@ -599,9 +552,6 @@ class _PhaseMessage extends StatelessWidget {
   }
 }
 
-/// Numbered step label that splits the form into "pay" and "confirm". The two
-/// halves ask for very different things, and the QR is useless once the vendor
-/// has already paid — the numbering makes the order explicit.
 class _StepHeader extends StatelessWidget {
   const _StepHeader({
     required this.step,
@@ -665,7 +615,6 @@ class _StepHeader extends StatelessWidget {
   }
 }
 
-/// Receipt/screenshot upload tile with inline validation message.
 String _formatSize(int bytes) {
   if (bytes < 1024) return '$bytes B';
   if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} KB';
@@ -684,11 +633,9 @@ class _ProofPicker extends StatelessWidget {
 
   final UploadAttachment? proof;
 
-  /// Byte count of what will be sent, once compression has run.
   final int? uploadBytes;
   final bool showError;
 
-  /// Accepted types and size ceiling, as the server reported them.
   final String hint;
   final String? errorText;
   final VoidCallback onTap;

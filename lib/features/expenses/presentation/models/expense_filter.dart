@@ -2,14 +2,6 @@ import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_futsal/features/expenses/presentation/models/expense_analytics.dart';
 
-/// The server-side query the Expenses screen sends to `GET /auth/expenses`.
-///
-/// Maps the on-screen filters onto the API's query params:
-///   date_filter = today | week | month | year | custom
-///   date_from / date_to (custom only, `YYYY-MM-DD`)
-///   venue_id
-///   expense_category_id
-///   payment_method = cash | online
 class ExpenseFilter extends Equatable {
   const ExpenseFilter({
     this.period = ExpensePeriod.month,
@@ -23,9 +15,6 @@ class ExpenseFilter extends Equatable {
   final ({DateTime start, DateTime end})? customRange;
   final String? venueId;
 
-  /// Server category id from `/expense-categories`. Sent to the API so the
-  /// summary and analytics are scoped to the category too — narrowing only the
-  /// records list on the client left every total contradicting it.
   final String? categoryId;
 
   final PaymentMethod? paymentMethod;
@@ -52,7 +41,6 @@ class ExpenseFilter extends Equatable {
     );
   }
 
-  /// `2026-06-09`
   static String _ymd(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-'
       '${d.month.toString().padLeft(2, '0')}-'

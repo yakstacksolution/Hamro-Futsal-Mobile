@@ -88,7 +88,6 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
     });
   }
 
-  /// Centres whichever map is showing on [point].
   void _moveMapTo(LatLng point) {
     if (supportsNativeGoogleMap) {
       _mapController?.animateCamera(CameraUpdate.newLatLngZoom(point, 16));

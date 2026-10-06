@@ -19,13 +19,6 @@ class SignInEntity extends Equatable {
   }
 }
 
-/// UI labels for the account-type picker.
-///
-/// These are the single source of truth for the strings the picker offers and
-/// the string [SignUpEntity.toMap] matches on. Keeping them in one place
-/// matters: the mapping is a plain `==` against a display label, so a
-/// well-meaning edit to the picker's wording alone would quietly register every
-/// vendor as a candidate.
 abstract final class AccountTypeLabels {
   static const String player = 'Player';
   static const String vendor = 'Venue Vendor';
@@ -77,10 +70,6 @@ class SignUpEntity extends Equatable {
   }
 }
 
-/// Payload for the first step of the reset flow: request the OTP email.
-///
-/// Separate from [ForgotPasswordEntity], which carries the OTP and the new
-/// password for the step that actually changes the credential.
 class ForgotPasswordOtpRequestEntity extends Equatable {
   final String email;
 
@@ -92,11 +81,6 @@ class ForgotPasswordOtpRequestEntity extends Equatable {
   Map<String, dynamic> toMap() => <String, dynamic>{"email": email};
 }
 
-/// Payload for the final step of the reset flow — `POST /auth/reset-password`.
-///
-/// The OTP is sent as the string the user typed rather than an int: leading
-/// zeros are significant in a one-time code, and `0412` parsed as a number
-/// goes on the wire as `412`.
 class ResetPasswordEntity extends Equatable {
   final String email;
   final String otp;
@@ -163,8 +147,6 @@ class ResendOtpEntity extends Equatable {
   }
 }
 
-/// Tokens from the Google sign-in flow, exchanged with the backend for the
-/// app's own session token.
 class GoogleSignInEntity extends Equatable {
   final String? idToken;
   final String? accessToken;
@@ -179,13 +161,6 @@ class GoogleSignInEntity extends Equatable {
   }
 }
 
-/// Credentials from the Apple sign-in flow, exchanged with the backend for the
-/// app's own session token.
-///
-/// Apple only returns [email] and [fullName] on the very first authorization
-/// for an Apple ID; every later sign-in omits them, so [toMap] leaves those
-/// keys out rather than sending blanks and letting the backend overwrite a
-/// stored name with an empty string.
 class AppleSignInEntity extends Equatable {
   final String? idToken;
   final String? email;

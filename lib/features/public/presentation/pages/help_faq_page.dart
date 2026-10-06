@@ -27,7 +27,6 @@ class HelpFaqPage extends StatelessWidget {
 
   final bool isVendor;
 
-  /// Overrides the data source; tests only.
   @visibleForTesting
   final PublicRepository? repository;
 
@@ -185,7 +184,6 @@ class _HelpFaqView extends StatelessWidget {
   }
 }
 
-/// Shared loading / error / empty scaffolding for one tab.
 class _SupportTab extends StatelessWidget {
   const _SupportTab({
     required this.status,
@@ -257,14 +255,6 @@ class _FaqList extends StatelessWidget {
   }
 }
 
-/// Expandable question/answer card.
-///
-/// The surface (color + rounded border) is provided through the
-/// [ExpansionTile.shape]/[ExpansionTile.collapsedShape] so the tile wraps its
-/// own [Material]. Painting the background with an outer `Container` instead
-/// would place a colored `DecoratedBox` between the inner `ListTile` and its
-/// nearest `Material`, which trips the framework's
-/// "ListTile background color or ink splashes may be invisible" assertion.
 class _FaqTile extends StatelessWidget {
   const _FaqTile({required this.faq});
 
@@ -346,7 +336,6 @@ class _HelpList extends StatelessWidget {
 
   final List<PublicHelpModel> helps;
 
-  /// Optional widget shown above the help topics, scrolling with them.
   final Widget? header;
 
   @override
@@ -366,8 +355,6 @@ class _HelpList extends StatelessWidget {
   }
 }
 
-/// Expandable help article. The body content arrives as HTML from the server,
-/// so it is rendered with [CustomHtmlReader].
 class _HelpTile extends StatelessWidget {
   const _HelpTile({required this.help});
 
@@ -450,7 +437,6 @@ class _HelpTile extends StatelessWidget {
   }
 }
 
-/// A social channel shown in the Help tab's "Connect with us" section.
 class _SocialChannel {
   const _SocialChannel({
     required this.label,
@@ -465,8 +451,6 @@ class _SocialChannel {
   final String url;
 }
 
-/// Known social platforms, keyed by the help item's title. Detection is
-/// substring-based so titles like "Facebook Page" still match.
 const Map<String, ({IconData icon, Color color})>
 _socialCatalog = <String, ({IconData icon, Color color})>{
   'facebook': (icon: Icons.facebook_rounded, color: Color(0xFF1877F2)),
@@ -487,13 +471,11 @@ _socialCatalog = <String, ({IconData icon, Color color})>{
   'phone': (icon: Icons.phone_rounded, color: Color(0xFF2C7969)),
 };
 
-/// Fallback presentation for a link-only help item not in [_socialCatalog].
 const ({IconData icon, Color color}) _genericChannel = (
   icon: Icons.link_rounded,
   color: Color(0xFF2C7969),
 );
 
-/// The catalog key a help item's title maps to, or null if unknown.
 String? _socialKeyOf(PublicHelpModel help) {
   final String title = help.title.toLowerCase().replaceAll(
     RegExp(r'[\s_-]'),
@@ -507,13 +489,10 @@ String? _socialKeyOf(PublicHelpModel help) {
   return null;
 }
 
-/// A help item is a "link" tile when its description contains a URL. Known
-/// platforms get their branded icon; anything else falls back to a link icon.
 bool _isSocialHelp(PublicHelpModel help) =>
     _linkFrom(help.description) != null &&
     (_socialKeyOf(help) != null || _looksLinkOnly(help.description));
 
-/// True when the description is essentially just a URL (title carries meaning).
 bool _looksLinkOnly(String description) {
   final String d = description.trim();
   final String? link = _linkFrom(d);
@@ -522,8 +501,6 @@ bool _looksLinkOnly(String description) {
   return d.length <= link.length + 16;
 }
 
-/// Extracts a link from a help item's [description], accepting either a bare
-/// URL or one embedded in surrounding text/HTML.
 String? _linkFrom(String description) {
   final RegExpMatch? match = RegExp(
     r'https?://[^\s"'
@@ -534,7 +511,6 @@ String? _linkFrom(String description) {
   return raw.isEmpty ? null : raw;
 }
 
-/// Builds the ordered list of social channels present in [helps].
 List<_SocialChannel> _socialChannelsFromHelps(List<PublicHelpModel> helps) {
   final List<_SocialChannel> channels = <_SocialChannel>[];
   for (final PublicHelpModel help in helps) {
@@ -559,8 +535,6 @@ List<_SocialChannel> _socialChannelsFromHelps(List<PublicHelpModel> helps) {
   return channels;
 }
 
-/// "Connect with us" card with tappable social channels shown atop the Help
-/// tab. Each tile opens the respective app/site via [launchUrl].
 class _SocialConnectSection extends StatelessWidget {
   const _SocialConnectSection({required this.channels});
 
@@ -743,10 +717,6 @@ class _SupportMessage extends StatelessWidget {
 
 enum _HelpSection { faqs, guides, videos }
 
-/// Tablet / desktop Help & FAQ: a standard help centre — a header with search,
-/// the sections in a sidebar (desktop) or a segmented switcher (tablet), the
-/// contact channels in their own card, and the selected section's content in
-/// a readable column.
 class _HelpCenterWide extends StatefulWidget {
   const _HelpCenterWide({required this.isVendor});
 
@@ -962,7 +932,6 @@ class _HelpCenterWideState extends State<_HelpCenterWide> {
     );
   }
 
-  /// Desktop: the sections as a vertical navigation card.
   Widget _sidebar(Map<_HelpSection, int> counts, List<_HelpSection> sections) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Container(
@@ -1050,7 +1019,6 @@ class _HelpCenterWideState extends State<_HelpCenterWide> {
     );
   }
 
-  /// Tablet: the sections as a segmented control above the content.
   Widget _segmented(Map<_HelpSection, int> counts) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Align(

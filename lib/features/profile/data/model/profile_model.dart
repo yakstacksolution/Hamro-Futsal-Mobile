@@ -36,7 +36,6 @@ class ProfileModel extends Equatable {
   }
 }
 
-/// The four `/auth/notification-preferences` flags, served back on `/auth/me`.
 class NotificationPreferences extends Equatable {
   const NotificationPreferences({
     this.pushNotification = true,
@@ -50,8 +49,6 @@ class NotificationPreferences extends Equatable {
   final bool opponentRequest;
   final bool promotionalEmails;
 
-  /// API booleans arrive as true/false, 0/1 or "0"/"1" depending on the
-  /// serializer — accept them all.
   static bool _flag(dynamic value, bool fallback) {
     if (value is bool) return value;
     if (value is num) return value != 0;
@@ -63,8 +60,6 @@ class NotificationPreferences extends Equatable {
     return fallback;
   }
 
-  /// Tolerates the flags living nested under `notification_preferences` or
-  /// directly on the `/auth/me` user row.
   factory NotificationPreferences.fromUserJson(Map<String, dynamic> json) {
     final dynamic nested = json['notification_preferences'];
     final Map source = nested is Map ? nested : json;
@@ -76,7 +71,6 @@ class NotificationPreferences extends Equatable {
     );
   }
 
-  /// Payload shape for `POST /auth/notification-preferences`.
   Map<String, dynamic> toJson() => {
     'enable_push_notification': pushNotification,
     'enable_booking_alert': bookingAlert,
@@ -147,29 +141,18 @@ class UserData extends Equatable {
   final bool financeAccess;
   final bool isVendorRequested;
 
-  /// A demo account. Finance is hidden for these: they have no real money
-  /// behind them, so payouts must not be offered.
   final bool isTestUser;
 
-  /// `notification_settings` on `/auth/me` — an opaque per-channel blob the
-  /// app stores as sent and does not interpret. Null when the user has none.
   final Map<String, dynamic>? notificationSettings;
 
-  /// Venue ids the user has wishlisted (`wishlists` on `/auth/me`) — drives
-  /// the heart state on venue cards.
   final List<int> wishlistVenueIds;
 
-  /// Notification flags from `/auth/me`, edited on the Settings page.
   final NotificationPreferences notificationPreferences;
 
-  /// Vendor onboarding is finished: a completion time, or
-  /// `vendor_onboarding_data.onboarding_completed` on `/auth/me`.
   bool get isVendorOnboardingCompleted =>
       vendorOnboardingCompletedAt != null ||
       _asBool(vendorOnboardingData?['onboarding_completed']);
 
-  /// `use_nepali_calendar`: show and pick dates in Bikram Sambat. Null when
-  /// the server does not send it, so the device's own choice is kept.
   final bool? useNepaliCalendar;
 
   const UserData({
@@ -209,7 +192,6 @@ class UserData extends Equatable {
     this.useNepaliCalendar,
   });
 
-  /// Accepts `[1, 2]` or `[{venue_id: 1}, ...]` / `[{id: 1}, ...]`.
   static List<int> _parseWishlistIds(dynamic value) {
     if (value is! List) return const <int>[];
     return value

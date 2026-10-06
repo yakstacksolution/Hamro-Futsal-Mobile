@@ -24,7 +24,6 @@ import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_filt
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_form_widgets.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Create a new expense, or edit an existing one when [initial] is provided.
 class CreateExpensePage extends StatefulWidget {
   const CreateExpensePage({
     super.key,
@@ -36,7 +35,6 @@ class CreateExpensePage extends StatefulWidget {
   final List<VenueModel> venues;
   final List<CourtModel> courts;
 
-  /// Expense being edited; null when creating.
   final ExpenseModel? initial;
 
   @override
@@ -88,7 +86,6 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     }
   }
 
-  /// Mirrors the backend rule: jpg,jpeg,png,webp,pdf,doc,docx · max 10 MB.
   static const _documentExtensions = [
     'jpg',
     'jpeg',
@@ -122,7 +119,6 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       _category != null &&
       _vendorCtrl.text.trim().isNotEmpty;
 
-  /// Courts that belong to the currently selected venue.
   List<CourtModel> get _venueCourts =>
       widget.courts.where((c) => c.venueId == _venue.id).toList();
 
@@ -145,8 +141,6 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     if (picked != null) setState(() => _date = picked);
   }
 
-  /// Documents come from the device file browser only (no gallery), matching
-  /// the backend rule: image/pdf/doc, max 10 MB.
   Future<void> _pickDocument() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -590,7 +584,6 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   static const double _twoColumnMaxWidth = 1080;
   static const double _sideColumnWidth = 380;
 
-  /// The save button, labelled with the amount once the form can be saved.
   Widget _saveButton() => ListenableBuilder(
     listenable: Listenable.merge([_amountCtrl, _vendorCtrl]),
     builder: (context, _) => SizedBox(
@@ -606,7 +599,6 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     ),
   );
 
-  /// Desktop: the save action as a card under the note and document.
   Widget _buildSaveCard() {
     final textTheme = FutsalTheme.getTextTheme(context);
     return ExpenseSurface(
@@ -683,8 +675,6 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   }
 }
 
-/// Dropdown row for one API category: server icon (svg/raster) + title,
-/// falling back to the local enum icon when the server sent no image.
 class _CategoryOption extends StatelessWidget {
   const _CategoryOption({required this.category});
 
@@ -731,10 +721,6 @@ class _CategoryOption extends StatelessWidget {
   }
 }
 
-/// Optional supporting document for the expense (receipt, invoice…).
-///
-/// Picks strictly from the device file browser — never the gallery — and
-/// only the types the backend accepts (image / PDF / Word, max 10 MB).
 class _DocumentField extends StatelessWidget {
   const _DocumentField({
     required this.document,
@@ -859,8 +845,6 @@ class _DocumentField extends StatelessWidget {
   }
 }
 
-/// Inline status row shown in place of the category dropdown while the
-/// categories API is loading or after it failed (with a retry action).
 class _CategoryStatusRow extends StatelessWidget {
   const _CategoryStatusRow({
     required this.leading,
@@ -903,7 +887,6 @@ class _CategoryStatusRow extends StatelessWidget {
   }
 }
 
-/// Two-option segmented selector for the payment method (Cash / Online).
 class _PaymentMethodSelector extends StatelessWidget {
   const _PaymentMethodSelector({
     required this.selected,

@@ -69,19 +69,14 @@ class BookingModel extends Equatable {
   final int? venueId;
   final int? courtId;
 
-  /// User id of the venue owner/vendor — used to open a chat with the venue.
   final int? vendorId;
 
-  /// User id of the customer who made the booking — used to open a chat with
-  /// the player from the vendor's futsal-bookings view.
   final int? playerId;
   final String? playerName;
   final String? playerPhone;
   final String? playerEmail;
   final String? futsalAddress;
 
-  /// How the booking was created — `online` (player app) or `manual`
-  /// (walk-in entered by the vendor).
   final String? bookingType;
   final int? seriesParentId;
   final bool isRecurring;
@@ -94,102 +89,68 @@ class BookingModel extends Equatable {
   final double subtotal;
   final double discountAmount;
 
-  /// Discount granted by the vendor at the moment the booking was completed.
   final double completionDiscount;
   final double taxAmount;
 
-  /// Server-side total of the products attached to the booking. When this is
-  /// greater than zero, `total_amount` and the balance fields already include
-  /// the products — see [totalsIncludeExtras].
   final double extraAmount;
   final double advanceAmount;
 
-  /// Partial payment recorded against the booking, when the venue accepts a
-  /// custom amount instead of the fixed advance.
   final double partialAmount;
   final double payableNow;
   final double balanceDueLater;
 
-  /// Amount already paid & verified by the server for this booking.
   final double paidAmount;
 
-  /// Remaining amount still owed for this booking.
   final double balanceDue;
 
-  /// Whether the response carried `balance_due`. A reported zero means
-  /// settled — it must not fall back to `balance_due_later`, which is only the
-  /// balance planned at booking time.
   final bool reportsBalanceDue;
 
-  /// The part of [paidAmount] taken in cash / online, per the API.
   final double cashPaidAmount;
   final double onlinePaidAmount;
 
-  /// Settled payments grouped by method (`payment_breakdown`).
   final List<BookingPaymentBreakdownModel> paymentBreakdown;
   final String? paymentStatus;
 
-  /// Why the booking was cancelled or rejected, when the API says.
   final String? cancellationReason;
   final String? notes;
   final BookingCouponModel? coupon;
   final List<BookingPaymentModel> payments;
   final List<BookingSlotModel> bookingSlots;
 
-  /// Products added to this booking (from the `extra_items` array).
   final List<BookingExtraItemModel> extraItems;
 
-  /// When the booking was placed, when the API reports it.
   final DateTime? createdAt;
 
-  /// Whether the server will accept a review for this booking.
   final bool canReview;
 
-  /// Whether one has already been left. Kept apart from [review] because the
-  /// list says a review exists without always embedding a usable one.
   final bool reviewSubmitted;
 
-  /// The review embedded in the list response, when it belongs to this
-  /// booking. Null when there is none — see [BookingModel.fromJson] for why a
-  /// mismatched one is dropped.
   final BookingReviewModel? review;
 
-  /// Entered by the vendor for a walk-in, not made in the app: the customer
-  /// has no account to message.
   bool get isManual => bookingType?.trim().toLowerCase() == 'manual';
 
-  /// Total number of extra product units attached to this booking.
   int get extraItemsCount => extraItems.fold<int>(
     0,
     (int sum, BookingExtraItemModel e) => sum + e.quantity,
   );
 
-  /// Total monetary value of the extra products.
   double get extraItemsTotal => extraItems.fold<double>(
     0,
     (double sum, BookingExtraItemModel e) => sum + e.totalAmount,
   );
 
-  /// Whether the server's `total_amount`/balance fields already account for the
-  /// booked products. The API reports `extra_amount` alongside `extra_items`
-  /// once products are attached, and folds it into `total_amount`.
   bool get totalsIncludeExtras => extraAmount > 0;
 
-  /// Net court charge after booking-level discount/tax, excluding products. The
-  /// API's `amount` (`total_amount`) is authoritative; the arithmetic fallback
-  /// supports older payloads that only expose the individual charge fields.
   double get bookingTotal {
     if (amount > 0) return _atLeastZero(amount - extraAmount);
     return _atLeastZero(subtotal - discountAmount + taxAmount);
   }
 
-  /// Court charge plus products sold against the booking.
   double get grandTotal {
     if (totalsIncludeExtras && amount > 0) return amount;
     return bookingTotal + extraItemsTotal;
   }
 
-  /// Verified/settled money recorded for this booking.
   double get effectivePaidAmount {
     if (paidAmount > 0) return paidAmount;
     return payments
@@ -208,10 +169,6 @@ class BookingModel extends Equatable {
         .fold<double>(0, (double sum, payment) => sum + payment.amount);
   }
 
-  /// Remaining court charge before completion. Products are deliberately not
-  /// included here because they are added once by [amountDueForCompletion], so
-  /// the server balances — which already carry `extra_amount` — are reduced by
-  /// it again.
   double get remainingBookingBalance {
     final double extras = totalsIncludeExtras ? extraAmount : 0;
     if (reportsBalanceDue) return _atLeastZero(balanceDue - extras);
@@ -219,13 +176,9 @@ class BookingModel extends Equatable {
     return _atLeastZero(bookingTotal - effectivePaidAmount);
   }
 
-  /// Amount presented when a confirmed booking is completed.
   double get amountDueForCompletion =>
       remainingBookingBalance + extraItemsTotal;
 
-  /// Server-recorded due on a completed booking. Unlike completion, products
-  /// are not added again because the completed booking's `balance_due`
-  /// already represents the final outstanding settlement.
   double get amountDueForCollection {
     if (status != BookingStatus.completed) return 0;
     if (balanceDue > 0) return balanceDue;
@@ -236,8 +189,6 @@ class BookingModel extends Equatable {
     return 0;
   }
 
-  /// Primary payment for this booking — the one carrying a proof screenshot if
-  /// any, otherwise the first recorded payment. Null when no payments exist.
   BookingPaymentModel? get payment {
     if (payments.isEmpty) return null;
     for (final BookingPaymentModel p in payments) {
@@ -771,8 +722,6 @@ final class BookingPaymentModel extends Equatable {
   final int id;
   final String? method;
 
-  /// The API's `payment_type`, which mirrors `payment_method` today but is sent
-  /// separately (e.g. `cash`, `online`).
   final String? type;
   final double amount;
   final String? status;
@@ -782,7 +731,6 @@ final class BookingPaymentModel extends Equatable {
   final bool hasPaymentProof;
   final String? note;
 
-  /// When the payment was recorded, per the API's `created_at`.
   final DateTime? createdAt;
 
   BookingPaymentModel copyWith({
@@ -859,7 +807,6 @@ final class BookingPaymentModel extends Equatable {
   ];
 }
 
-/// One `payment_breakdown` row: the settled total for a payment method.
 final class BookingPaymentBreakdownModel extends Equatable {
   const BookingPaymentBreakdownModel({
     this.method,
@@ -872,7 +819,6 @@ final class BookingPaymentBreakdownModel extends Equatable {
   final String? type;
   final double amount;
 
-  /// How many payments make up [amount].
   final int count;
 
   factory BookingPaymentBreakdownModel.fromJson(Map<String, dynamic> json) {
@@ -962,12 +908,8 @@ final class BookingExtraItemModel extends Equatable {
   final double unitPrice;
   final double totalAmount;
 
-  /// The product's current catalogue price, which can differ from [unitPrice]
-  /// when the price changed after the booking was made.
   final double? productPrice;
 
-  /// Whether the underlying product is still sellable. Archived products stay
-  /// on the booking but should not be offered again.
   final bool productIsActive;
 
   factory BookingExtraItemModel.fromJson(Map<String, dynamic> json) {
@@ -1052,8 +994,6 @@ enum BookingStatus {
   const BookingStatus(this.value);
   final String value;
 
-  /// The `status` query value `/bookings` and `/futsal-bookings` accept.
-  /// `null` — no status picked — is the endpoints' `all`.
   static String queryValue(BookingStatus? status) => status?.value ?? 'all';
 
   static BookingStatus fromString(String? value) {
@@ -1162,9 +1102,6 @@ int? _asInt(Object? value) {
   return int.tryParse(value.toString().trim());
 }
 
-/// Floors a money figure at zero. Deliberately not `clamp`, because `num.clamp`
-/// hands back the limit itself — the `int` literal `0` — which then fails the
-/// `double` return-type check of the getters below.
 double _atLeastZero(double value) {
   if (value.isNaN) return 0;
   return value < 0 ? 0 : value;

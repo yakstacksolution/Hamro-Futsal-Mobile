@@ -17,13 +17,6 @@ import 'package:hamro_futsal/features/message/presentation/pages/create_group_co
 import 'package:hamro_futsal/features/message/presentation/utils/pagination_trigger.dart';
 import 'package:hamro_futsal/features/message/presentation/widgets/group_member_widgets.dart';
 
-/// Adding people to a group that already exists. Creating one is a full page
-/// — see `CreateGroupConversationPage` — because that form is far longer; this
-/// one is a single list, which a sheet suits.
-///
-/// Both surfaces pick from the same source: the registered-users endpoint,
-/// paged and searched the same way, so the people offered here are the people
-/// offered there rather than only the handful already met in the inbox.
 const double _kAddMembersSheetHeightFactor = 0.86;
 
 Future<List<int>?> showAddGroupMembersSheet({
@@ -68,8 +61,6 @@ class AddGroupMembersForm extends StatefulWidget {
     this.registeredUsersLoader,
   });
 
-  /// Seed rows shown while the endpoint loads — the people already known from
-  /// the inbox. They are merged with, not replaced by, the loaded page.
   final List<ParticipantModel> candidates;
   final Set<int> excludedUserIds;
   final MessageUseCase? useCase;
@@ -88,8 +79,6 @@ class _AddGroupMembersFormState extends State<AddGroupMembersForm> {
   final ScrollController _scrollController = ScrollController();
   final Map<int, ParticipantModel> _known = <int, ParticipantModel>{};
 
-  /// Guards the registered-users endpoint: without it a short list re-triggers
-  /// its own "load more" after every page and walks straight into a 429.
   final PaginationTrigger _pagination = PaginationTrigger();
 
   Timer? _searchDebounce;
@@ -100,15 +89,11 @@ class _AddGroupMembersFormState extends State<AddGroupMembersForm> {
   bool _queuedSearchReload = false;
   int _currentUserPage = 0;
 
-  /// The search the list currently shows results for. A debounced search that
-  /// lands back on it (typed then erased) sends nothing.
   String? _loadedSearch;
   int _requestSerial = 0;
   String? _error;
   String? _loadError;
 
-  /// A query is in flight: the field shows a spinner so a slow search does not
-  /// read as a search that did nothing.
   bool get _searching =>
       _usesRemoteMembers &&
       (_loadingInitial || _searchDebounce?.isActive == true) &&
@@ -124,8 +109,6 @@ class _AddGroupMembersFormState extends State<AddGroupMembersForm> {
   bool get _canSubmit =>
       _selected.isNotEmpty && _totalMemberCount <= kMaxGroupMembers;
 
-  /// Everyone offerable: the seed rows plus every loaded page, minus the
-  /// people already in the group.
   List<ParticipantModel> get _candidates {
     final byUserId = <int, ParticipantModel>{};
     for (final participant in widget.candidates.followedBy(_remoteCandidates)) {
@@ -137,11 +120,6 @@ class _AddGroupMembersFormState extends State<AddGroupMembersForm> {
     return byUserId.values.toList(growable: false);
   }
 
-  /// The rows to show for the current query.
-  ///
-  /// The server searches, but the list also holds seed rows from the inbox and
-  /// pages loaded before the query changed; showing those unfiltered made the
-  /// search look broken. Everything on screen has to match what was typed.
   List<ParticipantModel> get _visibleCandidates {
     final String query = _search.text.trim().toLowerCase();
     if (query.isEmpty) return _candidates;

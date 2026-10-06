@@ -17,12 +17,6 @@ import 'package:hamro_futsal/features/futsal_details/data/repositories/futsal_de
 import 'package:hamro_futsal/features/futsal_details/domain/usecase/get_venue_reviews_use_case.dart';
 import 'package:hamro_futsal/features/futsal_details/presentation/bloc/venue_reviews/venue_reviews_bloc.dart';
 
-/// Every review for a venue, five from the API at a time.
-///
-/// Reached from "View all" on the details page, which only ever shows the first
-/// [kVenueReviewsPreviewSize]. This page owns its own bloc: the preview's
-/// instance holds a different page size, and sharing it would make the two
-/// surfaces fight over the same list.
 class VenueReviewsPage extends StatefulWidget {
   const VenueReviewsPage({
     super.key,
@@ -68,8 +62,6 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
     super.dispose();
   }
 
-  /// Fetches ahead of the bottom so the next page is usually there by the time
-  /// the reader arrives. The bloc guards against the repeat firings.
   void _onScroll() {
     if (!_scrollCtrl.hasClients) return;
     final double remaining =
@@ -79,8 +71,6 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
     }
   }
 
-  /// Asks for the reason, then submits it. The list is left alone either way:
-  /// the review only changes once an admin acts on the request.
   Future<void> _onChangeRequest(
     VenueReviewModel review,
     ReviewChangeRequestType type,
@@ -351,8 +341,6 @@ class _ReviewListItem extends StatelessWidget {
   }
 }
 
-/// Bottom-of-list status: a spinner while the next page loads, the reason it
-/// stopped when it failed, and a full stop when everything is loaded.
 class _ListFooter extends StatelessWidget {
   const _ListFooter({required this.state});
 

@@ -44,28 +44,16 @@ final class OpponentMatchState extends Equatable {
   final OpponentMatchStatus teamsStatus;
   final OpponentMatchStatus venuesStatus;
 
-  /// Requests per server-side tab (`need_opponent` | `my_requests` |
-  /// `settled`). Each tab is its own call, so each keeps its own rows, status
-  /// and error rather than being filtered out of one shared list.
   final Map<OpponentRequestTab, List<OpponentRequestModel>> tabRequests;
   final Map<OpponentRequestTab, OpponentMatchStatus> tabStatuses;
   final Map<OpponentRequestTab, String?> tabErrors;
 
-  /// Pagination per tab: the last page fetched, whether the server says more
-  /// exist, and the total it reported. A tab not yet fetched has no entry.
   final Map<OpponentRequestTab, int> tabPages;
   final Map<OpponentRequestTab, bool> tabHasMore;
   final Map<OpponentRequestTab, int> tabTotals;
 
-  /// True while a *next* page is being appended — distinct from [tabStatuses],
-  /// which covers the first page. Appending must not blank the rows already on
-  /// screen, so the two states are tracked apart.
   final Map<OpponentRequestTab, bool> tabLoadingMore;
 
-  /// The `summary` block the requests endpoint sends beside every page: how
-  /// many rows each tab holds. One tab's call therefore answers for all of
-  /// them, so the chips carry their counts from the first load instead of
-  /// filling in as each section is opened. Null until the first page lands.
   final OpponentRequestSummaryModel? requestSummary;
 
   int pageFor(OpponentRequestTab tab) => tabPages[tab] ?? 0;
@@ -74,24 +62,14 @@ final class OpponentMatchState extends Equatable {
 
   bool isLoadingMore(OpponentRequestTab tab) => tabLoadingMore[tab] ?? false;
 
-  /// The server's total for the tab: its own `pagination.total` once that tab
-  /// has been fetched, otherwise the count the shared `summary` reported for
-  /// it, and the rows in hand only when neither has arrived.
   int totalFor(OpponentRequestTab tab) =>
       tabTotals[tab] ??
       requestSummary?.countFor(tab) ??
       requestsFor(tab).length;
 
-  /// Per-request load state for the invitations review screen, keyed by request
-  /// id. The invitations themselves live on the request row, so the list stays
-  /// in one place; only their fetch state is tracked here.
   final Map<String, OpponentMatchStatus> invitationStatuses;
   final Map<String, String?> invitationErrors;
 
-  /// The confirmed match read back from
-  /// `/auth/opponent-requests/{id}/match-details`, keyed by request id, with
-  /// its own fetch state. The list row stays the fallback: it already carries
-  /// enough to draw the screen while this call is in flight.
   final Map<String, OpponentMatchDetailsModel> matchDetails;
   final Map<String, OpponentMatchStatus> matchDetailStatuses;
   final Map<String, String?> matchDetailErrors;
@@ -118,8 +96,6 @@ final class OpponentMatchState extends Equatable {
   bool hasLoadedInvitations(String requestId) =>
       invitationStatusFor(requestId) == OpponentMatchStatus.success;
 
-  /// Returns a copy with one request's invitation fetch state replaced, and
-  /// optionally that request's [invitations] patched into every loaded tab.
   OpponentMatchState withInvitations(
     String requestId, {
     OpponentMatchStatus? status,
@@ -149,12 +125,9 @@ final class OpponentMatchState extends Equatable {
   final List<TeamModel> teams;
   final List<String> venues;
 
-  /// Rows of one tab; empty until that tab has been fetched.
   List<OpponentRequestModel> requestsFor(OpponentRequestTab tab) =>
       tabRequests[tab] ?? const [];
 
-  /// A tab not yet fetched is `initial` — the UI spins rather than showing an
-  /// empty state for a call that has not happened.
   OpponentMatchStatus statusFor(OpponentRequestTab tab) =>
       tabStatuses[tab] ?? OpponentMatchStatus.initial;
 
@@ -166,8 +139,6 @@ final class OpponentMatchState extends Equatable {
   bool hasLoadedTab(OpponentRequestTab tab) =>
       statusFor(tab) == OpponentMatchStatus.success;
 
-  /// Returns a copy with one tab's slice replaced, optionally along with the
-  /// pagination cursor that slice came from.
   OpponentMatchState withTab(
     OpponentRequestTab tab, {
     List<OpponentRequestModel>? requests,
@@ -196,7 +167,6 @@ final class OpponentMatchState extends Equatable {
     requestSummary: summary,
   );
 
-  /// The default section — what the list shows on open.
   List<OpponentRequestModel> get requests =>
       requestsFor(OpponentRequestTab.needOpponent);
   OpponentMatchStatus get requestsStatus =>
@@ -207,80 +177,49 @@ final class OpponentMatchState extends Equatable {
       statusFor(OpponentRequestTab.myRequests);
   String? get myRequestsError => errorFor(OpponentRequestTab.myRequests);
 
-  /// Player positions from `GET /positions`. Empty until loaded — the UI
-  /// falls back to [PlayerPositionModel.defaults].
   final List<PlayerPositionModel> positions;
 
-  /// Opponent levels from `GET /opponent-levels`. Empty until loaded — the
-  /// UI falls back to [OpponentLevelModel.defaults].
   final List<OpponentLevelModel> levels;
 
-  /// State of the wizard's first step, which opens the request on the server
-  /// (`POST /auth/opponent-requests`) before the user reaches step two.
   final OpponentMatchStatus matchStepStatus;
 
-  /// State of the wizard's second step, which attaches the venue to the
-  /// already-opened request (`PUT /auth/opponent-requests/{id}/venue`).
   final OpponentMatchStatus venueStepStatus;
 
-  /// State of the wizard's third step, which replaces the cost split on the
-  /// already-opened request (`PUT /auth/opponent-requests/{id}/cost`).
   final OpponentMatchStatus costStepStatus;
 
-  /// Failure from the cost step alone, so it only surfaces on that step.
   final String? costStepError;
 
   bool get isSavingCostStep => costStepStatus == OpponentMatchStatus.loading;
 
-  /// State of the requester confirming an opponent
-  /// (`POST /auth/opponent-requests/{id}/invitations/{invitationId}/accept`).
-  /// The match is only real once this succeeds, so the invitations page waits
-  /// on it before telling the requester the match is confirmed.
   final OpponentMatchStatus selectOpponentStatus;
 
-  /// Failure from that call alone, so it surfaces on the invitations page
-  /// rather than as a generic list error.
   final String? selectOpponentError;
 
   bool get isSelectingOpponent =>
       selectOpponentStatus == OpponentMatchStatus.loading;
 
-  /// State of the publish call that ends the wizard
-  /// (`POST /auth/opponent-requests/{id}/publish`).
   final OpponentMatchStatus publishStatus;
 
-  /// Failure from publishing alone, so it only surfaces on the wizard.
   final String? publishError;
 
   bool get isPublishing => publishStatus == OpponentMatchStatus.loading;
 
-  /// Id of the request opened by that step. Empty until it succeeds; once set,
-  /// re-submitting the step patches this id instead of opening a second one.
   final String draftRequestId;
 
-  /// State of the single-request fetch that hydrates a resumed draft.
   final OpponentMatchStatus draftStatus;
 
-  /// The server's copy of the draft being completed, once fetched.
   final OpponentRequestModel? draftDetail;
 
-  /// Failure from that fetch alone, so it only surfaces on the wizard.
   final String? draftError;
 
   bool get isLoadingDraft => draftStatus == OpponentMatchStatus.loading;
 
-  /// Failure from the match step alone, kept apart from [errorMessage] so a
-  /// list-level error does not surface on the wizard and vice versa.
   final String? matchStepError;
 
-  /// Failure from the venue step alone, kept apart from the others so it only
-  /// surfaces on that step.
   final String? venueStepError;
 
   final String? errorMessage;
 
-  /// One-shot confirmation from the server (e.g. the delete endpoint's
-  /// `message`). The screen shows it as a snackbar and clears it.
   final String? successMessage;
 
   bool get isSavingMatchStep => matchStepStatus == OpponentMatchStatus.loading;
@@ -291,17 +230,11 @@ final class OpponentMatchState extends Equatable {
 
   bool get isLoadingMyRequests => isLoadingTab(OpponentRequestTab.myRequests);
 
-  /// True once the "my requests" tab has produced a list.
   bool get hasMyRequests => hasLoadedTab(OpponentRequestTab.myRequests);
 
-  /// True while any tab is still fetching its rows. A screen that looks a
-  /// request up by id cannot tell "not fetched yet" from "gone" on its own, so
-  /// it asks this before reporting the request missing.
   bool get isLoadingAnyRequests =>
       tabStatuses.values.any((s) => s == OpponentMatchStatus.loading);
 
-  /// Looks a request up by id across every fetched tab — a card opened from
-  /// one section may not exist in the others.
   OpponentRequestModel? requestById(String id) {
     for (final rows in tabRequests.values) {
       for (final r in rows) {

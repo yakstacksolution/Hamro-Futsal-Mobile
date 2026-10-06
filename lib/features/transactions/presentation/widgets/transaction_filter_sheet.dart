@@ -11,8 +11,6 @@ import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_date
 import 'package:hamro_futsal/features/transactions/data/model/transaction_history_model.dart';
 import 'package:hamro_futsal/features/transactions/presentation/widgets/transaction_widgets.dart';
 
-/// Everything the user chose in the filter sheet, returned in one object so the
-/// caller issues a single refetch rather than one per control.
 class TransactionFilterSelection {
   const TransactionFilterSelection({
     required this.direction,
@@ -25,12 +23,6 @@ class TransactionFilterSelection {
   final TransactionDateRange range;
 }
 
-/// Opens the calendar range sheet and resolves to the picked window, or null
-/// when the user backs out.
-///
-/// Deliberately the same sheet the Expenses screen uses, so a custom range is
-/// picked the same way everywhere. It lives under `features/expenses` only
-/// because that is where it was first needed.
 Future<TransactionDateRange?> pickTransactionDateRange({
   required BuildContext context,
   required TransactionDateRange current,
@@ -61,7 +53,6 @@ Future<TransactionDateRange?> pickTransactionDateRange({
   );
 }
 
-/// Opens the filter sheet. Resolves to null when dismissed without applying.
 Future<TransactionFilterSelection?> showTransactionFilterSheet({
   required BuildContext context,
   required TransactionDirectionFilter direction,
@@ -102,12 +93,8 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
   late TransactionDirectionFilter _direction = widget.direction;
   late String _type = widget.type;
 
-  /// The chosen preset, kept separate from the resolved window: `custom` with no
-  /// dates yet resolves to "all time", so storing only the resolved range would
-  /// un-select the Custom chip and hide the date fields the user just asked for.
   late TransactionRangeFilter _rangeFilter = widget.range.filter;
 
-  /// Held separately so switching to a preset and back keeps the picked dates.
   DateTime? _customFrom;
   DateTime? _customTo;
 
@@ -127,7 +114,6 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
       _type != 'all' ||
       _rangeFilter != TransactionRangeFilter.all;
 
-  /// The window this sheet would apply right now.
   TransactionDateRange get _resolvedRange => _isCustom
       ? TransactionDateRange.of(
           TransactionRangeFilter.custom,
@@ -144,8 +130,6 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
     setState(() => _rangeFilter = filter);
   }
 
-  /// Same calendar sheet as the chip row on the page behind this one, so a
-  /// custom window is always picked the same way.
   Future<void> _pickCustomRange() async {
     final TransactionDateRange? picked = await pickTransactionDateRange(
       context: context,
@@ -287,8 +271,6 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
 class _Header extends StatelessWidget {
   const _Header({required this.onReset});
 
-  /// Null disables the reset action, so it reads as unavailable when there is
-  /// nothing to clear.
   final VoidCallback? onReset;
 
   @override
@@ -354,12 +336,6 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-/// Options laid out two per row.
-///
-/// A [Wrap] packed a variable number of chips onto each line, so the same
-/// sheet looked different for every set of labels; a fixed grid keeps the two
-/// columns aligned down both sections. An odd last item takes one column and
-/// leaves the other empty rather than stretching across.
 class _ChipGrid extends StatelessWidget {
   const _ChipGrid({required this.children});
 
@@ -401,8 +377,6 @@ class _ChipGrid extends StatelessWidget {
   }
 }
 
-/// Direction is mutually exclusive with exactly three options, so it gets a
-/// segmented control rather than loose chips.
 class _DirectionSegments extends StatelessWidget {
   const _DirectionSegments({required this.selected, required this.onChanged});
 
@@ -484,8 +458,6 @@ class _DirectionSegments extends StatelessWidget {
     );
   }
 
-  /// Selected in/out segments carry the same green/red the rows use, so the
-  /// filter and the data it produces speak one colour language.
   Color _segmentColor(TransactionDirectionFilter filter, bool isSelected) {
     if (!isSelected) return LightColor.secondaryTextColor;
     return switch (filter) {
@@ -496,11 +468,6 @@ class _DirectionSegments extends StatelessWidget {
   }
 }
 
-/// Reads back the window the calendar returned, and re-opens it on tap.
-///
-/// Replaces the pair of single-date fields this sheet used to reveal: the
-/// range is now picked on one calendar, so there is nothing left to type in —
-/// only something to confirm.
 class _CustomRangeSummary extends StatelessWidget {
   const _CustomRangeSummary({
     required this.from,

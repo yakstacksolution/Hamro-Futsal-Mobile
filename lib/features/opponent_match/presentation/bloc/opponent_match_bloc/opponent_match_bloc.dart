@@ -91,8 +91,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
-  /// Positions and levels are lookups with static fallbacks in the UI, so a
-  /// failed fetch is silent — the chips simply keep the default options.
   Future<void> _onLoadPositions(
     LoadPositionsEvent event,
     Emitter<OpponentMatchState> emit,
@@ -112,9 +110,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     result.fold((_) {}, (levels) => emit(state.copyWith(levels: levels)));
   }
 
-  /// One tab, one call. Idempotent unless forced: opening a section
-  /// re-dispatches this, so a section already fetched is served from state
-  /// instead of re-hitting the API.
   Future<void> _onLoadRequests(
     LoadOpponentRequestsEvent event,
     Emitter<OpponentMatchState> emit,
@@ -153,11 +148,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
-  /// Appends the next page of a section the user has scrolled to the end of.
-  ///
-  /// Ignored unless the server said more exist, and while a page is already in
-  /// flight — the list dispatches this from a scroll listener, which fires far
-  /// more often than pages are needed.
   Future<void> _onLoadMoreRequests(
     LoadMoreOpponentRequestsEvent event,
     Emitter<OpponentMatchState> emit,
@@ -201,9 +191,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
-  /// A mutation can move a request between tabs, so every tab already on
-  /// screen is re-fetched. Tabs never opened stay untouched — they will load
-  /// lazily when the user gets there.
   Future<void> _onRefreshRequests(
     RefreshOpponentRequestsEvent event,
     Emitter<OpponentMatchState> emit,
@@ -290,9 +277,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     _applyRequests(await useCase.sendRequest(event.request), emit);
   }
 
-  /// First wizard step. The id from the create is kept in state, so coming
-  /// back to the step and submitting again patches that request instead of
-  /// opening another one.
   Future<void> _onSaveMatchStep(
     SaveOpponentMatchStepEvent event,
     Emitter<OpponentMatchState> emit,
@@ -326,8 +310,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
-  /// Step two needs the id step one produced; without it there is nothing to
-  /// attach the venue to, so the step fails rather than opening a new request.
   Future<void> _onSaveVenueStep(
     SaveOpponentVenueStepEvent event,
     Emitter<OpponentMatchState> emit,
@@ -373,9 +355,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
-  /// Hydrates the wizard from the server's copy of a draft. Failure is kept in
-  /// [OpponentMatchState.draftError] so the wizard can offer a retry while the
-  /// row it was opened with still fills the pickers.
   Future<void> _onLoadDraft(
     LoadOpponentDraftEvent event,
     Emitter<OpponentMatchState> emit,
@@ -404,7 +383,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
-  /// Step three needs the id step one produced, exactly like the venue step.
   Future<void> _onSaveCostStep(
     SaveOpponentCostStepEvent event,
     Emitter<OpponentMatchState> emit,
@@ -450,9 +428,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
-  /// Publishes the wizard's draft. On success the confirmation message goes to
-  /// [OpponentMatchState.successMessage] — the screen shows it — and both lists
-  /// are refreshed so the row moves out of "Draft".
   Future<void> _onPublishRequest(
     PublishOpponentRequestEvent event,
     Emitter<OpponentMatchState> emit,
@@ -531,8 +506,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     _applyRequests(await useCase.declineRequest(event.request.id), emit);
   }
 
-  /// Patch the accepted request into the list right away so the card shows
-  /// "invitation sent" without waiting for the round-trip refresh.
   Future<void> _onRequestAccepted(
     RequestAcceptedEvent event,
     Emitter<OpponentMatchState> emit,
@@ -553,12 +526,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     add(const RefreshOpponentRequestsEvent());
   }
 
-  /// Deletes one of my requests. On success the row is dropped from every
-  /// loaded section in place — the server already told us it is gone, so no tab
-  /// is fetched again — and the server's message is surfaced as a confirmation.
-  /// Loads the teams that accepted one request and patches them onto that row
-  /// wherever it is rendered, so the review screen, the card's invitation count
-  /// and the confirm flow all read from one list.
   Future<void> _onLoadInvitations(
     LoadInvitationsEvent event,
     Emitter<OpponentMatchState> emit,
@@ -623,8 +590,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
-  /// One settled request, one call. The screen re-dispatches this on open, so
-  /// a match already read is served from state unless the caller forces it.
   Future<void> _onLoadMatchDetails(
     LoadMatchDetailsEvent event,
     Emitter<OpponentMatchState> emit,
@@ -721,9 +686,6 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
-  /// Mutations (decline, select an opponent, reject an invitation…) reload the
-  /// `need_opponent` slice they answered with, then refresh whatever other
-  /// sections are on screen — a request can move between tabs.
   void _applyRequests(
     Either<AppException, List<OpponentRequestModel>> result,
     Emitter<OpponentMatchState> emit,

@@ -16,22 +16,18 @@ import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_details_widgets.dart';
 import 'package:hamro_futsal/features/products/data/model/product_models.dart';
 
-/// Products can only be added before the booking is completed.
 bool bookingSupportsProducts(BookingModel booking) {
   return booking.status == BookingStatus.confirmed;
 }
 
-/// Whether a booking can be marked as completed (only confirmed bookings).
 bool bookingCanComplete(BookingModel booking) {
   return booking.status == BookingStatus.confirmed;
 }
 
-/// Payment type collected when completing a booking.
 enum BookingPaymentType {
   cash,
   online;
 
-  /// Value sent to the API (`payment_type`).
   String get apiValue => name;
 
   String get label => this == BookingPaymentType.cash ? 'Cash' : 'Online';
@@ -41,7 +37,6 @@ enum BookingPaymentType {
       : Icons.account_balance_wallet_rounded;
 }
 
-/// One amount collected and how: cash or online.
 class BookingPaymentLine {
   const BookingPaymentLine({required this.type, required this.amount});
 
@@ -54,9 +49,6 @@ class BookingPaymentLine {
   };
 }
 
-/// Result collected from the complete-booking sheet: how the payment was
-/// settled — in cash, online, or part each — any discount applied, how much
-/// is being collected now, and whether it is a partial settlement.
 class BookingCompleteResult {
   const BookingCompleteResult({
     required this.payments,
@@ -65,14 +57,11 @@ class BookingCompleteResult {
     required this.isPartial,
   });
 
-  /// At most one line per type: cash, online, or both.
   final List<BookingPaymentLine> payments;
   final double discount;
   final double amountPaid;
   final bool isPartial;
 
-  /// The type the booking is completed with: the first that paid something,
-  /// else the first picked.
   BookingPaymentType get paymentType =>
       payments
           .where((BookingPaymentLine l) => l.amount > 0)
@@ -88,9 +77,6 @@ class BookingCompletionResponse {
   final bool success;
   final BookingModel? booking;
 
-  /// [original] as it stands once completed: the server's booking when the
-  /// response carried this one (its payments, balance and status are the
-  /// settled ones), otherwise [original] marked completed.
   BookingModel completedFrom(BookingModel original) {
     final BookingModel? returned = booking;
     return (returned != null && returned.id == original.id
@@ -100,17 +86,11 @@ class BookingCompletionResponse {
   }
 }
 
-/// Bookings whose complete flow (sheet and request) is currently running.
 final Set<int> _bookingsBeingCompleted = <int>{};
 
-/// In-flight complete requests, keyed by booking id.
 final Map<int, Future<BookingCompletionResponse>> _pendingCompletions =
     <int, Future<BookingCompletionResponse>>{};
 
-/// Runs [flow] — typically "open the complete sheet, then call
-/// [completeBooking]" — unless one is already running for [bookingId]. A
-/// double tap on "Complete" would otherwise open two sheets and send two
-/// requests.
 Future<void> runBookingCompletionOnce(
   int bookingId,
   Future<void> Function() flow,
@@ -123,14 +103,6 @@ Future<void> runBookingCompletionOnce(
   }
 }
 
-/// Marks a confirmed booking as completed, recording how the outstanding
-/// amount was collected. Returns the server booking when the response includes
-/// one, so callers can update their state without waiting for another fetch.
-///
-/// A call made while one for the same booking is still in flight shares its
-/// result instead of hitting the API again.
-/// Stands in for the `POST /bookings/{id}/complete` request in tests, which
-/// cannot reach the shared API client.
 @visibleForTesting
 Future<BookingCompletionResponse> Function(
   int bookingId, {
@@ -237,11 +209,6 @@ Future<BookingCollectDueResult?> showCollectBookingDueSheet(
   );
 }
 
-/// Bottom sheet shown before marking a booking as completed. Presents the
-/// booking payment, the extra-item payment breakdown, a discount field, a
-/// full/partial payment option and a cash/online payment type selector.
-/// Returns the collected [BookingCompleteResult] on confirm, or null when the
-/// vendor dismisses it.
 Future<BookingCompleteResult?> showBookingCompleteSheet(
   BuildContext context,
   BookingModel booking,
@@ -253,8 +220,6 @@ Future<BookingCompleteResult?> showBookingCompleteSheet(
   );
 }
 
-/// Opens the products cart bottom sheet for a booking. Returns `true` when at
-/// least one product was successfully added.
 Future<bool?> openBookingProductsSheet(
   BuildContext context,
   BookingModel booking,
@@ -332,9 +297,6 @@ class _BookingProductsService {
 
 // ─── Products section shown on the booking details page ──────────────────────
 
-/// Lists the products already attached to a booking with their per-line
-/// calculation (`qty × unit price`) and the extras subtotal, followed by the
-/// "Add products" entry-point when the viewer is allowed to sell add-ons.
 class BookingProductsSection extends StatelessWidget {
   const BookingProductsSection({
     super.key,
@@ -345,10 +307,8 @@ class BookingProductsSection extends StatelessWidget {
 
   final BookingModel booking;
 
-  /// Called after products are successfully added, so the caller can refresh.
   final VoidCallback? onChanged;
 
-  /// Whether the "Add products" entry-point is shown (vendor-side only).
   final bool canAdd;
 
   @override
@@ -372,7 +332,6 @@ class BookingProductsSection extends StatelessWidget {
   }
 }
 
-/// Read-only breakdown of the products sold against a booking.
 class _ExtraItemsCard extends StatelessWidget {
   const _ExtraItemsCard({required this.items, required this.total});
 
@@ -512,7 +471,6 @@ class _AddProductsTile extends StatelessWidget {
   }
 }
 
-/// Compact chip used on the booking list card as a quick entry-point.
 class BookingActionChip extends StatelessWidget {
   const BookingActionChip({
     super.key,
@@ -632,9 +590,6 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
     return merged;
   }
 
-  /// Unit price for a product id — prefers the loaded product, falling back to
-  /// the price carried by the booking's existing extra items (so the total is
-  /// correct even before the venue products finish loading).
   double _priceFor(int productId) {
     for (final ProductModel product in _products) {
       if (product.id == productId) return product.price;
@@ -854,8 +809,6 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
 
 // ─── Complete-booking sheet ───────────────────────────────────────────────────
 
-/// `NPR 1,200` — shared with the booking cards and the account ledger so a
-/// figure reads the same wherever it appears. See [Money].
 String _formatMoney(double amount) => Money.npr(amount);
 
 class _CollectBookingDueSheet extends StatefulWidget {
@@ -1081,54 +1034,40 @@ class _CompleteBookingSheet extends StatefulWidget {
 class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
   final TextEditingController _discountController = TextEditingController();
 
-  /// What is collected now: one line, or two when split — one in cash, the
-  /// other online. Never two lines of the same type.
   final List<_CompletePaymentField> _payments = <_CompletePaymentField>[
     _CompletePaymentField(BookingPaymentType.cash),
   ];
 
-  /// Until the amount is typed, the one line follows the net payable (the
-  /// discount changes it), so a full settlement needs no typing.
   bool _amountTouched = false;
 
   BookingModel get _booking => widget.booking;
 
-  /// Gross amount owed before any completion-time discount.
   double get _totalToCollect => _booking.amountDueForCompletion;
 
   double _parse(TextEditingController c) =>
       double.tryParse(c.text.trim().replaceAll(',', '')) ?? 0;
 
-  /// Bounds a money figure without `num.clamp`, which returns the limit itself
-  /// — an `int` when the limit is the literal `0` — and would then fail the
-  /// `double` return-type check of the getters below.
   double _bound(double value, double max) {
     if (value.isNaN || value < 0) return 0;
     return value > max ? max : value;
   }
 
-  /// Discount clamped to the range [0, totalToCollect].
   double get _discount => _bound(_parse(_discountController), _totalToCollect);
 
-  /// Net amount payable after the discount.
   double get _netPayable =>
       _bound(_totalToCollect - _discount, double.infinity);
 
-  /// Everything received now, across the lines.
   double get _received => _payments.fold<double>(
     0,
     (double sum, _CompletePaymentField p) => sum + _parse(p.amount),
   );
 
-  /// Amount being collected right now.
   double get _amountPaid => _bound(_received, _netPayable);
 
-  /// Amount still owed after this settlement.
   double get _remaining => _bound(_netPayable - _amountPaid, double.infinity);
 
   bool get _overpaid => _received > _netPayable + 0.5;
 
-  /// A split line left empty: fill it in or remove it.
   bool get _emptySplitLine =>
       _payments.length > 1 &&
       _payments.any((_CompletePaymentField p) => _parse(p.amount) <= 0);
@@ -1170,7 +1109,6 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
     });
   }
 
-  /// The rest in the other type: a second line for what is still owed.
   void _addSplit() {
     if (_payments.length > 1) return;
     final _CompletePaymentField line = _CompletePaymentField(
@@ -1188,8 +1126,6 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
     setState(() => _payments.removeAt(index).dispose());
   }
 
-  /// A share of the net payable, made up by the last line on top of the
-  /// others.
   void _fillShare(double share) {
     final _CompletePaymentField last = _payments.last;
     final double others = _received - _parse(last.amount);
@@ -1213,7 +1149,6 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
     );
   }
 
-  /// `Cash`, `Online` or `Cash + Online` — the types paying something.
   String get _typesLabel {
     final List<String> used = <String>[
       for (final _CompletePaymentField p in _payments)
@@ -1431,7 +1366,6 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
   }
 }
 
-/// One payment line on the complete sheet: its type and amount.
 class _CompletePaymentField {
   _CompletePaymentField(this.type);
 
@@ -1441,7 +1375,6 @@ class _CompletePaymentField {
   void dispose() => amount.dispose();
 }
 
-/// `[Cash | Online]  [ amount ]  ✕` — as on the vendor's manual booking.
 class _CompletePaymentRow extends StatelessWidget {
   const _CompletePaymentRow({
     super.key,
@@ -1456,12 +1389,10 @@ class _CompletePaymentRow extends StatelessWidget {
   final _CompletePaymentField line;
   final String label;
 
-  /// Shows the line's type as fixed rather than a toggle.
   final bool locked;
   final ValueChanged<BookingPaymentType> onTypeChanged;
   final VoidCallback onAmountChanged;
 
-  /// Null for the only line, which cannot be removed.
   final VoidCallback? onRemove;
 
   static const double _height = 48;
@@ -1508,7 +1439,6 @@ class _CompletePaymentRow extends StatelessWidget {
     );
   }
 
-  /// Cash or Online, side by side — the one picked is filled.
   Widget _typeToggle() {
     Widget option(BookingPaymentType type) {
       final bool selected = type == line.type;
@@ -1578,7 +1508,6 @@ class _CompletePaymentRow extends StatelessWidget {
     );
   }
 
-  /// A split line's type, fixed: the toggle's size, so the rows line up.
   Widget _typeChip() {
     return Semantics(
       label: 'Paid by ${line.type.label}',
@@ -1614,8 +1543,6 @@ class _CompletePaymentRow extends StatelessWidget {
   }
 }
 
-/// Bottom action bar of the complete sheet: full-width hairline on top, the
-/// amount being collected, and the primary action.
 class _CompleteSheetFooter extends StatelessWidget {
   const _CompleteSheetFooter({
     required this.onCancel,
@@ -1711,9 +1638,6 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-/// Segmented control used for the payment option (full/partial) and the
-/// payment type (cash/online). One bordered track, the active segment filled —
-/// clearer than two separate boxes and it reads as a single choice.
 class _SegmentedChoice extends StatelessWidget {
   const _SegmentedChoice({
     required this.labels,
@@ -1781,8 +1705,6 @@ class _SegmentedChoice extends StatelessWidget {
   }
 }
 
-/// Live settlement summary: discount, net payable, amount collected now and
-/// the remaining balance after this completion.
 class _SettlementSummary extends StatelessWidget {
   const _SettlementSummary({
     required this.discount,
@@ -1871,9 +1793,6 @@ class _SettlementRow extends StatelessWidget {
   }
 }
 
-/// A single receipt-style card: booking payment lines, an optional extra-item
-/// section, and the emphasized total to collect — one clean surface instead of
-/// several stacked boxes.
 class _ReceiptCard extends StatelessWidget {
   const _ReceiptCard({required this.booking, required this.totalToCollect});
 
@@ -2080,12 +1999,6 @@ class _ReceiptRow extends StatelessWidget {
   }
 }
 
-/// One product in the cart sheet.
-///
-/// Built on the shared [DataCard] so a product reads like every other record
-/// card in the app: name in full strength, the unit price quiet beneath it,
-/// and the money right-aligned in tabular digits. Adding one tints the card
-/// rather than reshaping it, so the list does not shift as the cart fills.
 class _CartProductTile extends StatelessWidget {
   const _CartProductTile({
     required this.product,

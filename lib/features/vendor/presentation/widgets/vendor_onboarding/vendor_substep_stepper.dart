@@ -4,9 +4,6 @@ import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboardi
 import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Fill for the selected sub-step chip. Deliberately theme-constant: it is a
-/// saturated surface carrying white content, so it reads the same on a light or
-/// a dark page and must not follow the page background.
 const List<Color> _kSelectedGradient = <Color>[
   Color(0xFF2563EB),
   Color(0xFF1D4ED8),

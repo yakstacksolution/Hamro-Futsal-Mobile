@@ -90,20 +90,10 @@ import 'package:hamro_futsal/features/vendor/presentation/pages/stepper_logic_sc
 class AppRouters {
   AppRouters._();
 
-  /// The active [GoRouter], exposed so navigation triggered from outside the
-  /// widget tree (e.g. FCM notification taps) can push named routes.
   static GoRouter? instance;
 
-  /// Where "home" is for this session — the dashboard once signed in, the
-  /// login screen otherwise. Deep-link recovery goes here rather than to a
-  /// hard-coded route, so a shared link never drops a signed-out user into a
-  /// screen they cannot use.
   static String startLocation = AppRouterParams.dashboard.path;
 
-  /// The link the app was launched with, once it has been turned into the
-  /// router's initial location. [DeepLinkService] compares against it so a
-  /// cold-start link is not opened twice — once by the router and once by
-  /// `AppLinks.getInitialLink`.
   static DeepLinkTarget? consumedLaunchTarget;
 
   static GoRouter router(

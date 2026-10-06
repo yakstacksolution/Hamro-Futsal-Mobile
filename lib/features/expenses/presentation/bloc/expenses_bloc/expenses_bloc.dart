@@ -24,7 +24,6 @@ class ExpensesBloc extends Bloc<ExpensesEvent, ExpensesState> {
 
   final ExpensesUseCase useCase;
 
-  /// Venues and courts come from the single venue-court API.
   Future<void> _onLoadVenueCourts(
     LoadVenueCourtsEvent event,
     Emitter<ExpensesState> emit,
@@ -44,9 +43,6 @@ class ExpensesBloc extends Bloc<ExpensesEvent, ExpensesState> {
     );
   }
 
-  /// Categories come from their own API; the create form reads them straight
-  /// from this state, so on failure the form offers a retry instead of
-  /// falling back to static values.
   Future<void> _onLoadCategories(
     LoadExpenseCategoriesEvent event,
     Emitter<ExpensesState> emit,
@@ -65,10 +61,6 @@ class ExpensesBloc extends Bloc<ExpensesEvent, ExpensesState> {
     );
   }
 
-  /// The server-computed report (summary + analytics + records) comes from
-  /// the expenses API, scoped by the current [ExpenseFilter]. Changing a
-  /// filter re-dispatches this event with the new filter so the server
-  /// recomputes everything.
   Future<void> _onLoadExpenses(
     LoadExpensesEvent event,
     Emitter<ExpensesState> emit,
@@ -114,9 +106,6 @@ class ExpensesBloc extends Bloc<ExpensesEvent, ExpensesState> {
     );
   }
 
-  /// Creates the expense, then immediately reflects it in [ExpensesState]
-  /// so overview, analytics and records update at once — followed by a
-  /// silent refetch to reconcile with the server's canonical record.
   Future<void> _onAdd(
     AddExpenseEvent event,
     Emitter<ExpensesState> emit,

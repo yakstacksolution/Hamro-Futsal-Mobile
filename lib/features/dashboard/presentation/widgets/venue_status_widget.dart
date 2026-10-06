@@ -7,8 +7,6 @@ class VenueStatusWidget extends StatelessWidget {
   final bool isOpen;
   const VenueStatusWidget({super.key, required this.isOpen});
 
-  /// The brand green is too dark to read on a dark pill, so the open state uses
-  /// the brightness-aware success token rather than `secondaryColor`.
   Color get _statusColor =>
       isOpen ? LightColor.successColor : LightColor.redColor;
 

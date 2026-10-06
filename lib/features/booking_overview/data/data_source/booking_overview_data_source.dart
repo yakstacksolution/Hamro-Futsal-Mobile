@@ -2,9 +2,14 @@ import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/client.dart';
 
 abstract class BookingOverviewDataSource {
-  /// Fetches the booking-overview payload. Every filter argument is optional —
-  /// pass none to let the server apply its default window.
   Future<Result> fetchBookingOverview({
+    String? dateFilter,
+    String? dateFrom,
+    String? dateTo,
+    List<String>? venueIds,
+  });
+
+  Future<Result> exportBookingsOverView({
     String? dateFilter,
     String? dateFrom,
     String? dateTo,
@@ -12,7 +17,22 @@ abstract class BookingOverviewDataSource {
   });
 }
 
-/// API-backed data source hitting `GET /booking-overview`.
+Map<String, dynamic>? bookingOverviewQuery({
+  String? dateFilter,
+  String? dateFrom,
+  String? dateTo,
+  List<String>? venueIds,
+}) {
+  final query = <String, dynamic>{
+    if (dateFilter != null && dateFilter.trim().isNotEmpty)
+      'date_filter': dateFilter,
+    if (dateFrom != null && dateFrom.trim().isNotEmpty) 'date_from': dateFrom,
+    if (dateTo != null && dateTo.trim().isNotEmpty) 'date_to': dateTo,
+    if (venueIds != null && venueIds.isNotEmpty) 'venue_ids': venueIds,
+  };
+  return query.isEmpty ? null : query;
+}
+
 final class BookingOverviewRemoteDataSourceImpl
     implements BookingOverviewDataSource {
   @override
@@ -22,15 +42,30 @@ final class BookingOverviewRemoteDataSourceImpl
     String? dateTo,
     List<String>? venueIds,
   }) async {
-    final query = <String, dynamic>{
-      if (dateFilter != null && dateFilter.trim().isNotEmpty)
-        'date_filter': dateFilter,
-      if (dateFrom != null && dateFrom.trim().isNotEmpty) 'date_from': dateFrom,
-      if (dateTo != null && dateTo.trim().isNotEmpty) 'date_to': dateTo,
-      if (venueIds != null && venueIds.isNotEmpty) 'venue_ids': venueIds,
-    };
     return await Client.instance().getAuthManager().getBookingOverview(
-      query: query.isEmpty ? null : query,
+      query: bookingOverviewQuery(
+        dateFilter: dateFilter,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+        venueIds: venueIds,
+      ),
+    );
+  }
+
+  @override
+  Future<Result> exportBookingsOverView({
+    String? dateFilter,
+    String? dateFrom,
+    String? dateTo,
+    List<String>? venueIds,
+  }) async {
+    return await Client.instance().getAuthManager().exportBookingsOverView(
+      query: bookingOverviewQuery(
+        dateFilter: dateFilter,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+        venueIds: venueIds,
+      ),
     );
   }
 }

@@ -1,7 +1,6 @@
 class AppDimens {
   AppDimens._();
 
-  ///padding
   static const double paddingX1 = 1;
   static const double paddingX2 = 2;
   static const double paddingX4 = 4;
@@ -29,7 +28,6 @@ class AppDimens {
   static const double paddingX50 = 50;
   static const double paddingX125 = 125;
 
-  ///fontsize
   static const double fontBodyMiniSubTitle = 8;
   static const double fontBodySubTitle = 10;
   static const double fontBodyTextSmall = 12;
@@ -44,7 +42,6 @@ class AppDimens {
   static const double fontHeadingXXMedium = 32;
   static const double fontHeadingLarge = 36;
 
-  ///margin
   static const double marginX2 = 2;
   static const double marginX4 = 4;
   static const double marginX6 = 6;
@@ -70,7 +67,6 @@ class AppDimens {
   static const double marginX60 = 60;
   static const double marginX70 = 70;
 
-  ///radius
   static const double radiusX2 = 2;
   static const double radiusX4 = 4;
   static const double radiusX6 = 6;
@@ -92,7 +88,6 @@ class AppDimens {
   static const double radiusX50 = 50;
   static const double radiusX56 = 56;
 
-  ///content widths and heights
   static const double sizeX1 = 1;
   static const double sizeX2 = 2;
   static const double sizeX3 = 3;
@@ -185,71 +180,42 @@ class AppDimens {
   static const double sizeX380 = 380;
   static const double sizeX390 = 390;
 
-  /// Max width of the auth card per breakpoint. The mobile value preserves the
-  /// original phone layout; tablet gets a roomier column, and on the two-pane
-  /// desktop layout the card is narrower again because it shares the width
-  /// with the brand panel.
   static const double authCardMaxWidth = 520;
   static const double authCardMaxWidthTablet = 600;
   static const double authCardMaxWidthDesktop = 560;
 
-  /// Keeps the OTP digit boxes grouped instead of spreading across a wide card.
   static const double otpRowMaxWidth = 420;
 
-  /// Caps the brand panel's text measure so lines stay readable and the block
-  /// reads as one group rather than stretching across the whole pane.
   static const double authBrandPanelContentMaxWidth = 380;
 
-  /// Dashboard side navigation: icon-only rail on tablet, labelled sidebar on
-  /// desktop. Replaces the bottom bar at those widths.
   static const double dashboardRailWidth = 72;
   static const double dashboardRailExtendedWidth = 240;
 
-  /// Stops the dashboard content from stretching indefinitely on very wide
-  /// monitors (which would otherwise yield many thin card columns).
   static const double dashboardContentMaxWidth = 1400;
 
-  /// Forms stay a single readable column at every width — fields are never
-  /// paired side by side — so they need a ceiling and a sensible action width.
   static const double formContentMaxWidth = 640;
   static const double formActionMaxWidth = 260;
 
-  /// Profile details: the summary card becomes a side column on desktop.
   static const double profileSummaryColumnWidth = 320;
 
-  /// Settings: centred single column on tablet, two section columns on desktop.
   static const double settingsColumnMaxWidth = 720;
   static const double settingsShellMaxWidth = 1120;
 
-  /// In-app update surfaces. All three are centred once the window is wider —
-  /// a full-bleed update wall or sheet on a tablet stretches the copy far past
-  /// a comfortable measure. The sheet is the widest because it carries two
-  /// side-by-side actions; the banner is a single line.
   static const double updateWallMaxWidth = 480;
   static const double updateSheetMaxWidth = 520;
   static const double updateBannerMaxWidth = 560;
 
-  /// Below this height the update wall drops its badge — on a landscape phone
-  /// the artwork would push the actions off-screen.
   static const double updateCompactHeightBreakpoint = 620;
 
-  /// Release-note list bounds. The box takes a share of the screen height
-  /// between these so a long changelog scrolls instead of growing the sheet.
   static const double updateNotesMinHeight = 120;
   static const double updateNotesMaxHeight = 220;
 
-  /// Ceiling for the optional-update sheet, as a share of the screen height.
   static const double updateSheetHeightFactor = 0.85;
 
-  /// Filters & sorting: one capped column on tablet, two panes on desktop so
-  /// the sections do not become one very long scroll.
   static const double filterColumnMaxWidth = 720;
   static const double filterDesktopMaxWidth = 1080;
   static const double courtTypeCardMinWidth = 150;
 
-  /// Slot selection: two panes on desktop (choose when / pick a court), one
-  /// capped column on tablet. Court cards go two-up once each still gets
-  /// [courtSlotCardMinWidth].
   static const double slotsSelectionMaxWidth = 1200;
   static const double slotsSelectionColumnMaxWidth = 720;
   static const double slotsSelectionWideMaxWidth = 1320;
@@ -260,25 +226,16 @@ class AppDimens {
   // clipped the status tag ("Bo…"). Two per row now start at ~800px.
   static const double courtSlotCardMinWidth = 390;
 
-  /// Finance & payouts: shortcuts move into a side column on desktop, and the
-  /// detail lists (statement, settlements, breakdown) stay readable rather
-  /// than stretching a one-line row across the window.
   static const double accountShortcutsColumnWidth = 340;
   static const double accountListMaxWidth = 900;
   static const double accountDashboardMaxWidth = 1200;
 
-  /// Rewards: tablet keeps a readable single column; desktop becomes a
-  /// two-column wallet/activity workspace.
   static const double rewardsColumnMaxWidth = 720;
   static const double rewardsShellMaxWidth = 1160;
   static const double rewardsSideColumnWidth = 430;
 
-  /// Smallest comfortable KPI tile; the snapshot grid derives its column count
-  /// from this rather than being fixed at two.
   static const double bookingKpiMinTileWidth = 190;
 
-  /// Venue details page: single-column cap on tablet, sticky booking card
-  /// width on desktop, and the hero gallery's ceiling once it becomes 16:9.
   static const double venueContentMaxWidth = 800;
   static const double venueBookingPanelWidth = 360;
   static const double venueDesktopGap = 24;
@@ -289,8 +246,5 @@ class AppDimens {
   static const double venueHeroMaxHeight = 460;
   static const double venueThumbnailSize = 72;
 
-  /// Row height for a venue card in the grid layout. Comfortably exceeds the
-  /// card's text block (~150 with the wide card's larger padding and type), so
-  /// the flexible cover always has room and the cell can never overflow.
   static const double courtCardGridExtent = 340;
 }

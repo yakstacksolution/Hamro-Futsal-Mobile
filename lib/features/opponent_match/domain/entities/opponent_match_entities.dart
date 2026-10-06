@@ -1,6 +1,5 @@
 import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
 
-/// Everything needed to create (send) an opponent request.
 class CreateOpponentRequestEntity {
   const CreateOpponentRequestEntity({
     required this.team,
@@ -33,41 +32,26 @@ class CreateOpponentRequestEntity {
   final int yourShare;
   final String message;
 
-  /// Your side's percentage; null when the split is result-based.
   final int? myPct;
 
-  /// Server id of the requesting team.
   final String teamId;
 
-  /// Wire format label, e.g. `5v5`.
   final String formatLabel;
 
-  /// Wire level slug, e.g. `intermediate`.
   final String levelSlug;
 
-  /// Wire split mode: `even | custom_team | custom_result`.
   final String splitMode;
 
-  /// Loser's percentage — only for result-based splits.
   final int? loserPct;
 
-  /// `HH:mm` end time when a booked slot supplied one.
   final String? endTime;
 
-  /// What the requester says they paid for an externally-booked court.
-  /// Only sent for the already-booked path — for platform venues the server
-  /// computes the fee itself and ignores this.
   final int? claimedTotalFee;
 
-  /// Identifiers of an in-app booking and its venue/court. They keep the
-  /// opponent request linked to the booking that was actually completed.
   final int? bookingId;
   final int? venueId;
   final int? courtId;
 
-  /// Body for `POST /opponent-requests`. Platform bookings are linked by id so
-  /// the server can use their authoritative fee; [claimedTotalFee] is only for
-  /// courts booked outside the app.
   Map<String, dynamic> toJson() => {
     'team_id': teamId,
     'date':
@@ -91,7 +75,6 @@ class CreateOpponentRequestEntity {
     'court_id': courtId,
   };
 
-  /// Local model used only by the mock fallback (`OPPONENT_MOCK`).
   OpponentRequestModel toModel(String id) => OpponentRequestModel(
     id: id,
     team: team,

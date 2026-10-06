@@ -1,7 +1,5 @@
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_quote_model.dart';
 
-/// The result of `POST /bookings/apply-coupon` — the server's authoritative
-/// pricing for a coupon against a given booking.
 class AppliedCouponModel {
   const AppliedCouponModel({
     required this.code,
@@ -21,44 +19,28 @@ class AppliedCouponModel {
   final String code;
   final int? couponId;
 
-  /// Coupon display title, e.g. "First book".
   final String? couponTitle;
 
-  /// Coupon type, e.g. "percentage".
   final String? couponType;
 
-  /// Optional success message from the server, e.g. "Coupon applied".
   final String? message;
 
-  /// Discount amount in rupees (`price_details.discount_amount`).
   final double discount;
 
-  /// Order amount before the discount (`price_details.subtotal`).
   final double originalAmount;
 
-  /// Order amount after the discount (`price_details.booking_total`).
   final double finalAmount;
 
-  /// Server-computed advance payable now (`price_details.advance_payable_now`).
   final double? advancePayableNow;
 
-  /// Server-computed balance due later (`price_details.balance_due_later`).
   final double? balanceDueLater;
 
-  /// Tax amount (`price_details.tax_amount`).
   final double? taxAmount;
 
-  /// The full server quote (same shape as the booking-hold quote), so the UI
-  /// can render the breakdown/items from a single source after applying.
   final BookingQuoteModel? quote;
 
-  /// Whether the server returned its own advance/balance split. When true the
-  /// UI should trust these figures instead of computing the advance locally.
   bool get hasServerPricing => advancePayableNow != null;
 
-  /// Builds the model from the API response. [fallbackCode] and
-  /// [fallbackOriginal] (the amount we sent) fill in fields the server may omit;
-  /// any missing amount is derived from the others so the totals always agree.
   factory AppliedCouponModel.fromResponse(
     dynamic payload, {
     required String fallbackCode,
@@ -136,9 +118,6 @@ class AppliedCouponModel {
   }
 }
 
-/// Drills through the response envelope until it reaches the node that holds
-/// the pricing (`price_details`/`coupon`) or, for older responses, the flat
-/// amount fields.
 Map<String, dynamic> _unwrap(dynamic payload) {
   dynamic current = payload;
   for (int depth = 0; depth < 5 && current is Map; depth++) {

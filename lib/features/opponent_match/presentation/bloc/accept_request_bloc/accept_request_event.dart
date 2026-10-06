@@ -7,7 +7,6 @@ sealed class AcceptRequestEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Sends the acceptance: my team wants to play this request.
 final class SubmitAcceptEvent extends AcceptRequestEvent {
   const SubmitAcceptEvent(this.request);
   final AcceptOpponentRequestRequest request;

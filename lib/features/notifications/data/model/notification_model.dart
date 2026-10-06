@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// A single in-app notification. IDs are strings because the backend uses UUID
-/// identifiers for its notifications.
 class NotificationModel extends Equatable {
   const NotificationModel({
     required this.id,
@@ -17,12 +15,10 @@ class NotificationModel extends Equatable {
   final String title;
   final String body;
 
-  /// Raw notification type (e.g. `App\Notifications\BookingConfirmed`).
   final String type;
   final DateTime? readAt;
   final DateTime? createdAt;
 
-  /// The notification payload — carries deep-link ids such as `booking_id`.
   final Map<String, dynamic> data;
 
   bool get isRead => readAt != null;
@@ -94,7 +90,6 @@ class NotificationModel extends Equatable {
   ];
 }
 
-/// A page of notifications plus the server's unread counter.
 class NotificationPage extends Equatable {
   const NotificationPage({required this.notifications, this.unreadCount = 0});
 

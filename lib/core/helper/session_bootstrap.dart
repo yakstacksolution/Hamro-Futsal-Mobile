@@ -7,30 +7,11 @@ import 'package:hamro_futsal/core/api/api_client/dio_http.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/features/auth/data/model/token_model.dart';
 
-/// Decides, before the first frame, whether the stored session is real.
-///
-/// A token sitting in preferences only means "somebody signed in on this
-/// device once" — it says nothing about whether the server still honours it.
-/// Trusting it opened the dashboard for people who were effectively signed
-/// out: every authenticated request came back 401, the first one to be
-/// answered triggered a refresh, the refresh failed, and the app bounced back
-/// to login. This resolves that question once, while the native splash is
-/// still covering the screen, so the first screen the user sees is the right
-/// one.
 class SessionBootstrap {
   SessionBootstrap._();
 
-  /// How long a cold start may wait on the network before giving up on
-  /// validation. Short enough not to feel like a hang on a slow connection.
   static const Duration _timeout = Duration(seconds: 4);
 
-  /// True when the app should start on the dashboard.
-  ///
-  /// A token the server rejects is cleared here, so the rest of the app never
-  /// sees it. A validation that fails for any other reason (offline, DNS,
-  /// server down) keeps the stored session: being unreachable is not proof of
-  /// being signed out, and forcing a login the user cannot complete offline
-  /// would be worse than letting them in on cached data.
   static Future<bool> resolve() async {
     if (!AppSettings().hasSession) return false;
 
@@ -82,8 +63,6 @@ class SessionBootstrap {
     }
   }
 
-  /// The server's ways of saying "this session is gone". Anything else is a
-  /// transport or server-side problem and must not sign the user out.
   static bool _isRejection(int status) =>
       status == 400 || status == 401 || status == 403 || status == 422;
 

@@ -23,9 +23,6 @@ final class AppUtils {
     return _mediaQueryData.size.height - statusBar - bottomBar;
   }
 
-  /// Time-of-day greeting: "Good morning" (before noon), "Good afternoon"
-  /// (noon–5 PM) or "Good evening" (after 5 PM). Pass [now] to override the
-  /// clock (useful for tests).
   String greeting({DateTime? now}) {
     final hour = (now ?? DateTime.now()).hour;
     if (hour < 12) return 'Good morning';
@@ -33,13 +30,8 @@ final class AppUtils {
     return 'Good evening';
   }
 
-  /// Phones scale the 375×812 design to the screen. From tablet width up the
-  /// design values are used as they are: scaling by width there turned a 12px
-  /// padding into ~48px on a desktop window (×4 at 1500px), which pushed
-  /// content off its card edges and out of line across the app.
   bool get _usesDesignScale => width < _tabletWidth;
 
-  /// Matches `AppBreakpoints.tablet`.
   static const double _tabletWidth = 600;
 
   double getHorizontalSize(double px) {

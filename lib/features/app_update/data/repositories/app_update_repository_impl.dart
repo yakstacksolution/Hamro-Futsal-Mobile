@@ -25,12 +25,8 @@ final class AppUpdateRepositoryImpl extends AppUpdateRepository {
   final AppUpdateRemoteDataSource _remoteDataSource;
   final AppUpdatePlatform _updateService;
 
-  /// A Play priority of 5 is the "critical release" band. Treating it as
-  /// mandatory gives a working kill-switch on Android even when the backend
-  /// manifest is unreachable.
   static const int _criticalPlayPriority = 5;
 
-  /// Default "Later" window for an optional update.
   static const Duration _defaultSnooze = Duration(hours: 24);
 
   @override
@@ -165,8 +161,6 @@ final class AppUpdateRepositoryImpl extends AppUpdateRepository {
 
   // ── Internals ──
 
-  /// Identifies the snoozed release by version *and* build, so a rebuilt
-  /// release under the same version name still prompts.
   String _snoozeKey(AppUpdateCheck check) {
     final AppUpdateManifestModel? manifest = check.manifest;
     if (manifest == null) return '';
@@ -224,8 +218,6 @@ final class AppUpdateRepositoryImpl extends AppUpdateRepository {
     }
   }
 
-  /// The App Store storefront to look the app up in. A wrong storefront returns
-  /// no results, so this prefers an explicit override, then the device region.
   String? get _appStoreCountry {
     // `AppEnvironment.read` is safe before the env file loads — it returns ''
     // rather than throwing.

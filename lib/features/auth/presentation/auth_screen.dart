@@ -27,8 +27,6 @@ import 'package:hamro_futsal/features/dashboard/presentation/page/dashboard_scre
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/auth/domain/entities/auth_entities.dart';
 
-/// Apple's Sign in with Apple guidelines fix the button's colours, so these
-/// are deliberately not theme tokens.
 const Color _appleButtonBackground = Color(0xFF000000);
 const Color _appleButtonForeground = Color(0xFFFFFFFF);
 
@@ -46,8 +44,6 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   static const List<String> _accountTypes = AccountTypeLabels.all;
 
-  /// Maps the selected account type to the brand panel's audience. Nothing
-  /// selected yet means the generic pitch.
   static AuthAudience _audienceFor(String? accountType) {
     switch (accountType) {
       case AccountTypeLabels.player:
@@ -85,8 +81,6 @@ class _AuthScreenState extends State<AuthScreen> {
       TextEditingController();
   bool _canUseBiometricLogin = false;
 
-  /// Apple requires the Sign in with Apple button on its own platforms only;
-  /// it is a compile-time constant so the button never appears on Android.
   static final bool _canUseAppleLogin = Platform.isIOS || Platform.isMacOS;
 
   void _goToHomeAfterLogin() {
@@ -598,10 +592,6 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 }
 
-/// "or" divider + the social sign-in buttons shown under the login form.
-///
-/// The Apple button only renders on Apple platforms, where the App Store
-/// review guidelines require it alongside other third-party sign-in options.
 class _SocialLoginSection extends StatelessWidget {
   const _SocialLoginSection({
     required this.enabled,

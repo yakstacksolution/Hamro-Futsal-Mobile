@@ -13,13 +13,8 @@ import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_char
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_common.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_summary_widgets.dart';
 
-/// Widest the expenses dashboard grows before centring in the window.
 const double kExpenseDashboardMaxWidth = 1280;
 
-/// Tablet / desktop Expenses: one scrolling dashboard instead of the phone's
-/// three tabs — header with the primary action, a filter bar, total spend
-/// beside the KPI cards, the trend beside the category split, spend by court,
-/// and the records as a table. Desktop pairs sections; tablet stacks them.
 class ExpenseDashboard extends StatelessWidget {
   const ExpenseDashboard({
     super.key,
@@ -42,14 +37,11 @@ class ExpenseDashboard extends StatelessWidget {
   final ExpenseReport report;
   final List<ExpenseModel> records;
 
-  /// Name lookups for records the API returned without nested names.
   final List<VenueModel> venues;
   final List<CourtModel> courts;
 
-  /// "Sep 28 – Oct 4 · 9 entries · NPR 12,300" under the title.
   final Widget contextLine;
 
-  /// Period / method dropdowns, venue chips and category chips.
   final Widget filters;
   final String? selectedCategory;
   final ValueChanged<String?> onSelectCategory;
@@ -227,8 +219,6 @@ class _FilterBar extends StatelessWidget {
   }
 }
 
-/// Records as a table: date, category, description, where, method, amount.
-/// A row opens the expense, as a card does on the phone.
 class _RecordsTable extends StatelessWidget {
   const _RecordsTable({
     required this.records,

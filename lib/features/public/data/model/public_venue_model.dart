@@ -79,14 +79,6 @@ final class VenueShareModel extends Equatable {
   final String? image;
   final String? message;
 
-  /// The link to put in a share, preferring the web URL over [deepLink].
-  ///
-  /// [deepLink] uses the app's private `hamrofutsal://` scheme: it is the right
-  /// thing to hand the OS once the app is installed, but pasted into a chat it
-  /// is dead text for everyone who does not have the app, and most targets will
-  /// not even linkify it. The https URL opens for everyone and, as a universal
-  /// link, still lands in the app for those who have it — so that is what gets
-  /// shared, with the custom scheme kept only as a last resort.
   String? get shareUrl {
     final String webUrl = (url ?? '').trim();
     final Uri? parsed = Uri.tryParse(webUrl);
@@ -100,11 +92,6 @@ final class VenueShareModel extends Equatable {
     return appLink.isEmpty ? null : appLink;
   }
 
-  /// The human sentence for a share, without any link appended.
-  ///
-  /// [shareText] bakes the link into the same string, which is what a plain
-  /// text share needs; this keeps them separate so a link-only share can hand
-  /// the URL to the OS as a URL and get a rich preview instead of a raw string.
   String? get shareMessage {
     for (final String? candidate in <String?>[message, title, description]) {
       final String text = (candidate ?? '').trim();
@@ -168,8 +155,6 @@ final class VenueShareModel extends Equatable {
   ];
 }
 
-/// One venue row from the public venue listing endpoint
-/// (`data.venues[]`).
 final class PublicListingVenueModel extends Equatable {
   const PublicListingVenueModel({
     this.id,
@@ -211,18 +196,10 @@ final class PublicListingVenueModel extends Equatable {
   final String? maxTime;
   final VenueShareModel? share;
 
-  /// Whether the venue has been verified by Hamro Futsal.
-  ///
-  /// Defaults to false, so a payload without the flag simply shows no badge —
-  /// an unverified venue must never be presented as verified.
   final bool isVerified;
 
-  /// Road/haversine distance from the requested origin, in kilometres, as
-  /// returned by the API (`distance_km`). Null when the request carried no
-  /// `latitude`/`longitude`, or the venue has no coordinates.
   final double? distanceKm;
 
-  /// [distanceKm] in metres, for callers that work in metres.
   double? get distanceMeters => distanceKm == null ? null : distanceKm! * 1000;
 
   factory PublicListingVenueModel.fromJson(Map<String, dynamic> json) {
@@ -366,11 +343,6 @@ final class PublicListingVenueModel extends Equatable {
     return int.tryParse(value.toString());
   }
 
-  /// Reads the distance in kilometres.
-  ///
-  /// `distance_km` is what the venue listing sends; the metre-based keys are
-  /// kept as a fallback for older responses and are converted on the way in, so
-  /// the rest of the app only deals with kilometres.
   static double? _parseDistanceKm(Map<String, dynamic> json) {
     final double? km = _parseDouble(json['distance_km'] ?? json['distanceKm']);
     if (km != null) return km;
@@ -381,12 +353,6 @@ final class PublicListingVenueModel extends Equatable {
     return meters == null ? null : meters / 1000;
   }
 
-  /// Reads the verified flag from whichever key the payload carries.
-  ///
-  /// The venue listing does not send one yet, so several spellings are
-  /// accepted: a boolean (`is_verified`/`verified`) or a status string, where
-  /// only `verified`/`approved` count — `pending` and `rejected` are not
-  /// verified.
   static bool _parseVerified(Map<String, dynamic> json) {
     final dynamic flag = json['is_verified'] ?? json['verified'];
     if (flag != null) return _parseBool(flag) ?? false;
@@ -443,8 +409,6 @@ final class PublicListingVenueModel extends Equatable {
   ];
 }
 
-/// A single page of public venues plus the pagination metadata needed to
-/// decide whether more pages can be fetched.
 final class PublicListingVenuePage extends Equatable {
   const PublicListingVenuePage({
     required this.venues,
@@ -460,21 +424,14 @@ final class PublicListingVenuePage extends Equatable {
   final int perPage;
   final int total;
 
-  /// Last page number from the API (`pagination.last_page`); null if absent.
   final int? lastPage;
   final Map<String, dynamic> paginationMetaData;
 
-  /// 1-based index of the first/last row on this page (`pagination.from` /
-  /// `pagination.to`); null when the API omits them.
   int? get from =>
       PublicListingVenueModel._parseInt(paginationMetaData['from']);
 
   int? get to => PublicListingVenueModel._parseInt(paginationMetaData['to']);
 
-  /// Whether there is at least one more page to load after this one.
-  ///
-  /// An empty page always ends the list: without this, a server that answers
-  /// `has_more_pages: true` with no rows would keep the loader spinning.
   bool get hasMore {
     if (venues.isEmpty) return false;
 

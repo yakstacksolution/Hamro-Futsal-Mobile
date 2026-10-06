@@ -31,12 +31,8 @@ final class AccountState extends Equatable {
   final AccountStatus statementStatus;
   final AccountStatus settlementsStatus;
 
-  /// Status of the deferred `/auth/settlement-breakdown` request.
   final AccountStatus breakdownStatus;
 
-  /// The full ledger, from `/auth/settlement-recent-activity`. Kept apart from
-  /// [entries]: that is the summary's short preview for the main screen, this
-  /// is the paged list the statement screen walks.
   final AccountStatus activityStatus;
   final List<AccountEntryModel> activityEntries;
   final int activityPage;
@@ -44,34 +40,24 @@ final class AccountState extends Equatable {
   final bool activityLoadingMore;
   final String? activityLoadMoreError;
 
-  /// Whether the breakdown is already held, so reopening the screen does not
-  /// refetch it.
   bool get hasBreakdown => breakdownStatus == AccountStatus.success;
 
-  /// Settlement-request submission lifecycle.
   final AccountStatus submitStatus;
 
   final AccountSummaryModel summary;
   final List<AccountEntryModel> entries;
   final List<SettlementModel> settlements;
 
-  /// Server-reported counts per status — authoritative, and independent of how
-  /// many pages have been loaded.
   final SettlementStatusCounts settlementCounts;
 
-  /// Highest settlements page loaded so far; 0 before the first fetch.
   final int settlementsPage;
   final bool settlementsHasMore;
   final bool settlementsLoadingMore;
   final String? settlementsLoadMoreError;
 
-  /// True while a silent refetch is in flight — keeps data on screen.
   final bool refreshing;
   final String? errorMessage;
 
-  /// A settlement already awaiting the super admin blocks a second request.
-  /// The server's summary counts every page, so it is trusted over the rows
-  /// currently loaded; the local scan is the fallback before the summary lands.
   bool get hasPendingSettlement =>
       settlementCounts.inProgress > 0 ||
       settlements.any(

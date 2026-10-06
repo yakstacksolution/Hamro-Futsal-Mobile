@@ -8,12 +8,6 @@ import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/review_change_request.dart';
 
-/// Collects what travels with `POST /reviews/{review}/change-request`.
-///
-/// A delete needs only the reason. An edit also needs the review the user
-/// wants in its place — the server refuses the request without it — so the
-/// current comment and rating are offered here for them to change. Both are
-/// validated on this side rather than waiting for a 422.
 class ReviewChangeRequestSheet extends StatefulWidget {
   const ReviewChangeRequestSheet({
     super.key,
@@ -23,10 +17,8 @@ class ReviewChangeRequestSheet extends StatefulWidget {
 
   final ReviewChangeRequestType type;
 
-  /// The review as it stands, so an edit starts from it instead of a blank box.
   final String initialComment;
 
-  /// Returns the filled request, or null when the sheet was dismissed.
   static Future<ReviewChangeRequestInput?> show(
     BuildContext context, {
     required ReviewChangeRequestType type,

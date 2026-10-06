@@ -12,14 +12,10 @@ import 'package:hamro_futsal/features/media/utils/heic_to_png_jpg.dart';
 import 'package:hamro_futsal/features/media/utils/stable_media_file.dart';
 import 'package:image_picker/image_picker.dart';
 
-/// Image extensions every upload in the app accepts. Kept here so the pickers
-/// share one list instead of each screen drifting its own.
 const Set<String> kImageUploadExtensions = <String>{'jpg', 'jpeg', 'png'};
 
-/// Server-side cap for an uploaded proof/media file.
 const int kMaxUploadBytes = kUploadMaxFileBytes;
 
-/// Where a file came from. Mirrors the media library's "Pick from" menu.
 enum MediaPickSource {
   gallery('Gallery', 'Choose an existing photo', Icons.photo_library_outlined),
   camera('Camera', 'Take a photo now', Icons.photo_camera_outlined),
@@ -32,23 +28,8 @@ enum MediaPickSource {
   final IconData icon;
 }
 
-/// A local file chosen by the user, already normalised: camera writes are
-/// flushed, HEIC/HEIF is converted to JPEG, and the contents are read once,
-/// here, into [bytes].
-///
-/// The bytes — not the path — are what gets uploaded. Picker results live in
-/// OS-managed caches (image_picker's temp dir, a content-provider copy), and
-/// those can be reclaimed or invalidated between attaching a file and pressing
-/// Confirm, which is how a proof ended up being sent as 0 bytes.
 typedef PickedMediaFile = UploadAttachment;
 
-/// Asks where to take the file from, then picks and normalises a single one —
-/// the same gallery/camera/files flow (and the same 1920px, quality-85
-/// downscale) the media library uses, minus its multi-select.
-///
-/// Returns null when the user backs out or the file fails validation; every
-/// rejection is reported to the user here, so callers only handle the success
-/// case. [allowCamera] can be turned off for sources that are never a photo.
 Future<PickedMediaFile?> pickMediaFile(
   BuildContext context, {
   Set<String> allowedExtensions = kImageUploadExtensions,
@@ -121,17 +102,11 @@ Future<PickedMediaFile?> pickMediaFile(
   }
 }
 
-/// macOS, Windows and Linux: pick from the system file dialog only.
 bool get _isDesktop =>
     !kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux);
 
-/// Whether image_picker can take a photo here. False on desktop, where its
-/// camera source is unimplemented; pickers hide their Camera option then.
 bool get supportsCameraCapture => !_isDesktop;
 
-/// Full-screen look at a picked image — pinch to zoom, tap outside to close.
-/// Renders from [PickedMediaFile.bytes], so it cannot go blank if the source
-/// file behind it disappears.
 Future<void> showPickedMediaPreview(
   BuildContext context,
   PickedMediaFile file,
@@ -299,8 +274,6 @@ class _SourceTile extends StatelessWidget {
   }
 }
 
-/// A pick before validation. [unreadable] separates "the user cancelled" from
-/// "we got a file we cannot read", which are different messages.
 class _RawPick {
   const _RawPick({this.file, this.unreadable = false});
 
@@ -308,9 +281,6 @@ class _RawPick {
   final bool unreadable;
 }
 
-/// Gallery/camera through image_picker, downscaled exactly like the media
-/// library's, then stabilised so an unflushed camera file cannot be uploaded
-/// empty.
 Future<_RawPick> _pickImage(ImageSource source, UploadPolicy policy) async {
   final XFile? captured = await ImagePicker().pickImage(
     source: source,
@@ -363,9 +333,6 @@ Future<_RawPick> _pickFile(
       : _RawPick(file: picked);
 }
 
-/// Converts HEIC/HEIF (what an iPhone gallery hands over) to JPEG, then reads
-/// the file into memory straight away — the only moment it is guaranteed to
-/// still be there. An empty read is reported as a failed pick.
 Future<PickedMediaFile?> _fromPath(
   String path,
   String name,

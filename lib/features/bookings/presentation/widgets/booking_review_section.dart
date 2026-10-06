@@ -8,12 +8,6 @@ import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
 import 'package:hamro_futsal/features/bookings/presentation/bloc/booking_details_bloc/booking_details_bloc.dart';
 
-/// Rate-your-booking, shown on a completed booking in the customer's own view.
-///
-/// Three states, driven by `GET /bookings/{id}/review`: the check in flight,
-/// the form when no review exists, and the submitted review once one does.
-/// Nothing is shown while the check is unresolved or has failed — offering the
-/// form on a guess would invite a submission the server rejects as duplicate.
 class BookingReviewSection extends StatefulWidget {
   const BookingReviewSection({super.key, required this.bookingId});
 

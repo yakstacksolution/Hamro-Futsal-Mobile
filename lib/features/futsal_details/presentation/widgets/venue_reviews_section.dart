@@ -146,8 +146,6 @@ class _SeeAllButton extends StatelessWidget {
   }
 }
 
-/// Placeholder rows while the first five load, so the section keeps its height
-/// instead of the page jumping when they arrive.
 class _PreviewSkeleton extends StatelessWidget {
   const _PreviewSkeleton();
 

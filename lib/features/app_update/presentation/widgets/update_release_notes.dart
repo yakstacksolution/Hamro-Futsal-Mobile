@@ -4,18 +4,11 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// "What's new" bullet list. Renders nothing when the release ships no notes.
-///
-/// Long changelogs scroll inside a bounded box so the sheet can never grow past
-/// the screen.
 class UpdateReleaseNotes extends StatelessWidget {
   const UpdateReleaseNotes({super.key, required this.notes, this.maxHeight});
 
   final List<String> notes;
 
-  /// Explicit ceiling. When omitted the box takes a share of the screen height,
-  /// so a landscape phone gives the notes less room and a tablet more, instead
-  /// of one fixed height crowding the actions on short screens.
   final double? maxHeight;
 
   @override

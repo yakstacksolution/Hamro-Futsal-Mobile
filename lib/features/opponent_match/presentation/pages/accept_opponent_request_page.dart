@@ -20,12 +20,6 @@ import 'package:hamro_futsal/features/opponent_match/presentation/models/opponen
 import 'package:hamro_futsal/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 import 'package:hamro_futsal/features/opponent_match/presentation/widgets/opponent_common.dart';
 
-/// The opponent team's side of the flow: view the request, select your own
-/// team, and send the acceptance. No money changes hands here — the requester
-/// receives it as an invitation and picks one opponent.
-///
-/// Pops with the updated [OpponentRequestModel] on success; the caller feeds
-/// it back to the list via [RequestAcceptedEvent].
 class AcceptOpponentRequestPage extends StatefulWidget {
   const AcceptOpponentRequestPage({super.key, required this.request});
 
@@ -44,8 +38,6 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
   Timer? _ticker;
   Duration _remaining = Duration.zero;
 
-  /// Set while the inline create-team form is in flight, so the section can
-  /// show a spinner and the team it creates can be selected automatically.
   bool _creatingTeam = false;
   String _pendingTeamName = '';
 
@@ -68,19 +60,10 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
     super.dispose();
   }
 
-  /// Local instant the accept window closes at: `countdown.accept_until_at`,
-  /// which every tick re-measures against [DateTime.now]. Only a payload that
-  /// gave `remaining_seconds` and no timestamp is anchored, once.
   DateTime? _target;
 
-  /// Countdown on the request's own accept window (server-owned). Nothing to
-  /// do with payments — it is simply how long the request stays open.
-  /// True once the accept window has run out while this page was open. The
-  /// request object still says "fresh" until the list refreshes, so the page
-  /// has to remember what its own ticker saw.
   bool _closedLive = false;
 
-  /// The window is shut: the server said so, or it ran out on screen.
   bool get _acceptClosed => widget.request.hasAcceptWindowClosed || _closedLive;
 
   void _tick() {
@@ -117,15 +100,11 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
 
   String get _remainingLabel => OpponentFmt.countdown(_remaining);
 
-  /// `5v5` → 5; 0 when the request carries no parsable format.
   int get _formatSize {
     final match = RegExp(r'(\d+)\s*v\s*\d+').firstMatch(widget.request.summary);
     return int.tryParse(match?.group(1) ?? '') ?? 0;
   }
 
-  /// Creates the captain's first team without leaving the accept flow. The
-  /// list reload the bloc does after a create is what confirms it, so the
-  /// result is picked up in [_onTeamsChanged] rather than awaited here.
   void _createTeam() {
     final String name = _teamNameCtrl.text.trim();
     if (name.isEmpty || _creatingTeam) return;
@@ -137,8 +116,6 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
     context.read<OpponentMatchBloc>().add(CreateTeamEvent(name));
   }
 
-  /// Selects the team the inline form just created, so the captain can send
-  /// the acceptance straight away instead of tapping it again.
   void _onTeamsChanged(OpponentMatchState state) {
     if (!_creatingTeam) return;
     if (state.errorMessage != null) {
@@ -191,9 +168,6 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
     );
   }
 
-  /// 403/404/409/410 all mean this invitation can no longer be accepted, so
-  /// they end the flow — tell the user, pop, and let the list refresh to the
-  /// server's truth. Everything else keeps the screen open for a retry.
   void _handleError(AcceptRequestState state) {
     final String message = switch (state.errorStatusCode) {
       409 =>
@@ -215,22 +189,12 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
     if (terminal) Navigator.of(context).pop();
   }
 
-  /// The requester — the captain on the other side of this request. Comes from
-  /// the payload's `requester`, or the linked booking's `user_id` when the list
-  /// endpoint sent no requester block.
   int get _peerUserId => widget.request.requesterUserId;
 
   String get _peerName => widget.request.requesterName.isEmpty
       ? widget.request.team
       : widget.request.requesterName;
 
-  /// Opens (or reuses) the direct thread with the requester and pushes the chat
-  /// page.
-  ///
-  /// Only the recipient travels. The court behind an opponent request belongs to
-  /// a third-party vendor, and `/conversations/direct` rejects a venue that
-  /// belongs to neither participant with a 422 — this is a captain-to-captain
-  /// thread, not a conversation about someone's venue.
   Future<void> _openChat() {
     if (_peerUserId <= 0) {
       AppUtils().showSnackBar(
@@ -408,11 +372,6 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
   }
 }
 
-/// "Message the requester" card sitting with the team picker.
-///
-/// Disabled rather than hidden when the payload named no requester: the reason
-/// the row exists is still worth showing, and a hidden control reads as a
-/// missing feature.
 class _RequesterChatCard extends StatelessWidget {
   const _RequesterChatCard({
     required this.name,
@@ -497,8 +456,6 @@ class _RequesterChatCard extends StatelessWidget {
   }
 }
 
-/// Replaces the countdown pill once the accept window has closed. The request
-/// can still be read — the venue, the split, the requester — but not accepted.
 class _AcceptClosedNotice extends StatelessWidget {
   const _AcceptClosedNotice();
 
@@ -537,12 +494,6 @@ class _AcceptClosedNotice extends StatelessWidget {
   }
 }
 
-/// Inline "create your first team" form, shown in place of the team picker
-/// when the captain has no teams yet.
-///
-/// The accept body needs a `team_id`, so without a team the acceptance cannot
-/// be sent at all — creating one here keeps the request in view instead of
-/// bouncing the user to the My Teams tab and back.
 class _CreateFirstTeamSection extends StatelessWidget {
   const _CreateFirstTeamSection({
     required this.controller,
@@ -703,11 +654,6 @@ class _RequestSummaryCard extends StatelessWidget {
   }
 }
 
-/// The court fee and what the accepting side owes under it.
-///
-/// A result-keyed rule fixes nothing per side until the match is played, and
-/// `yourShare` is 0 for it — quoting that as "your share" told the captain the
-/// match was free. It states the stake instead.
 String _feeLine(OpponentRequestModel request) {
   final String fee = '${OpponentFmt.npr(request.totalFee)} court fee';
   if (request.isResultCost) {
@@ -724,11 +670,6 @@ String _feeLine(OpponentRequestModel request) {
       '(${request.myPct}%)';
 }
 
-/// What this team would owe, per team and per player.
-///
-/// Under a result-keyed rule the figure is conditional, so it is labelled as
-/// the stake rather than a share — and it is derived from the loser's amount,
-/// never from `yourShare`, which the server reports as 0 for that rule.
 ({String label, int amount}) _accepterStake(OpponentRequestModel request) =>
     request.isResultCost
     ? (
@@ -737,7 +678,6 @@ String _feeLine(OpponentRequestModel request) {
       )
     : (label: StringConstants.yourTeamShare, amount: request.yourShare);
 
-/// Selectable roster card with this team's share of the court fee.
 class _TeamOption extends StatelessWidget {
   const _TeamOption({
     required this.team,
@@ -888,7 +828,6 @@ class _TeamOption extends StatelessWidget {
   }
 }
 
-/// What happens after the acceptance is sent — the diagram's tail end.
 class _NextStepsCard extends StatelessWidget {
   const _NextStepsCard({required this.request});
 

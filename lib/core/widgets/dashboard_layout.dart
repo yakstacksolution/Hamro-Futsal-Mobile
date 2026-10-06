@@ -6,8 +6,6 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 
-/// Section heading for the tablet / desktop dashboards, flush with the edge of
-/// the card below it.
 class DashboardSectionLabel extends StatelessWidget {
   const DashboardSectionLabel(this.text, {super.key});
 
@@ -30,9 +28,6 @@ class DashboardSectionLabel extends StatelessWidget {
   }
 }
 
-/// Two labelled cards side by side whose tops *and* bottoms line up — the
-/// standard dashboard row. With [stacked] they sit one above the other
-/// instead (tablet), each at its natural height.
 class DashboardPair extends StatelessWidget {
   const DashboardPair({
     super.key,
@@ -91,14 +86,6 @@ class DashboardPair extends StatelessWidget {
   }
 }
 
-/// Lays [children] out side by side in [flexes] proportions, every child as
-/// tall as the tallest one, so a row of cards shares its top and bottom edge.
-///
-/// `IntrinsicHeight` cannot do this here: cards built on `LayoutBuilder` or a
-/// shrink-wrapped grid cannot report an intrinsic height. Instead each child
-/// is laid out once at its column width to measure it, then again at the
-/// row's height. A card given the extra height simply grows, its content
-/// staying at the top.
 class DashboardEqualHeightRow extends MultiChildRenderObjectWidget {
   const DashboardEqualHeightRow({
     super.key,

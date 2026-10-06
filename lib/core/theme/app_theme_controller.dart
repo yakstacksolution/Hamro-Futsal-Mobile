@@ -13,10 +13,6 @@ final class AppThemeController extends ValueNotifier<ThemeMode> {
           WidgetsBinding.instance.platformDispatcher.platformBrightness ==
               Brightness.dark);
 
-  /// The mode this session started on, before the reader changed anything.
-  ///
-  /// Only [restore] sets it. Kept so a redundant write is not made on startup:
-  /// restoring is not a choice the reader made, and must not look like one.
   static ThemeMode _restored = ThemeMode.system;
 
   static ThemeMode _initialMode() {
@@ -29,18 +25,6 @@ final class AppThemeController extends ValueNotifier<ThemeMode> {
     return _modeFromStorage(settings.appThemeMode);
   }
 
-  /// Applies the mode saved on this device.
-  ///
-  /// Call once from `main`, straight after settings are initialised. The
-  /// controller reads storage when it is first built, but it is built lazily —
-  /// the first `LightColor.*` read anywhere creates it — so if that happened
-  /// before storage was open, it fell back to [ThemeMode.system] and stayed
-  /// there for the whole session, even though the reader's choice was sitting
-  /// in storage. That is the bug where picking Light, closing the app and
-  /// reopening it came back on System.
-  ///
-  /// Restoring is not a choice, so nothing is written back and no rebuild is
-  /// forced: this runs before the first frame.
   static void restore() {
     final AppSettings settings = AppSettings();
     if (!settings.isInitialized) return;
@@ -49,7 +33,6 @@ final class AppThemeController extends ValueNotifier<ThemeMode> {
     if (instance.value != stored) instance.value = stored;
   }
 
-  /// What is actually on disk, whatever this controller currently shows.
   @visibleForTesting
   static ThemeMode get storedMode {
     final AppSettings settings = AppSettings();
@@ -57,7 +40,6 @@ final class AppThemeController extends ValueNotifier<ThemeMode> {
     return _modeFromStorage(settings.appThemeMode);
   }
 
-  /// The mode restored at startup — the reader's standing choice.
   @visibleForTesting
   static ThemeMode get restoredMode => _restored;
 
@@ -89,21 +71,6 @@ final class AppThemeController extends ValueNotifier<ThemeMode> {
     };
   }
 
-  /// Rebuilds the whole widget tree after a brightness change.
-  ///
-  /// Swapping [ThemeData] only invalidates widgets that actually *depend* on
-  /// the `Theme` inherited widget — i.e. the ones calling `Theme.of(context)`
-  /// or `context.appColors`. The vast majority of this app reads colours from
-  /// `LightColor.*`, which resolves against [instance] rather than a
-  /// [BuildContext], so the framework has no dependency to invalidate and never
-  /// calls their `build()` again. The result is a half-themed screen until the
-  /// app is restarted.
-  ///
-  /// Marking every element dirty forces each `build()` to re-run and re-read
-  /// the new brightness. This deliberately uses [Element.markNeedsBuild] rather
-  /// than re-keying the tree: nothing is unmounted, so [State] objects, scroll
-  /// offsets, in-progress forms and the navigation stack all survive the
-  /// toggle.
   static void _rebuildEverything() {
     void markAllDirty() {
       void markDirty(Element element) {

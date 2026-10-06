@@ -2,11 +2,6 @@ import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
 
-/// User-selected filters for the public venue list.
-///
-/// Every field is optional — an unset field means "no constraint" for that
-/// dimension. Filtering is applied client-side over the venues already loaded
-/// from the backend.
 class VenueFilter extends Equatable {
   const VenueFilter({
     this.latitude,
@@ -32,11 +27,8 @@ class VenueFilter extends Equatable {
   final int? courtTypeId;
   final double? minRating;
 
-  /// Free-text venue-name search, sent to the list API and used as a
-  /// client-side fallback. `null`/empty means no text constraint.
   final String? search;
 
-  /// Preferred play windows, e.g. `{'06:00-08:00', '17:00-19:00'}`.
   final Set<String> timeSlots;
 
   static const VenueFilter empty = VenueFilter();
@@ -54,8 +46,6 @@ class VenueFilter extends Equatable {
       timeSlots.isEmpty &&
       (search == null || search!.trim().isEmpty);
 
-  /// Number of active filter dimensions — drives the badge on the filter
-  /// button.
   int get activeCount {
     int count = 0;
     if (categoryFilterIds.isNotEmpty) count++;
@@ -102,11 +92,6 @@ class VenueFilter extends Equatable {
     );
   }
 
-  /// Query for `GET /venues`.
-  ///
-  /// [latitude]/[longitude] override the filter's own coordinates. The listing
-  /// needs an origin to return `distance_km`, so the caller passes the device
-  /// fix here whenever the filter itself carries no location.
   Map<String, dynamic> toVenueListPayload({
     int page = 1,
     int perPage = kVenueListPerPage,
@@ -148,7 +133,6 @@ class VenueFilter extends Equatable {
     return payload;
   }
 
-  /// Whether [venue] satisfies every active constraint.
   bool matches(PublicListingVenueModel venue) {
     final double? price = _venuePrice(venue);
     if (minPrice != null && (price == null || price < minPrice!)) return false;
@@ -167,13 +151,11 @@ class VenueFilter extends Equatable {
     return true;
   }
 
-  /// Applies this filter to [venues], returning the matching subset.
   List<PublicListingVenueModel> apply(List<PublicListingVenueModel> venues) {
     if (isEmpty) return venues;
     return venues.where(matches).toList(growable: false);
   }
 
-  /// The venue's hourly price, or null when the backend sent no usable value.
   static double? _venuePrice(PublicListingVenueModel venue) {
     final double? price = venue.price;
     return price != null && price > 0 ? price : null;

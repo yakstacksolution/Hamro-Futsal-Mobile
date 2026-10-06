@@ -29,13 +29,8 @@ class BookingDetailsBloc
 
   final GetBookingsUseCase _useCase;
 
-  /// Cancellation is a customer-only action; the futsal owner view never shows
-  /// it, so the cancel-boundary API is not called there.
   final bool isFutsalView;
 
-  /// Set once the complete request succeeds here. Completing is final, so a
-  /// details read that still reports the booking as pending/confirmed (stale,
-  /// or racing the update) must not undo it.
   bool _completedHere = false;
 
   FutureOr<void> _onFetch(
@@ -88,9 +83,6 @@ class BookingDetailsBloc
     }
   }
 
-  /// Asks the server whether the booking can still be cancelled and stores the
-  /// result so the UI can show/hide the cancel action. Failures default to
-  /// hiding the action.
   Future<void> _resolveCancelBoundary(
     int bookingId,
     Emitter<BookingDetailsState> emit,
@@ -107,10 +99,6 @@ class BookingDetailsBloc
     Emitter<BookingDetailsState> emit,
   ) async => await _resolveReview(event.bookingId, emit);
 
-  /// Resolves whether a review exists. A failure leaves the status at
-  /// [BookingReviewStatus.failure] rather than [BookingReviewStatus.none]:
-  /// offering the form on a failed check invites a duplicate submission the
-  /// server would then reject.
   Future<void> _resolveReview(
     int bookingId,
     Emitter<BookingDetailsState> emit,

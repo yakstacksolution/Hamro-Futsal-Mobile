@@ -8,8 +8,6 @@ import 'package:hamro_futsal/core/widgets/custom_menu_item.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/review_change_request.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_review_model.dart';
 
-/// Average rating plus the star distribution, shared by the details-page
-/// preview and the full reviews page so both read identically.
 class VenueRatingSummaryCard extends StatelessWidget {
   const VenueRatingSummaryCard({
     super.key,
@@ -21,7 +19,6 @@ class VenueRatingSummaryCard extends StatelessWidget {
   final double rating;
   final int reviewCount;
 
-  /// Real counts from the server. The bars used to be hardcoded percentages.
   final VenueRatingBreakdown breakdown;
 
   @override
@@ -100,10 +97,6 @@ class VenueRatingSummaryCard extends StatelessWidget {
   }
 }
 
-/// One review: reviewer, when, what they said, and their score.
-///
-/// When the row is the reader's own (`my_futsal_review`) and [onChangeRequest]
-/// is given, an overflow menu offers to ask the admin for an edit or a delete.
 class VenueReviewCard extends StatelessWidget {
   const VenueReviewCard({
     super.key,
@@ -114,10 +107,8 @@ class VenueReviewCard extends StatelessWidget {
 
   final VenueReviewModel review;
 
-  /// Called with the action the reader picked from the overflow menu.
   final ValueChanged<ReviewChangeRequestType>? onChangeRequest;
 
-  /// Swaps the menu for a spinner while this review's request is in flight.
   final bool isSubmittingChangeRequest;
 
   bool get _showMenu => review.isMyReview && onChangeRequest != null;
@@ -187,7 +178,6 @@ class VenueReviewCard extends StatelessWidget {
   }
 }
 
-/// The three-dot menu on the reader's own review.
 class _ReviewCardMenu extends StatelessWidget {
   const _ReviewCardMenu({required this.isSubmitting, required this.onSelected});
 

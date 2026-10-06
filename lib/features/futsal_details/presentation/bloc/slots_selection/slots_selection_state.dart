@@ -39,34 +39,21 @@ final class SlotsSelectionState extends Equatable {
   final BookingMode bookingMode;
   final BookingRecurrence recurrence;
 
-  /// Weekdays a recurring booking repeats on (`DateTime.monday`…`sunday`).
-  ///
-  /// Empty means "whichever weekday the selected date falls on", so a user who
-  /// never opens the day picker gets the original same-day-every-week booking.
-  /// Read [effectiveWeekdays] rather than this set when rendering.
   final Set<int> recurringWeekdays;
 
   final double fallbackPrice;
   final String? errorMessage;
 
-  /// The availability counts the server reported for the requested window
-  /// (`available_count` / `total_courts`). Preferred over counting the list,
-  /// which only holds the courts the response carried.
   final int? serverAvailableCount;
   final int? serverTotalCourts;
 
-  /// Set when the server answered with a different window than the one asked
-  /// for (`fallback_type`), so the page can say so.
   final String? availabilityFallbackType;
   final RecurringCheckStatus recurringCheckStatus;
   final RecurringAvailabilityModel? recurringAvailability;
   final String? recurringAvailabilityError;
 
-  /// Users currently on this venue + date's booking presence channel,
-  /// including this client. 0 until the presence subscription succeeds.
   final int liveViewers;
 
-  /// How many *other* people are looking at this venue + date right now.
   int get otherViewers => liveViewers > 1 ? liveViewers - 1 : 0;
 
   int get safeSelectedDateIndex {
@@ -119,13 +106,11 @@ final class SlotsSelectionState extends Equatable {
         courts.where((VenueCourtItemModel court) => court.isAvailable).length;
   }
 
-  /// How many courts exist for this window, the server's count first.
   int get totalCourtCount => serverTotalCourts ?? courts.length;
 
   bool get isFallbackAvailability =>
       (availabilityFallbackType ?? '').trim().isNotEmpty;
 
-  /// The cheapest bookable price on offer, for the section header.
   double? get cheapestAvailablePrice {
     final Iterable<double> prices = courts
         .where((VenueCourtItemModel court) => court.isAvailable)
@@ -138,19 +123,13 @@ final class SlotsSelectionState extends Equatable {
     return prices.reduce((double a, double b) => a < b ? a : b);
   }
 
-  /// True when at least one bookable court is discounted for this slot.
   bool get hasDiscountedCourt => courts.any(
     (VenueCourtItemModel court) => court.isAvailable && court.hasDiscount,
   );
 
-  /// Whether any loaded slot can still be picked. False when every slot for
-  /// the selected date came back booked, closed or otherwise unavailable.
   bool get hasSelectableSlot =>
       timeSlots.any((TimeSlotModel slot) => slot.isAvailable);
 
-  /// True when the selected date is a dead end: slots (or courts) loaded, but
-  /// nothing on it can be booked. The page then replaces the booking sections
-  /// with a single notice pointing back at the date row.
   bool get isDateFullyUnavailable {
     if (isLoading) return false;
     if (timeSlots.isNotEmpty && !hasSelectableSlot) return true;
@@ -159,14 +138,10 @@ final class SlotsSelectionState extends Equatable {
 
   bool get isRecurring => bookingMode == BookingMode.recurring;
 
-  /// The weekdays actually booked, resolving the empty set to the selected
-  /// date's own weekday.
   Set<int> get effectiveWeekdays => recurringWeekdays.isEmpty
       ? <int>{selectedDate.weekday}
       : recurringWeekdays;
 
-  /// True once the booking repeats on more than one weekday, which the
-  /// `repeat_weeks` payload cannot express.
   bool get hasMultipleWeekdays => isRecurring && effectiveWeekdays.length > 1;
 
   int get sessions => sessionDates.length;
@@ -194,7 +169,6 @@ final class SlotsSelectionState extends Equatable {
     );
   }
 
-  /// What the same booking would cost without the slot's discount.
   double get selectedOriginalPrice {
     final VenueCourtItemModel? court = selectedCourt;
     if (court == null) return fallbackPrice;
@@ -206,7 +180,6 @@ final class SlotsSelectionState extends Equatable {
     );
   }
 
-  /// Rupees taken off the whole selection by the slot's discount.
   double get selectedSavings {
     final double diff = selectedOriginalPrice - selectedPrice;
     return diff > 0 ? diff : 0;
@@ -219,15 +192,12 @@ final class SlotsSelectionState extends Equatable {
 
   String get priceText => _money(selectedPrice);
 
-  /// The struck-through figure beside [priceText]; null when nothing is off.
   String? get originalPriceText =>
       hasDiscount ? _money(selectedOriginalPrice) : null;
 
-  /// `You save Rs 100` — null when there is no discount.
   String? get savingsText =>
       hasDiscount ? 'save ${_money(selectedSavings)}' : null;
 
-  /// `Rs 1,200` — grouped, matching the court cards.
   static String _money(double value) =>
       'Rs ${Money.group(value.round().abs().toString())}';
 
@@ -253,8 +223,6 @@ final class SlotsSelectionState extends Equatable {
     return selectedCourt == null ? 'Unavailable' : 'Book Now';
   }
 
-  /// Snapshot of the current selection for the booking checkout page.
-  /// Null until a slot and an available court are both chosen.
   BookingDraft? get bookingDraft {
     final VenueCourtItemModel? court = selectedCourt;
     if (court == null || !hasSlotSelection) return null;

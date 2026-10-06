@@ -23,7 +23,6 @@ final class MessageRepositoryImpl extends MessageRepository {
 
   final MessageRemoteDataSource _remoteDataSource;
 
-  /// Laravel puts the user id in the token's `sub` claim.
   @override
   int get currentUserId {
     final token = AppSettings().tokenModel.accessToken;
@@ -42,7 +41,6 @@ final class MessageRepositoryImpl extends MessageRepository {
     statusCode: 0,
   );
 
-  /// Unwraps `{success, message, data: {...}}` to the inner object.
   Map<String, dynamic>? _findObject(dynamic node, {int depth = 0}) {
     if (node is! Map) return null;
     if (node.containsKey('id')) return Map<String, dynamic>.from(node);
@@ -93,12 +91,6 @@ final class MessageRepositoryImpl extends MessageRepository {
     }
   }
 
-  /// `/auth/register-user` is rate limited, and both the create-group page
-  /// and the add-members sheet reload it on open, on every search and on
-  /// scroll. Shared across instances (each screen builds its own repository):
-  /// identical requests in flight are merged, a successful page is reused for
-  /// a short while, and after a 429 nothing is sent until the limit has had
-  /// time to reset.
   static final Map<
     String,
     Future<Either<AppException, RegisteredUserPageModel>>

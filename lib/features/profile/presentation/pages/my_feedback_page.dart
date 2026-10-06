@@ -16,7 +16,6 @@ import 'package:hamro_futsal/features/profile/data/repositories/feedback_reposit
 class MyFeedbackPage extends StatefulWidget {
   const MyFeedbackPage({super.key, this.initialPage});
 
-  /// Shown instead of fetching; tests only.
   @visibleForTesting
   final FeedbackListPage? initialPage;
 
@@ -117,8 +116,6 @@ class _MyFeedbackPageState extends State<MyFeedbackPage> {
   }
 }
 
-/// Side padding that centres the feedback list at [_kWideMaxWidth] on tablet
-/// and desktop, so the scrollbar stays at the window edge; 20 on phones.
 const double _kWideMaxWidth = 1080;
 double _wideGutter(BuildContext context) {
   final double width = MediaQuery.sizeOf(context).width;
@@ -127,8 +124,6 @@ double _wideGutter(BuildContext context) {
   return math.max(24, (width - max) / 2);
 }
 
-/// Tablet / desktop history: a header with the count, then the cards — two
-/// per row on desktop with equal heights, one per row on tablet.
 class _WideFeedbackList extends StatelessWidget {
   const _WideFeedbackList({required this.items, required this.onOpen});
 

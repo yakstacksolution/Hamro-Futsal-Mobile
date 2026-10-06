@@ -155,6 +155,7 @@ final class _RecordingHttp implements IHttp {
     String? token,
     Map<dynamic, dynamic>? query,
     dynamic data,
+    ResponseType? responseType,
   }) => _record(url, data);
 
   @override

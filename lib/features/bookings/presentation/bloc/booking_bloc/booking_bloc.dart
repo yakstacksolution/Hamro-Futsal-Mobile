@@ -25,17 +25,10 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
 
   final GetBookingsUseCase _useCase;
 
-  /// Page size for both booking endpoints.
   static const int _perPage = 10;
 
-  /// Requests currently out, keyed by list + status + page.
   final Set<String> _inFlight = <String>{};
 
-  /// Explicit refetches (forced, not a page landing) that arrived while the
-  /// same request was out. The one out may have left before the change being
-  /// refreshed for — a booking just completed — so its answer can be stale:
-  /// these go out once more after it. Landings stay dropped, so swiping back
-  /// and forth never stacks requests.
   final Set<String> _refetchAfterInFlight = <String>{};
 
   FutureOr<void> _onFetchMyBookings(
@@ -170,12 +163,6 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     emit(state.copyWith(futsalLists: next, refreshTick: state.refreshTick + 1));
   }
 
-  /// Stores a new window/order and starts the list again from page 1.
-  ///
-  /// The cached slices go with it: every one of them holds rows fetched under
-  /// the old query, and their page cursors count pages of a result set that no
-  /// longer exists. Keeping them would mean appending page 2 of the new window
-  /// onto page 1 of the old one.
   void _applyFilters({
     required Emitter<BookingState> emit,
     required BookingDateFilter dateFilter,
@@ -194,12 +181,6 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     refetch(selected);
   }
 
-  /// The one fetch routine both lists share.
-  ///
-  /// Everything that differs between `/bookings` and `/futsal-bookings` — which
-  /// slice map to read and write, which request to make — arrives as a
-  /// parameter, so the paging, the caching and the error handling exist once
-  /// instead of twice in near-identical copies.
   Future<void> _fetch({
     required Emitter<BookingState> emit,
     required String kind,
@@ -391,8 +372,6 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     return byId.values.toList(growable: false);
   }
 
-  /// An [AppException] for anything the layers below threw instead of
-  /// returning as a Left.
   AppException _asException(Object error) {
     if (error is AppException && error.errorMessage.trim().isNotEmpty) {
       return error;

@@ -1,8 +1,5 @@
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Defaults for the court type / match format dropdowns. The backend requires
-/// both on every court save, so a court that has no explicit pick yet is
-/// treated as Indoor / 5v5 rather than sending nothing.
 const int kDefaultCourtTypeId = 1;
 const String kDefaultCourtTypeName = 'Indoor';
 const int kDefaultMatchFormatId = 1;
@@ -46,8 +43,6 @@ enum UploadVerificationStatus {
       this == UploadVerificationStatus.approved;
 }
 
-/// Most payment apps a court takes money through (eSewa, Khalti, Fonepay, a
-/// bank or two) fit in this many QRs.
 const int kMaxCourtPaymentQrs = 5;
 
 class UploadRef {
@@ -63,7 +58,6 @@ class UploadRef {
   final String? remoteUrl;
   final UploadVerificationStatus verificationStatus;
 
-  /// Stable identity for selection and mutation before and after upload.
   String get storageKey {
     if (id != null) return 'id:$id';
     final String url = (remoteUrl ?? '').trim();
@@ -275,12 +269,8 @@ class SlotPricingDraft {
 
   final double? paymentPercent;
 
-  /// Whether the slot is open for booking. The server sends `is_active`, and a
-  /// slot switched off must not read as live in the list.
   final bool isActive;
 
-  /// The server's own ordering (`sort_order`); slots are shown in it so the
-  /// list matches what the vendor arranged.
   final int? sortOrder;
 
   String? get discountProblem {

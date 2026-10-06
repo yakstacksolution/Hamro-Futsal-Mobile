@@ -30,8 +30,6 @@ DateTime? _lastNotificationAt;
 
 bool isSupportedNotificationType(String? type) => _kindOf(type) != null;
 
-/// Where a push resolves to, without navigating — the pieces the redirect is
-/// built from, exposed so payload shapes can be asserted in tests.
 @visibleForTesting
 ({String? kind, int? bookingId, bool isFutsalView}) resolveNotificationTarget(
   Map<String, dynamic> payload,
@@ -41,21 +39,15 @@ bool isSupportedNotificationType(String? type) => _kindOf(type) != null;
   isFutsalView: _isFutsalView(payload),
 );
 
-/// Whole-payload variant — a push whose `type` is unknown still redirects when
-/// its `category` or `action_target` names a destination.
 bool isSupportedNotificationPayload(Map<String, dynamic> payload) =>
     _kindOfPayload(payload) != null;
 
-/// Resolves the kind from the payload as a whole: the backend sends both a
-/// specific `type` (`vendor_booking_created`) and a broader `category`
-/// (`booking`), and older pushes carry only the type.
 _NotificationKind? _kindOfPayload(Map<String, dynamic> payload) =>
     _kindOf(payload['type']?.toString()) ??
     _kindOf(payload['action_type']?.toString()) ??
     _kindOf(payload['category']?.toString()) ??
     _kindOfTarget(payload['action_target']?.toString());
 
-/// `/bookings/424`, `/messages/12` — the server's own deep-link path.
 _NotificationKind? _kindOfTarget(String? target) {
   final String path = target?.trim().toLowerCase() ?? '';
   if (path.isEmpty) return null;
@@ -345,8 +337,6 @@ BookingModel? _bookingFromPayload(Map<String, dynamic> payload) {
   }
 }
 
-/// The id can arrive as `booking_id`, as the generic `entity_id` alongside
-/// `entity_type: App\\Models\\Booking`, or only inside `/bookings/424`.
 int? _bookingIdFromPayload(Map<String, dynamic> payload) {
   final String entityType =
       payload['entity_type']?.toString().toLowerCase() ?? '';

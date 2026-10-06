@@ -6,24 +6,8 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 
-/// One line of the sheet's detail block: an icon and the text beside it.
 typedef AcknowledgeLine = ({IconData icon, String text});
 
-/// Reports something that has already happened and waits to be acknowledged.
-///
-/// Deliberately unclosable — no swipe, no barrier tap, no back gesture. The
-/// caller has work to do once the user has actually seen this (attaching a
-/// booking, moving the flow on), so "dismissed" and "read" must not be the same
-/// outcome. The future completes only after the button is pressed.
-///
-/// ```dart
-/// await showAcknowledgeSheet(
-///   context: context,
-///   title: 'Your booking is completed',
-///   message: 'This court is now held for your match.',
-///   details: <AcknowledgeLine>[(icon: Icons.stadium_outlined, text: venue)],
-/// );
-/// ```
 Future<void> showAcknowledgeSheet({
   required BuildContext context,
   required String title,

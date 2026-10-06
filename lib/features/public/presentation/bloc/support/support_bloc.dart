@@ -14,8 +14,6 @@ import 'package:hamro_futsal/features/public/domain/usecase/get_youtube_videos_u
 part 'support_event.dart';
 part 'support_state.dart';
 
-/// Drives the Help & FAQ page — FAQs, help topics and videos load
-/// independently so one failing fetch never blocks another tab.
 class SupportBloc extends Bloc<SupportEvent, SupportState> {
   SupportBloc(
     this._getFaqsUseCase,

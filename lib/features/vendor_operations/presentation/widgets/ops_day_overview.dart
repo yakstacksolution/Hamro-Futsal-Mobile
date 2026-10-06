@@ -286,7 +286,6 @@ class _Metric extends StatelessWidget {
   final bool active;
   final Color? tone;
 
-  /// Tablet / desktop sizing: larger figures with room around them.
   final bool large;
 
   @override
@@ -362,11 +361,6 @@ class _Metric extends StatelessWidget {
   }
 }
 
-/// Figures in equal-width columns, so they line up between rows and stay
-/// evenly spaced however wide the strip is. Each may shrink a little to fit
-/// rather than push the row onto a second line.
-///
-/// [divided] draws a hairline between columns (tablet / desktop).
 class _MetricRow extends StatelessWidget {
   const _MetricRow({required this.metrics, this.divided = false});
 
@@ -406,5 +400,4 @@ class _MetricRow extends StatelessWidget {
   }
 }
 
-/// "Rs 22,200" — the card's short money form.
 String _rs(num amount) => Money.npr(amount).replaceFirst('NPR', 'Rs');

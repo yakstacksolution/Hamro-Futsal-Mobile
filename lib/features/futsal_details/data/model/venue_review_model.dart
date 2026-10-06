@@ -20,18 +20,9 @@ bool _asBool(dynamic v) {
 
 String _asString(dynamic v) => (v ?? '').toString().trim();
 
-/// True when any of [keys] carries a truthy flag.
-///
-/// `??` would stop at the first key that is merely present, so a `0` under an
-/// older name would mask a `1` under the newer one. These flags arrive as
-/// 0/1 integers, so each is read through [_asBool].
 bool _anyFlag(Map<String, dynamic> json, List<String> keys) =>
     keys.any((String key) => _asBool(json[key]));
 
-/// One review on `/venues/{venue_id}/reviews`.
-///
-/// The reviewer may arrive either nested (`user: { name, avatar }`) or flat
-/// (`user_name`, `reviewer_name`), so both are read.
 class VenueReviewModel extends Equatable {
   const VenueReviewModel({
     this.id = 0,
@@ -54,20 +45,12 @@ class VenueReviewModel extends Equatable {
   final String comment;
   final String status;
 
-  /// True when the server marks this row as one the signed-in user may ask to
-  /// change — `my_futsal_review`, or `is_venue_owner` as the newer response
-  /// names it. Only then does the card show its overflow menu.
   final bool isMyReview;
 
-  /// Parsed timestamp, when the server sent one this side could understand.
   final DateTime? createdAt;
 
-  /// The server's own date string, used verbatim when [createdAt] is null so a
-  /// format this parser does not know still reaches the screen.
   final String rawDate;
 
-  /// Relative age — "2 days ago" reads better on a review than a raw date.
-  /// Falls back to whatever string the server sent.
   String get displayDate {
     final DateTime? at = createdAt;
     if (at == null) return rawDate;
@@ -143,21 +126,15 @@ class VenueReviewModel extends Equatable {
   ];
 }
 
-/// How the venue's ratings are distributed, 5 stars down to 1.
-///
-/// The section used to draw this from hardcoded percentages; it now comes from
-/// the server, and is derived from the loaded page when the server omits it.
 class VenueRatingBreakdown extends Equatable {
   const VenueRatingBreakdown({this.counts = const <int, int>{}});
 
-  /// Star value (1–5) to number of reviews at that value.
   final Map<int, int> counts;
 
   int get total => counts.values.fold(0, (int sum, int c) => sum + c);
 
   bool get isEmpty => total == 0;
 
-  /// Share of all reviews at [star], as a 0–1 fraction for a progress bar.
   double fractionFor(int star) {
     final int all = total;
     if (all == 0) return 0;
@@ -175,8 +152,6 @@ class VenueRatingBreakdown extends Equatable {
     return VenueRatingBreakdown(counts: Map<int, int>.unmodifiable(counts));
   }
 
-  /// Distribution of the reviews actually loaded. Only a fallback: it describes
-  /// the current page, not the venue, so it is used when the server sent none.
   factory VenueRatingBreakdown.fromReviews(List<VenueReviewModel> reviews) {
     final Map<int, int> counts = <int, int>{};
     for (final VenueReviewModel review in reviews) {
@@ -190,7 +165,6 @@ class VenueRatingBreakdown extends Equatable {
   List<Object?> get props => <Object?>[counts];
 }
 
-/// One page of `/venues/{venue_id}/reviews?page=&per_page=`.
 class VenueReviewPageModel extends Equatable {
   const VenueReviewPageModel({
     this.items = const <VenueReviewModel>[],

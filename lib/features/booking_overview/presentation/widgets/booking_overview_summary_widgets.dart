@@ -9,7 +9,6 @@ import 'package:hamro_futsal/features/booking_overview/presentation/widgets/book
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-/// Net revenue hero with delta pill and revenue sparkline.
 class BookingHeroCard extends StatelessWidget {
   const BookingHeroCard({super.key, required this.analytics});
 

@@ -1,11 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-/// Direction of money movement relative to the signed-in vendor.
-///
-/// The API calls these `incoming` / `outgoing`.
 enum TransactionDirection { incoming, outgoing }
 
-/// Values accepted by the `direction` query parameter.
 enum TransactionDirectionFilter { all, incoming, outgoing }
 
 extension TransactionDirectionFilterQuery on TransactionDirectionFilter {
@@ -16,22 +12,14 @@ extension TransactionDirectionFilterQuery on TransactionDirectionFilter {
   };
 }
 
-/// `source` values the endpoint is known to serve, used to seed the type chips
-/// so the row is complete before every kind has appeared in a loaded page.
 const List<String> kKnownTransactionSources = <String>[
   'booking',
   'expense',
   'settlement',
 ];
 
-/// Preset windows for the `date_from` / `date_to` query parameters.
 enum TransactionRangeFilter { all, today, week, month, year, custom }
 
-/// A resolved `date_from` / `date_to` window.
-///
-/// Presets are resolved against a caller-supplied "now" so the arithmetic stays
-/// pure and testable; `custom` carries the two dates the user picked. Both
-/// bounds are inclusive whole days — the endpoint takes `Y-m-d`, not timestamps.
 class TransactionDateRange extends Equatable {
   const TransactionDateRange({
     this.filter = TransactionRangeFilter.all,
@@ -45,11 +33,6 @@ class TransactionDateRange extends Equatable {
 
   static const TransactionDateRange allTime = TransactionDateRange();
 
-  /// Resolves [filter] into concrete bounds.
-  ///
-  /// `week` runs from Monday of the current week, `month` from the 1st, and
-  /// `year` from January 1st — each through [now]. A `custom` range keeps the
-  /// dates as given, swapped into order when picked backwards.
   factory TransactionDateRange.of(
     TransactionRangeFilter filter, {
     DateTime? now,
@@ -97,7 +80,6 @@ class TransactionDateRange extends Equatable {
 
   bool get isActive => filter != TransactionRangeFilter.all;
 
-  /// `Y-m-d`, or null when that bound is open.
   String? get queryFrom => _format(from);
 
   String? get queryTo => _format(to);
@@ -116,15 +98,9 @@ class TransactionDateRange extends Equatable {
   List<Object?> get props => <Object?>[filter, from, to];
 }
 
-/// Parsing helpers shared by the transaction-history models.
-///
-/// Values are read tolerantly — amounts arrive as both numbers and strings, and
-/// several fields are nullable per `source` — so a missing key degrades to null
-/// instead of throwing mid-list.
 class TxnParse {
   TxnParse._();
 
-  /// First non-null value among [keys].
   static dynamic pick(Map<String, dynamic> map, List<String> keys) {
     for (final String key in keys) {
       final dynamic value = map[key];
@@ -164,7 +140,6 @@ class TxnParse {
     return text.isEmpty ? null : text;
   }
 
-  /// Parses `2026-10-02`, `2026-07-16 19:24:06` and epoch seconds/millis.
   static DateTime? dateOrNull(dynamic value) {
     if (value is DateTime) return value;
     if (value is num) return _fromEpoch(value.round());
@@ -180,7 +155,6 @@ class TxnParse {
     value.abs() > 100000000000 ? value : value * 1000,
   );
 
-  /// Reads a label out of either a bare string or a `{id, name}` object.
   static String? labelOf(dynamic value) {
     if (value is Map) {
       return stringOrNull(
@@ -194,7 +168,6 @@ class TxnParse {
     return stringOrNull(value);
   }
 
-  /// Turns `pending_clearance` into `Pending Clearance`.
   static String humanize(String raw) {
     final String normalized = raw.replaceAll(RegExp(r'[_\-]+'), ' ').trim();
     if (normalized.isEmpty) return '';
@@ -209,11 +182,6 @@ class TxnParse {
   }
 }
 
-/// One row of `data.items`.
-///
-/// Rows are heterogeneous: a `booking` carries commission and payment/booking
-/// statuses, an `expense` carries a payment method and a note. Everything that
-/// varies by `source` is nullable, and the UI renders only what is present.
 class TransactionHistoryItemModel extends Equatable {
   const TransactionHistoryItemModel({
     this.id = '',
@@ -237,22 +205,18 @@ class TransactionHistoryItemModel extends Equatable {
     this.date,
   });
 
-  /// Composite key such as `booking-26` — unique across sources, not numeric.
   final String id;
 
-  /// `booking`, `expense`, `settlement`, … — the `type` filter's vocabulary.
   final String? source;
 
   final TransactionDirection direction;
   final String? title;
   final String? reference;
 
-  /// Net amount credited/debited (`gross_amount` minus commission for bookings).
   final double amount;
   final double? grossAmount;
   final double? commissionAmount;
 
-  /// Ledger status: `pending_clearance`, `cleared`, `recorded`, …
   final String? status;
   final String? paymentStatus;
   final String? bookingStatus;
@@ -262,11 +226,9 @@ class TransactionHistoryItemModel extends Equatable {
   final String? courtName;
   final String? note;
 
-  /// Set on `booking` rows — lets the tile deep-link to the booking.
   final int? bookingId;
   final int? expenseId;
 
-  /// `transaction_date` when present, otherwise `created_at`.
   final DateTime? date;
 
   bool get isIncoming => direction == TransactionDirection.incoming;
@@ -277,10 +239,8 @@ class TransactionHistoryItemModel extends Equatable {
 
   String get paymentStatusLabel => TxnParse.humanize(paymentStatus ?? '');
 
-  /// Commission is only worth showing when the server actually withheld some.
   bool get hasCommission => commissionAmount != null && commissionAmount! > 0;
 
-  /// Primary line of the tile.
   String get displayTitle {
     for (final String? candidate in <String?>[
       title,
@@ -292,7 +252,6 @@ class TransactionHistoryItemModel extends Equatable {
     return id;
   }
 
-  /// Secondary line: reference, then where it happened.
   String get subtitle => <String>[
     if (reference != null && reference!.isNotEmpty) reference!,
     if (courtName != null && courtName!.isNotEmpty) courtName!,
@@ -349,8 +308,6 @@ class TransactionHistoryItemModel extends Equatable {
     );
   }
 
-  /// `incoming` / `outgoing`, with `credit` / `debit` wording and a signed
-  /// amount both accepted as fallbacks.
   static TransactionDirection _directionOf(Map<String, dynamic> json) {
     final String flag = TxnParse.stringOf(
       TxnParse.pick(json, <String>['direction', 'flow', 'entry_type']),
@@ -408,8 +365,6 @@ class TransactionHistoryItemModel extends Equatable {
   ];
 }
 
-/// `data.summary` — totals for the whole filtered set, not just the loaded
-/// page, so the card stays correct while paginating.
 class TransactionHistorySummaryModel extends Equatable {
   const TransactionHistorySummaryModel({
     this.incomingTotal,
@@ -467,7 +422,6 @@ class TransactionHistorySummaryModel extends Equatable {
   ];
 }
 
-/// `data.pagination`.
 class TransactionPaginationModel extends Equatable {
   const TransactionPaginationModel({
     this.currentPage = 1,
@@ -482,7 +436,6 @@ class TransactionPaginationModel extends Equatable {
   final int perPage;
   final int total;
 
-  /// The server's explicit signal; preferred over deriving from page numbers.
   final bool? hasMorePages;
 
   bool get hasMore {
@@ -532,7 +485,6 @@ class TransactionPaginationModel extends Equatable {
   ];
 }
 
-/// One page of `GET /auth/transaction-history`.
 class TransactionHistoryPageModel extends Equatable {
   const TransactionHistoryPageModel({
     this.items = const <TransactionHistoryItemModel>[],

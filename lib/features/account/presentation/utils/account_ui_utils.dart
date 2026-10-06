@@ -4,34 +4,23 @@ import 'package:hamro_futsal/core/utils/date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/features/account/data/model/account_models.dart';
 
-/// Account-screen formatting. The money and date spellings come from the
-/// shared [Money] and [DateFmt] so this screen and the booking lists cannot
-/// drift apart; the names are kept for the call sites that already use them.
 class AccountFmt {
-  /// `NPR 11,711.99` — paisa only when there are any.
   static String npr(num v) => Money.npr(v);
 
-  /// Plain, ungrouped value for a text field: `11711.99` / `1200`.
   static String amountInput(double v) => Money.amountInput(v);
 
-  /// e.g. `Sep 03, 2026`.
   static String date(DateTime d) => DateFmt.date(d);
 
-  /// e.g. `9:31 PM`.
   static String time(DateTime d) => DateFmt.time(d);
 
-  /// e.g. `Aug 20, 2026 · 9:31 PM`.
   static String dateTime(DateTime d) => DateFmt.dateTime(d);
 
-  /// A statement section heading: `TODAY · 12 SEP 2026`.
   static String sectionDay(DateTime d, {DateTime? now}) =>
       DateFmt.sectionDay(d, now: now);
 
-  /// The day a row belongs to, ignoring the time.
   static DateTime dayOf(DateTime d) => DateFmt.dayOf(d);
 }
 
-/// Visual identity (icon + accent) for each ledger entry type.
 extension AccountEntryTypeUi on AccountEntryType {
   IconData get icon => switch (this) {
     AccountEntryType.bookingIncome => Icons.event_available_rounded,

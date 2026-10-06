@@ -107,9 +107,6 @@ class ResponseHelper {
     );
   }
 
-  /// Laravel's `errors` bag: `{"closed_dates.1.date": ["...", ...], ...}`.
-  /// Kept keyed and ordered so callers can attribute a message to the field —
-  /// and, for an indexed key, to the exact row of the list they submitted.
   static Map<String, List<String>> _extractFieldErrors(DataError error) {
     final dynamic payload = _extractPreferredPayload(error);
     final dynamic errors = payload is Map ? payload['errors'] : null;
@@ -140,9 +137,6 @@ class ResponseHelper {
     return <String>[];
   }
 
-  /// Every validation message, not just the first — a single save can fail on
-  /// several closed dates at once, and dropping the rest leaves the vendor
-  /// fixing them one round trip at a time.
   static String _extractValidationMessage(
     DataError error, [
     Map<String, List<String>> fieldErrors = const <String, List<String>>{},

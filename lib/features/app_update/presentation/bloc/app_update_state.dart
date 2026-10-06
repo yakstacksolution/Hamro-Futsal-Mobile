@@ -16,23 +16,14 @@ final class AppUpdateState extends Equatable {
 
   final AppUpdateStatus status;
 
-  /// Result of the most recent check. Kept across a later failed check so the
-  /// UI does not lose a known-pending update.
   final AppUpdateCheck? check;
 
-  /// Progress of a running background (flexible) download on Android.
   final InstallProgress installProgress;
 
-  /// Whether the update flow is being handed to Play / the store right now.
   final bool isStartingUpdate;
 
-  /// Set when a prompt is due and has not been presented yet. The gate consumes
-  /// it via [AppUpdatePromptShownEvent] so the sheet is shown exactly once per
-  /// check.
   final bool promptPending;
 
-  /// Whether the last check was user-initiated — drives whether "up to date"
-  /// and failures are surfaced.
   final bool wasManualCheck;
 
   final String? errorMessage;
@@ -42,13 +33,9 @@ final class AppUpdateState extends Equatable {
   bool get hasUpdate => check?.hasUpdate ?? false;
   bool get isForced => check?.isForced ?? false;
 
-  /// True once a flexible download has finished — the UI offers "Restart to
-  /// install" instead of "Update".
   bool get isReadyToInstall => installProgress.isReadyToInstall;
   bool get isDownloading => installProgress.isInFlight;
 
-  /// Whether the blocking screen must be shown. Deliberately independent of
-  /// [promptPending]: a forced update is not a prompt that can be consumed.
   bool get shouldBlockApp => isForced;
 
   AppUpdateState copyWith({

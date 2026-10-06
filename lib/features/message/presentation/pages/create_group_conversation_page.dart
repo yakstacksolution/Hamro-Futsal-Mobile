@@ -23,12 +23,6 @@ typedef RegisteredUsersLoader =
       required String search,
     });
 
-/// Full-page create-group flow.
-///
-/// Pushed as its own route rather than shown in a sheet: the form is long —
-/// a name, a searchable member list and selected-member chips — and a sheet
-/// fought the keyboard for what little height was left.
-/// Pops a [GroupConversationDraft] on submit, or null when abandoned.
 class CreateGroupConversationPage extends StatefulWidget {
   const CreateGroupConversationPage({
     super.key,
@@ -38,14 +32,11 @@ class CreateGroupConversationPage extends StatefulWidget {
     this.registeredUsersLoader,
   });
 
-  /// Optional seed while the registered-users endpoint loads. Direct tests and
-  /// legacy callers can still pass this without a [useCase].
   final Iterable<ParticipantModel> participants;
   final int currentUserId;
   final MessageUseCase? useCase;
   final RegisteredUsersLoader? registeredUsersLoader;
 
-  /// Pushes the page and returns the draft the user submitted, if any.
   static Future<GroupConversationDraft?> open(
     BuildContext context, {
     required Iterable<ParticipantModel> participants,
@@ -90,9 +81,6 @@ class _CreateGroupConversationPageState
     extends State<CreateGroupConversationPage> {
   static const int _registeredUsersPerPage = 15;
 
-  /// Long enough that a burst of typing is one request, short enough that the
-  /// list answers while the user is still looking at it. Three seconds felt
-  /// like the search was ignoring them.
   static const Duration _searchDebounceDelay = Duration(milliseconds: 450);
 
   final TextEditingController _title = TextEditingController();
@@ -102,12 +90,8 @@ class _CreateGroupConversationPageState
   final Map<int, ParticipantModel> _knownParticipants =
       <int, ParticipantModel>{};
 
-  /// Insertion-ordered so the chip strip reads in the order people were
-  /// picked, which is the order the user remembers choosing them in.
   final Set<int> _selected = <int>{};
 
-  /// Guards the registered-users endpoint: without it a short list re-triggers
-  /// its own "load more" after every page and walks straight into a 429.
   final PaginationTrigger _pagination = PaginationTrigger();
 
   Timer? _searchDebounce;
@@ -118,15 +102,11 @@ class _CreateGroupConversationPageState
   bool _queuedSearchReload = false;
   int _currentUserPage = 0;
 
-  /// The search the list currently shows results for. A debounced search that
-  /// lands back on it (typed then erased) sends nothing.
   String? _loadedSearch;
   int _requestSerial = 0;
   String? _error;
   String? _loadError;
 
-  /// A query is in flight: the field shows a spinner so a slow search does not
-  /// read as a search that did nothing.
   bool get _searching =>
       _usesRemoteMembers &&
       (_loadingInitial || _searchDebounce?.isActive == true) &&
@@ -155,13 +135,6 @@ class _CreateGroupConversationPageState
 
   bool get _isFull => _selectedCount >= kMaxGroupMembers;
 
-  /// The rows to show for the current query.
-  ///
-  /// The server does the searching, but the list also carries seed rows from
-  /// the inbox and the pages loaded before the query changed. Those were shown
-  /// unfiltered, so typing a name appeared to do nothing — the same faces
-  /// stayed on screen. Filtering locally as well keeps only rows that match
-  /// what was typed, whoever supplied them.
   List<ParticipantModel> get _visibleCandidates {
     final query = _search.text.trim().toLowerCase();
     if (query.isEmpty) return _candidates;
@@ -174,7 +147,6 @@ class _CreateGroupConversationPageState
         .toList(growable: false);
   }
 
-  /// Chips follow the pick order, not the list order.
   List<ParticipantModel> get _selectedMembers {
     final byUserId = <int, ParticipantModel>{
       ..._knownParticipants,
@@ -400,8 +372,6 @@ class _CreateGroupConversationPageState
     });
   }
 
-  /// Adds everyone currently listed — the whole pool, or just the search
-  /// results when a query narrowed it. Stops at the cap rather than refusing.
   void _selectAllVisible() {
     HapticFeedback.selectionClick();
     setState(() {
@@ -524,8 +494,6 @@ class _CreateGroupConversationPageState
     );
   }
 
-  /// "Members" with the one action that applies right now: clear what is
-  /// selected, or add everyone listed when nothing is.
   Widget _buildMembersHeader() {
     final bool canSelectAll =
         _visibleCandidates.isNotEmpty &&
@@ -662,9 +630,6 @@ class _CreateGroupConversationPageState
     );
   }
 
-  /// The button stays live even when the form is incomplete: [_submit] names
-  /// what is missing in the banner above it. Handing it `null` instead left a
-  /// button that looked pressable, did nothing, and said nothing.
   Widget _buildBottomAction() {
     return GroupBottomActionContainer(
       error: _error,

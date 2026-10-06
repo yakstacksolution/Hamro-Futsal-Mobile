@@ -287,8 +287,6 @@ enum SnackBarVariant { success, error, info }
 class CustomSnackBar extends StatefulWidget {
   final String message;
 
-  /// Explicit override; when null the colour is resolved from [variant] against
-  /// the active theme so the snack bar tracks light/dark.
   final Color? backgroundColor;
   final TextStyle? textStyle;
   final SnackBarVariant variant;

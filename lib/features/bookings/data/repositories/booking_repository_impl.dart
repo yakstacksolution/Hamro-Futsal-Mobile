@@ -145,9 +145,6 @@ final class BookingRepositoryImpl implements BookingRepository {
     );
   }
 
-  /// Flexibly resolves the cancel-boundary payload to a boolean. Accepts a bare
-  /// bool/number/string, or a map exposing the flag under common keys
-  /// (optionally nested under `data`).
   bool _parseCancelBoundary(dynamic value) {
     dynamic current = value;
     for (int depth = 0; depth < 6; depth++) {

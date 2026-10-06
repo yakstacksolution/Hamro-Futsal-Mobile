@@ -3,17 +3,8 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/features/app_update/domain/entities/app_version.dart';
 
-/// Where a manifest came from. Surfaced so the UI can adapt (only a Play
-/// Store-sourced or backend-sourced Android manifest can drive the native Play
-/// update flow) and so failures can be reported precisely.
 enum AppUpdateSource { backend, playStore, appStore }
 
-/// The release information published for one platform: what the newest build
-/// is, the oldest build still allowed to run, and how to get the new one.
-///
-/// Every field except [latestVersion] is optional — the backend, Play Store and
-/// App Store expose different subsets, and the update decision degrades
-/// gracefully as fields go missing.
 final class AppUpdateManifestModel extends Equatable {
   const AppUpdateManifestModel({
     required this.source,
@@ -32,47 +23,26 @@ final class AppUpdateManifestModel extends Equatable {
 
   final AppUpdateSource source;
 
-  /// Newest published version, e.g. `1.4.2`.
   final AppVersion latestVersion;
 
-  /// Newest published build number (Android `versionCode` / iOS
-  /// `CFBundleVersion`). Used as a tie-breaker when [latestVersion] equals the
-  /// installed version — a hotfix build often ships without a version bump.
   final int? latestBuild;
 
-  /// Oldest version still permitted to run. Anything below it is forced to
-  /// update. This is the remote kill-switch.
   final AppVersion? minSupportedVersion;
   final int? minSupportedBuild;
 
-  /// Server-declared "this specific release is mandatory", independent of
-  /// [minSupportedVersion].
   final bool forceUpdate;
 
-  /// Explicit server override. When the backend says `update_available: false`
-  /// we trust it even if the version strings suggest otherwise (useful during
-  /// a staged rollout).
   final bool? updateAvailableOverride;
 
   final String? releaseTitle;
 
-  /// "What's new" bullets. A single blob of text is split into lines so the
-  /// sheet can render it as a list.
   final List<String> releaseNotes;
 
-  /// Platform store listing to open when the native flow is unavailable.
   final String? storeUrl;
 
-  /// Human-readable download size, e.g. `24.6 MB`.
   final String? downloadSize;
   final DateTime? releasedAt;
 
-  /// Parses the backend `/app-version` payload.
-  ///
-  /// Accepts a `data` envelope, a flat map, and per-platform nesting under
-  /// `android` / `ios` (or `platforms.android`), merging platform values over
-  /// shared top-level ones. Key spellings are tolerated broadly so a backend
-  /// rename does not silently disable the update gate.
   static AppUpdateManifestModel? fromBackendResponse(dynamic response) {
     final Map<String, dynamic>? root = _asMap(response);
     if (root == null) return null;
@@ -177,11 +147,6 @@ final class AppUpdateManifestModel extends Equatable {
     );
   }
 
-  /// Parses an iTunes Lookup API response
-  /// (`https://itunes.apple.com/lookup?bundleId=…`).
-  ///
-  /// The App Store has no notion of a minimum supported version, so a manifest
-  /// from here can only ever produce an optional update.
   static AppUpdateManifestModel? fromAppStoreResponse(dynamic response) {
     final Map<String, dynamic>? root = _asMap(response);
     final dynamic results = root?['results'];

@@ -1,18 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Semantic colour tokens for the app, resolved per [Brightness].
-///
-/// Rules of thumb when adding a call site:
-///  * Never reach for `Colors.white` / `Colors.black` / `Colors.grey` directly.
-///  * Surfaces come from the elevation ramp: [background] < [surfaceSunken] <
-///    [surface] < [surfaceElevated].
-///  * Status colours come in pairs: the vivid token ([success], [warning],
-///    [danger], [info]) is for text/icons/strokes, the `*Container` token is the
-///    tinted fill behind it and `on*Container` is what sits on top of that fill.
-///  * [onAccent] is the foreground for content on a brand-filled surface. The
-///    brand fill is the same deep green in both themes, so this is white in
-///    both. For a brand tone used as text/icon directly on the page background,
-///    use `LightColor.brandTextColor`, which lightens in dark mode.
 @immutable
 class AppThemeColors extends ThemeExtension<AppThemeColors> {
   const AppThemeColors({
@@ -75,11 +62,8 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
 
   final Color shadow;
 
-  /// Foreground for content on a brand-filled surface. White in both themes,
-  /// because the brand fill itself is the same deep green in both.
   final Color onAccent;
 
-  /// Low-emphasis brand tint, for selected chips and highlight rows.
   final Color accentSoft;
 
   // Status: vivid / container / on-container triplets.
@@ -99,7 +83,6 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
   final Color infoContainer;
   final Color onInfoContainer;
 
-  /// Secondary decorative accent (used for rewards / promo surfaces).
   final Color accentAlt;
   final Color accentAltContainer;
 
@@ -109,7 +92,6 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
   final Color skeletonBase;
   final Color skeletonHighlight;
 
-  /// Barrier behind modals and image overlays.
   final Color scrim;
 
   static const AppThemeColors light = AppThemeColors(
@@ -149,8 +131,6 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
     scrim: Color.fromRGBO(0, 0, 0, 0.45),
   );
 
-  /// OLED-first: a true-black ground with slightly lifted surfaces above it.
-  /// The black is deliberate — do not raise it to a dark grey.
   static const AppThemeColors dark = AppThemeColors(
     background: Color(0xFF000000),
     surface: Color(0xFF101311),

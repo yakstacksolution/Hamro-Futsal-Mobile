@@ -41,8 +41,6 @@ class SlotsSelectionPage extends StatefulWidget {
   final CourtDetailModel court;
   final ManualBookingDetails? manualBooking;
 
-  /// Passed straight through to checkout: where the flow lands once the
-  /// booking exists.
   final BookingSuccessAction successAction;
 
   @override
@@ -449,14 +447,6 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
     );
   }
 
-  /// Keeps the bottom bar's summary and CTA together in the middle of a wide
-  /// window instead of pinned to opposite edges.
-  /// When the server reported taken dates for a recurring booking, asks the
-  /// user whether to book the remaining ones or go back and pick another
-  /// date/slot. Returns the draft to book with, or null to stay on this page.
-  ///
-  /// With [confirm] false the user already chose to skip the taken dates (from
-  /// the availability card), so the prompt is not shown again.
   Future<BookingDraft?> _resolveUnavailableDates(
     BuildContext context,
     SlotsSelectionState state,
@@ -520,8 +510,6 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
     );
   }
 
-  /// Brings the date & time picker back into view so another date or slot
-  /// can be chosen.
   void _scrollToDateTime() {
     HapticFeedback.selectionClick();
     if (!_scrollController.hasClients) return;
@@ -532,11 +520,6 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
     );
   }
 
-  /// Runs the booking flow for the current selection: resolves any taken
-  /// recurring dates, then confirms a manual booking or opens checkout.
-  ///
-  /// [confirmUnavailable] false skips the "continue without these dates?"
-  /// prompt, for when the user already chose to skip them.
   Future<void> _startBooking(
     BuildContext context,
     SlotsSelectionState state, {
@@ -950,12 +933,8 @@ class _BookingBarSummary extends StatelessWidget {
   final String priceText;
   final String priceUnit;
 
-  /// The pre-discount figure, struck through beside the price. Null when the
-  /// slot carries no discount.
   final String? originalPriceText;
 
-  /// `save Rs 400` — what the discount is worth on the whole selection. Null
-  /// when there is no discount.
   final String? savingsText;
   final String selectedLabel;
   final bool canBook;
@@ -1096,11 +1075,6 @@ class _BookingBarSummary extends StatelessWidget {
   }
 }
 
-/// Section title for the courts list: accent bar + title, the current filter
-/// context underneath, and an availability count pill that turns muted when
-/// nothing is bookable.
-/// Tells the user the shown availability is for a different window than the
-/// one they asked for.
 class _FallbackAvailabilityNotice extends StatelessWidget {
   const _FallbackAvailabilityNotice({required this.fallbackType});
 
@@ -1229,8 +1203,6 @@ class _CourtsSectionHeader extends StatelessWidget {
   }
 }
 
-/// "N others viewing" chip fed by the booking presence channel roster —
-/// nudges the user that slots on this date may get taken in real time.
 class _LiveViewersBadge extends StatelessWidget {
   const _LiveViewersBadge({required this.count});
 
@@ -1350,14 +1322,10 @@ class _RecurringAvailabilityResult extends StatelessWidget {
   final RecurringAvailabilityModel model;
   final String? selectedTime;
 
-  /// Books the schedule without the taken dates.
   final VoidCallback onSkipUnavailable;
 
-  /// Sends the user back to the date & time picker.
   final VoidCallback onPickAnother;
 
-  /// Available dates listed before the rest collapse into a "+N more" line,
-  /// so a 3-month, multi-day schedule does not push the courts off screen.
   static const int _maxAvailableRows = 4;
 
   String _plural(int count, String noun) =>
@@ -1595,7 +1563,6 @@ class _RecurringAvailabilityRow extends StatelessWidget {
 
 String _dateLabel(DateTime date) => AppDateFormat.format(date, 'EEE, d MMM');
 
-/// Small caption separating the available and unavailable date groups.
 class _AvailabilityGroupLabel extends StatelessWidget {
   const _AvailabilityGroupLabel({required this.label, required this.color});
 
@@ -1615,8 +1582,6 @@ class _AvailabilityGroupLabel extends StatelessWidget {
   }
 }
 
-/// Asks whether to book the remaining dates of a recurring schedule after the
-/// server reported some of them taken. Pops `true` to continue without them.
 class _UnavailableDatesSheet extends StatelessWidget {
   const _UnavailableDatesSheet({
     required this.unavailableDates,

@@ -1,7 +1,5 @@
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_quote_model.dart';
 
-/// One slot to hold — an item of the `POST /booking-holds` `holds` list.
-/// Every session is its own item, with its own `booking_date`.
 class BookingHoldRequest {
   const BookingHoldRequest({
     required this.venueId,
@@ -25,9 +23,6 @@ class BookingHoldRequest {
     'end_time': apiHourMinute(endTime),
   };
 
-  /// [time] as the API's `H:i` — `18:00` — whether it came as `18:00:00`
-  /// (slot responses), `18:00`, `6:00 PM` or a range like `6:00 PM - 7:00 PM`
-  /// (its start is used). Anything else is sent as is, for the server to name.
   static String apiHourMinute(String time) {
     final RegExpMatch? m = RegExp(
       r'(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?',
@@ -43,9 +38,6 @@ class BookingHoldRequest {
   }
 }
 
-/// One hold from `POST /booking-holds`. Mirrors a `hold` object the server
-/// returns — its [id] releases it later with `DELETE /booking-holds` — plus
-/// the server `quote` (pricing).
 class BookingHoldModel {
   const BookingHoldModel({
     this.id,
@@ -71,81 +63,52 @@ class BookingHoldModel {
     this.bookingQuote,
   });
 
-  /// Server hold id (e.g. `f19071bb-...`).
   final String? id;
 
-  /// The token used to release the hold later.
   final String? holdToken;
 
   final int? venueId;
   final int? courtId;
   final String? bookingDate;
 
-  /// All held session dates (`yyyy-MM-dd`); single-item for non-recurring holds.
   final List<String> bookingDates;
 
   final String? startTime;
   final String? endTime;
 
-  /// Slot status, e.g. `unavailable`.
   final String? status;
 
-  /// Hold lifecycle status, e.g. `holding`.
   final String? holdStatus;
 
-  /// Why the slot is held, e.g. `booking_hold`.
   final String? reason;
 
-  /// Whether this hold is for a recurring booking.
   final bool? isRecurring;
 
-  /// Weeks between recurring sessions, e.g. `1`.
   final int? repeatWeeks;
 
-  /// Recurrence type, e.g. `custom`.
   final String? recurrenceType;
 
-  /// Recurrence interval (from `metadata.recurrence_interval`), e.g. `1`.
   final int? recurrenceInterval;
 
-  /// Whether this hold belongs to the current user.
   final bool? heldByMe;
 
-  /// ISO expiry timestamp string, e.g. `2026-06-29T12:30:07+00:00`.
   final String? expiresAt;
 
-  /// Booking flow step, e.g. `slot_selected`.
   final String? step;
 
-  /// Server pricing for the held slot(s) (`data.quote`).
   final BookingQuoteModel? quote;
 
-  /// [quote] prices the whole booking — the one sent beside a list of holds
-  /// — rather than this hold alone.
   final bool quoteIsShared;
 
-  /// The quote sent beside a list of holds, for the whole booking, kept
-  /// apart from this hold's own [quote].
   final BookingQuoteModel? bookingQuote;
 
   bool get hasToken => (holdToken ?? '').isNotEmpty;
 
-  /// What `DELETE /booking-holds` takes to release this hold.
   bool get hasId => (id ?? '').isNotEmpty;
 
   DateTime? get expiresAtDateTime =>
       expiresAt == null ? null : DateTime.tryParse(expiresAt!);
 
-  /// Every hold in a `POST /booking-holds` answer, in the order sent:
-  /// `data` as a list of `{hold, quote}`, `data.holds` as a list, or a single
-  /// `data.hold` (with its `quote`).
-  ///
-  /// A recurring booking holds one slot per date, and the server prices the
-  /// whole booking once: `data.quote` sits beside the `holds` list rather than
-  /// inside each hold. It is kept on every hold as [bookingQuote] — next to,
-  /// not over, the hold's own quote — and a hold with no quote of its own
-  /// takes it as its quote. Without it the checkout never got a price and
-  /// showed "Calculating price…" forever.
   static List<BookingHoldModel> listFromResponse(dynamic payload) {
     dynamic data = payload;
     Map<dynamic, dynamic>? sharedQuote;
@@ -243,9 +206,6 @@ class BookingHoldModel {
   }
 }
 
-/// Unwraps the outer `{status, message, data: {...}}` envelope and returns the
-/// node that holds `hold`/`quote` (newer shape) or the hold fields directly
-/// (older shape).
 Map<String, dynamic> _envelope(dynamic payload) {
   dynamic current = payload;
   for (int depth = 0; depth < 5 && current is Map; depth++) {

@@ -28,7 +28,6 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 class ExpensesScreen extends StatelessWidget {
   const ExpensesScreen({super.key, this.repository});
 
-  /// Injected in tests; the app uses the live repository.
   final ExpensesRepository? repository;
 
   @override
@@ -57,17 +56,11 @@ class _ExpensesViewState extends State<_ExpensesView>
   ExpensePeriod _period = ExpensePeriod.month;
   String? _venueId;
 
-  /// Cash / Online (null = all). Server-side `payment_method` filter.
   PaymentMethod? _paymentMethod;
 
-  /// Selected server category id (from `/expense-categories`). Sent as
-  /// `expense_category_id` like every other chip, so the summary, analytics
-  /// and records all move together.
   String? _categoryFilter;
   DateTimeRange? _customRange;
 
-  /// Builds the server query from the current chips and refetches so the
-  /// server recomputes the summary, analytics and records.
   void _applyFilter() {
     final f = ExpenseFilter(
       period: _period,
@@ -500,12 +493,8 @@ class _ExpensesViewState extends State<_ExpensesView>
     );
   }
 
-  /// Widest the expenses dashboard grows before centring in the window.
   static const double _dashboardMaxWidth = 1280;
 
-  /// Cross-fades [child] whenever its [key] changes (i.e. when a new report
-  /// arrives or the category filter changes), with a slight upward drift for
-  /// a polished settle-in.
   Widget _fadeOnRefresh({required Key key, required Widget child}) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
@@ -604,7 +593,6 @@ class _ExpensesViewState extends State<_ExpensesView>
     }
   }
 
-  /// Opens the create form prefilled with [expense] and applies the edits.
   Future<void> _openEdit(ExpenseModel expense) async {
     final bloc = context.read<ExpensesBloc>();
     final venues = bloc.state.venues;

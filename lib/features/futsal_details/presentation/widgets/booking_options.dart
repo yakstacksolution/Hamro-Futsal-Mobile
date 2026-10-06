@@ -11,7 +11,6 @@ import 'package:hamro_futsal/features/futsal_details/data/model/recurring_availa
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_court_item_model.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// A small animated on/off toggle (custom switch).
 class CustomToggleButton extends StatelessWidget {
   const CustomToggleButton({
     super.key,
@@ -78,23 +77,16 @@ class BookingTypeCard extends StatelessWidget {
   final BookingRecurrence recurrence;
   final ValueChanged<BookingRecurrence> onRecurrenceChanged;
 
-  /// Weekdays the booking repeats on (`DateTime.monday`…`sunday`), already
-  /// resolved — never empty while recurring.
   final Set<int> weekdays;
 
-  /// Adds or removes one weekday. Removing the last one is a no-op upstream.
   final ValueChanged<int> onWeekdayToggled;
 
   final DateTime startDate;
   final VenueCourtItemModel selectedCourt;
   final String? selectedTime;
 
-  /// While the `/bookings/recurring-availability` call is in flight we show a
-  /// spinner on the duration boxes (instead of a separate section below).
   final bool isCheckingAvailability;
 
-  /// Latest `/bookings/recurring-availability` result for this selection, when
-  /// one has been fetched. Drives the available / unavailable breakdown.
   final RecurringAvailabilityModel? availability;
 
   @override
@@ -341,7 +333,6 @@ class BookingTypeCard extends StatelessWidget {
   String _shortDate(DateTime date) => AppDateFormat.format(date, 'EEE d MMM');
 }
 
-/// Small caption above a group of controls inside the recurring card.
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({required this.label});
 
@@ -360,10 +351,6 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-/// Sunday-first row of weekday toggles.
-///
-/// The set is never empty — the bloc refuses the tap that would clear the last
-/// day — so the picker always describes a bookable schedule.
 class _WeekdayPicker extends StatelessWidget {
   const _WeekdayPicker({
     required this.selected,
@@ -706,14 +693,10 @@ class _RecurringPriceSheet extends StatelessWidget {
     return '${date.year.toString().padLeft(4, '0')}-$month-$day';
   }
 
-  /// `Sunday, 16 Aug 2026` — the weekday is spelled out here because the sheet
-  /// is where the user checks which days they are actually paying for.
   String _detailDate(DateTime date) =>
       AppDateFormat.format(date, 'EEEE, d MMM y');
 }
 
-/// Available / unavailable split for a recurring schedule, shown above the
-/// per-date price list so the counts are visible before scrolling.
 class _AvailabilityBanner extends StatelessWidget {
   const _AvailabilityBanner({
     required this.availableCount,

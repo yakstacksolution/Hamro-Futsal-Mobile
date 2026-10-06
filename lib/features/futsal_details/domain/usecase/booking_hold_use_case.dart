@@ -8,8 +8,6 @@ final class BookingHoldUseCase {
 
   final FutsalDetailsRepository repository;
 
-  /// Holds the slot on [bookingDate], or on every date in [bookingDates]
-  /// for a recurring booking — one list item per date, all in one request.
   Future<Either<AppException, List<BookingHoldModel>>> createHold({
     required int? venueId,
     required int? courtId,
@@ -46,7 +44,6 @@ final class BookingHoldUseCase {
     );
   }
 
-  /// Releases the holds with [holdIds] in one request.
   Future<Either<AppException, Unit>> releaseHolds(List<String> holdIds) async =>
       await repository.releaseBookingHolds(holdIds: holdIds);
 }

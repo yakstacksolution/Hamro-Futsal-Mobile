@@ -29,7 +29,6 @@ class OpsToolbar extends StatelessWidget {
   final bool hasUnreadNotifications;
   final VoidCallback? onNotifications;
 
-  /// The vendor's first name; "there" until the profile has loaded.
   final String? userName;
 
   @override
@@ -165,9 +164,6 @@ class _NotificationAction extends StatelessWidget {
   }
 }
 
-/// `‹ date ›  [Today]` — steps the dashboard's date a day at a time, opens
-/// the date picker on the date itself, and jumps back to today. The top bar
-/// and the Day board share it.
 class OpsDateControls extends StatelessWidget {
   const OpsDateControls({
     super.key,
@@ -178,17 +174,10 @@ class OpsDateControls extends StatelessWidget {
 
   final VendorOpsState state;
 
-  /// The small `TODAY` / weekday line above the date.
   final bool showDayLabel;
 
-  /// Pulls the whole row left so the `‹` glyph sits 4 px inside the
-  /// leading edge, instead of inset by the button's padding and the glyph's
-  /// own margin. Everything keeps its spacing; the tap targets their size.
   final bool alignStart;
 
-  /// The `‹` glyph starts 16 px into the row: 8 px of compact button around
-  /// its icon, then 8 px of the chevron's own margin. Taking back 12 leaves
-  /// it 4 px in.
   static const double _alignStartShift = -12;
 
   Future<void> _pick(BuildContext context) async {
@@ -347,8 +336,6 @@ class _TodayButton extends StatelessWidget {
   }
 }
 
-/// Toggles a vendor between the operations home and the normal home. The
-/// normal home's app bar shows the compact form too.
 class HomeModeSwitch extends StatelessWidget {
   const HomeModeSwitch({
     super.key,
@@ -725,8 +712,6 @@ class OpsOption<T> {
   final String? subtitle;
 }
 
-/// A searchable multi-select sheet. An empty result means "all". Returns
-/// null when dismissed.
 Future<Set<T>?> showOpsMultiSelect<T>(
   BuildContext context, {
   required String title,

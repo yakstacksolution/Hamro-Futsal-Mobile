@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/helper/download_helper.dart';
 import 'package:hamro_futsal/core/date_time/app_date_picker.dart';
 import 'package:hamro_futsal/features/booking_overview/domain/repository/booking_overview_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,16 +13,17 @@ import 'package:hamro_futsal/features/booking_overview/data/model/booking_overvi
 import 'package:hamro_futsal/features/booking_overview/domain/usecase/booking_overview_usecase.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/bloc/booking_overview_bloc/booking_overview_bloc.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/models/booking_analytics.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_export_sheet.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_common.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_filter_widgets.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_dashboard.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_tabs.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BookingOverviewScreen extends StatelessWidget {
   const BookingOverviewScreen({super.key, this.repository});
 
-  /// Injected in tests; the app uses the live repository.
   final BookingOverviewRepository? repository;
 
   @override
@@ -62,23 +64,90 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
     super.dispose();
   }
 
-  /// Maps the selected chip to the optional `/booking-overview` filter params.
-  /// Presets send just `date_filter`; a custom range adds `date_from`/`date_to`.
-  LoadBookingOverviewEvent _loadEvent() {
+  ({
+    String dateFilter,
+    String? dateFrom,
+    String? dateTo,
+    List<String>? venueIds,
+  })
+  _filters() {
     final venueIds = _futsalId == null ? null : <String>[_futsalId!];
     if (_period == BookingPeriod.custom) {
       final r = _customRange;
-      return LoadBookingOverviewEvent(
+      return (
         dateFilter: 'custom',
         dateFrom: r == null ? null : _fmtDate(r.start),
         dateTo: r == null ? null : _fmtDate(r.end),
         venueIds: venueIds,
       );
     }
-    return LoadBookingOverviewEvent(
+    return (
       dateFilter: _period.key,
+      dateFrom: null,
+      dateTo: null,
       venueIds: venueIds,
     );
+  }
+
+  LoadBookingOverviewEvent _loadEvent() {
+    final f = _filters();
+    return LoadBookingOverviewEvent(
+      dateFilter: f.dateFilter,
+      dateFrom: f.dateFrom,
+      dateTo: f.dateTo,
+      venueIds: f.venueIds,
+    );
+  }
+
+  void _export() {
+    final f = _filters();
+    context.read<BookingOverviewBloc>().add(
+      ExportBookingOverviewEvent(
+        dateFilter: f.dateFilter,
+        dateFrom: f.dateFrom,
+        dateTo: f.dateTo,
+        venueIds: f.venueIds,
+      ),
+    );
+  }
+
+  Future<void> _onExportState(
+    BuildContext context,
+    BookingOverviewState state,
+  ) async {
+    switch (state.exportStatus) {
+      case BookingExportStatus.success:
+        final file = state.exportFile;
+        if (file == null) return;
+        // Straight onto the device — no share sheet in between.
+        final savedFile = await DownloadHelper.saveFile(
+          bytes: file.bytes,
+          fileName: file.fileName,
+        );
+        if (!context.mounted) return;
+        if (savedFile == null) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.error,
+            StringConstants.attachmentDownloadFailed,
+          );
+          return;
+        }
+        await showBookingExportSheet(
+          context: context,
+          savedFile: savedFile,
+          export: file,
+        );
+      case BookingExportStatus.failure:
+        AppUtils().showSnackBar(
+          context,
+          MsgType.error,
+          state.exportErrorMessage ?? StringConstants.couldNotExportBookings,
+        );
+      case BookingExportStatus.idle:
+      case BookingExportStatus.exporting:
+        break;
+    }
   }
 
   void _reload() => context.read<BookingOverviewBloc>().add(_loadEvent());
@@ -116,13 +185,20 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(
+      appBar: CustomAppBar(
         title: StringConstants.bookingOverview,
         showBack: true,
+        actions: <Widget>[
+          _ExportButton(onPressed: _export),
+          const SizedBox(width: AppDimens.paddingX4),
+        ],
       ),
       body: SafeArea(
         top: false,
-        child: BlocBuilder<BookingOverviewBloc, BookingOverviewState>(
+        child: BlocConsumer<BookingOverviewBloc, BookingOverviewState>(
+          listenWhen: (previous, current) =>
+              previous.exportStatus != current.exportStatus,
+          listener: _onExportState,
           builder: (context, state) {
             final overview = state.overview;
             if (overview != null) {
@@ -323,7 +399,46 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
   }
 }
 
-/// Widest the overview dashboard grows before centring in the window.
+class _ExportButton extends StatelessWidget {
+  const _ExportButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<BookingOverviewBloc, BookingOverviewState>(
+      buildWhen: (previous, current) =>
+          previous.exportStatus != current.exportStatus ||
+          (previous.overview == null) != (current.overview == null),
+      builder: (context, state) {
+        final bool exporting =
+            state.exportStatus == BookingExportStatus.exporting;
+        return IconButton(
+          tooltip: exporting
+              ? StringConstants.exportingBookings
+              : StringConstants.exportBookings,
+          onPressed: exporting || state.overview == null ? null : onPressed,
+          icon: exporting
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: LightColor.secondaryColor,
+                  ),
+                )
+              : Icon(
+                  Icons.file_download_outlined,
+                  size: 22,
+                  color: state.overview == null
+                      ? LightColor.iconGrey
+                      : LightColor.primaryTextColor,
+                ),
+        );
+      },
+    );
+  }
+}
+
 const double kDashboardMaxWidth = 1280;
 
 class _LoadError extends StatelessWidget {

@@ -1,11 +1,6 @@
 import 'package:hamro_futsal/core/utils/image_constants.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// One dashboard tab destination.
-///
-/// Shared by [CustomBottomNavigationBar] (phone) and [DashboardSideNav]
-/// (tablet/desktop) so the two presentations cannot drift apart. The list index
-/// is the `IndexedStack` index in `DashboardScreen`.
 class DashboardNavDestination {
   const DashboardNavDestination({
     required this.icon,
@@ -13,16 +8,13 @@ class DashboardNavDestination {
     required this.label,
   });
 
-  /// Asset path for the inactive (outline) icon.
   final String icon;
 
-  /// Asset path for the active (filled) icon.
   final String activeIcon;
 
   final String label;
 }
 
-/// The five dashboard tabs, in `IndexedStack` order.
 const List<DashboardNavDestination> dashboardNavDestinations =
     <DashboardNavDestination>[
       DashboardNavDestination(

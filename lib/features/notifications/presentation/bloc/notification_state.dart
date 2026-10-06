@@ -18,7 +18,6 @@ final class NotificationState extends Equatable {
   final int unreadCount;
   final String? errorMessage;
 
-  /// Bumped after every completed fetch so pull-to-refresh can await it.
   final int refreshTick;
 
   NotificationState copyWith({

@@ -4,13 +4,6 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 
-/// The row of OTP boxes, sized to fill the width it is given.
-///
-/// The boxes are sized from the space the card actually gives the row: up to
-/// 56pt wide, near-square, tightly spaced and centred as one group.
-///
-/// Shared by OTP verification and the forgot-password reset screen so the two
-/// code inputs cannot drift apart visually.
 class OtpDigitRow extends StatelessWidget {
   const OtpDigitRow({
     super.key,
@@ -22,28 +15,18 @@ class OtpDigitRow extends StatelessWidget {
   final List<TextEditingController> controllers;
   final List<FocusNode> focusNodes;
 
-  /// Called with the index of the box that changed and its new text.
   final void Function(int index, String value) onChanged;
 
-  /// The size a box gets whenever there is room for it. Six boxes this wide
-  /// exceed the width of a phone card, so it is an upper bound, not a promise.
   static const double _maxBoxWidth = AppDimens.sizeX56;
 
-  /// The floor, reached only on a 320pt phone, where six boxes plus gutters
-  /// cannot all be comfortable inside the card.
   static const double _minBoxWidth = AppDimens.sizeX32;
 
   static const double _heightRatio = 1.15;
 
-  /// Even spacing between boxes; enough to tell them apart, tight enough that
-  /// the six still read as one code.
   static const double _gap = AppDimens.sizeX8;
 
-  /// The gutter a 320pt phone gets: at the full [_gap] the six boxes no longer
-  /// fit inside the card there.
   static const double _tightGap = AppDimens.sizeX6;
 
-  /// Below this the row switches to [_tightGap].
   static const double _tightLayoutWidth = 280;
 
   @override
@@ -94,7 +77,6 @@ class OtpDigitRow extends StatelessWidget {
   }
 }
 
-/// One box of an OTP row. Sized by its parent — see [OtpDigitRow].
 class OtpDigitField extends StatelessWidget {
   const OtpDigitField({
     super.key,
@@ -109,7 +91,6 @@ class OtpDigitField extends StatelessWidget {
   final FocusNode focusNode;
   final ValueChanged<String> onChanged;
 
-  /// Falls back to a fixed responsive size when used outside [OtpDigitRow].
   final double? width;
   final double? height;
 

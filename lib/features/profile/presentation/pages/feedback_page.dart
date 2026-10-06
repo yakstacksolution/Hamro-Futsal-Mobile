@@ -158,8 +158,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
     if (mounted) Navigator.of(context).pop();
   }
 
-  /// A small celebratory confirmation beats a passing snackbar for the one
-  /// moment the user gives us their time.
   Future<void> _showThankYouDialog() {
     return showDialog<void>(
       context: context,
@@ -355,9 +353,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
     );
   }
 
-  /// Tablet / desktop: the form centred at a readable width with Submit at
-  /// the end of the form card instead of a window-wide bottom bar; desktop
-  /// puts the intro and privacy note in a column beside the form.
   Widget _buildWide(BuildContext context) {
     final bool desktop = context.isDesktop;
     final Widget form = _buildFormCard(
@@ -441,7 +436,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
   }
 }
 
-/// Brand gradient header with soft decorative circles.
 class _HeroPanel extends StatelessWidget {
   const _HeroPanel();
 
@@ -1007,7 +1001,6 @@ class _PrivacyNote extends StatelessWidget {
   }
 }
 
-/// Scale-in green check + thank-you message shown after a submit.
 class _ThankYouDialog extends StatelessWidget {
   const _ThankYouDialog({required this.onDone});
 

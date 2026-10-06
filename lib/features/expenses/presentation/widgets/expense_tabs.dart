@@ -9,8 +9,6 @@ import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_comm
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_record_widgets.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_summary_widgets.dart';
 
-/// "How am I doing?" — hero total + KPI snapshot, straight from the
-/// server-computed [ExpenseReport.summary].
 class ExpenseOverviewTab extends StatelessWidget {
   const ExpenseOverviewTab({super.key, required this.report});
 
@@ -37,8 +35,6 @@ class ExpenseOverviewTab extends StatelessWidget {
   }
 }
 
-/// "Where is money going?" — trend chart + category breakdown, from the
-/// server-computed [ExpenseReport.trend] and [ExpenseReport.byCategory].
 class ExpenseAnalyticsTab extends StatelessWidget {
   const ExpenseAnalyticsTab({
     super.key,
@@ -49,7 +45,6 @@ class ExpenseAnalyticsTab extends StatelessWidget {
 
   final ExpenseReport report;
 
-  /// Selected server category id (client-side highlight only).
   final String? selectedCategory;
   final ValueChanged<String?> onSelectCategory;
 

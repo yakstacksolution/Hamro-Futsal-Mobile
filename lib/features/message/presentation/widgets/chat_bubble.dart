@@ -14,8 +14,6 @@ import 'package:hamro_futsal/features/message/domain/model/message_mentions.dart
 import 'package:hamro_futsal/features/message/presentation/utils/message_fmt.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// One chat bubble — mine: filled accent, right-aligned with delivery ticks;
-/// theirs: white card, left-aligned (sender name shown in groups).
 class ChatBubble extends StatelessWidget {
   const ChatBubble({
     super.key,
@@ -32,22 +30,14 @@ class ChatBubble extends StatelessWidget {
   final ChatMessageModel message;
   final bool isMe;
 
-  /// Show the sender's name above the bubble (group chats).
   final bool showSender;
   final VoidCallback? onLongPress;
   final ValueChanged<ChatMediaModel>? onMediaTap;
 
-  /// Fetches the authed bytes for an attachment. When provided, image
-  /// attachments render inline (the relative media URL needs a bearer token,
-  /// so it can't be loaded as a plain network image).
   final Future<Uint8List?> Function(ChatMediaModel media)? mediaBytesLoader;
 
-  /// The conversation's participants, so `@name` in the body can be matched
-  /// and highlighted.
   final List<MentionCandidate> mentionCandidates;
 
-  /// Whether this message calls out the signed-in user — a direct mention or
-  /// an `@all`.
   final bool mentionsMe;
 
   @override
@@ -245,7 +235,6 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  /// The message body, with any `@mention` and any URL picked out of it.
   Widget _buildBody(dynamic textTheme) {
     final TextStyle? base = textTheme.bodyTextSmall?.copyWith(
       color: isMe ? LightColor.inverseTextColor : LightColor.primaryTextColor,
@@ -274,7 +263,6 @@ class ChatBubble extends StatelessWidget {
   }
 }
 
-/// Attachment row inside a bubble: type icon, file name and size.
 class _MediaChip extends StatelessWidget {
   const _MediaChip({required this.media, required this.isMe, this.onTap});
 
@@ -332,15 +320,9 @@ class _MediaChip extends StatelessWidget {
   }
 }
 
-/// Module-level cache of resolved image bytes, keyed by media id, so scrolling
-/// or rebuilding the thread doesn't refetch every visible image. Capped to keep
-/// a long-lived session from growing unbounded.
 final Map<int, Uint8List> _imageBytesCache = <int, Uint8List>{};
 const int _imageBytesCacheCap = 60;
 
-/// Inline preview for an image attachment. Fetches the authed bytes once (via
-/// [loader], then cached), shows a placeholder while loading, and falls back to
-/// the file chip on failure. Tapping opens the full-screen viewer via [onTap].
 class _InlineImage extends StatefulWidget {
   const _InlineImage({
     required this.media,
@@ -437,7 +419,6 @@ class _InlineImageState extends State<_InlineImage> {
   }
 }
 
-/// Centered day separator chip (`Today`, `Yesterday`, `2 Jun`).
 class ChatDayChip extends StatelessWidget {
   const ChatDayChip({super.key, required this.date});
 
@@ -476,12 +457,6 @@ class ChatDayChip extends StatelessWidget {
   }
 }
 
-/// A message body rendered as text with its `@mentions` highlighted and its
-/// links tappable.
-///
-/// Stateful only because a tappable span needs a [TapGestureRecognizer], and a
-/// recognizer has to be disposed; building them inside a stateless `build`
-/// leaks one per rebuild, and a chat rebuilds constantly.
 class _MessageBodyText extends StatefulWidget {
   const _MessageBodyText({
     required this.body,
@@ -500,10 +475,6 @@ class _MessageBodyText extends StatefulWidget {
 }
 
 class _MessageBodyTextState extends State<_MessageBodyText> {
-  /// One recognizer per link, kept across rebuilds and keyed by where the link
-  /// sits in the body. Reused rather than rebuilt because disposing a
-  /// recognizer that a finger is still on throws — and a chat rebuilds under
-  /// the user's finger every time a message arrives.
   final Map<String, TapGestureRecognizer> _recognizers =
       <String, TapGestureRecognizer>{};
 
@@ -622,8 +593,6 @@ class _MessageBodyTextState extends State<_MessageBodyText> {
   }
 }
 
-/// A run of the body that is drawn differently from the rest — either a
-/// mention or a link.
 class _BodySpan {
   const _BodySpan._({
     required this.start,

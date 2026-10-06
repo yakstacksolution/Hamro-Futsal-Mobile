@@ -11,13 +11,8 @@ import 'package:hamro_futsal/features/booking_overview/presentation/widgets/book
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_leaderboard_widgets.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_summary_widgets.dart';
 
-/// Widest the overview dashboard grows before centring in the window.
 const double kBookingDashboardMaxWidth = 1280;
 
-/// Tablet / desktop Booking Overview: one scrolling dashboard instead of the
-/// phone's three tabs — header and filters, earnings beside the KPI snapshot,
-/// the trend beside the status mix, venue performance as a table, and the two
-/// leaderboards side by side. Desktop pairs sections; tablet stacks them.
 class BookingOverviewDashboard extends StatelessWidget {
   const BookingOverviewDashboard({
     super.key,
@@ -29,10 +24,8 @@ class BookingOverviewDashboard extends StatelessWidget {
 
   final BookingAnalytics analytics;
 
-  /// "N bookings this week" summary under the title.
   final Widget contextLine;
 
-  /// Period chips and venue chips.
   final Widget filters;
   final bool isLoading;
 
@@ -119,8 +112,6 @@ class BookingOverviewDashboard extends StatelessWidget {
   }
 }
 
-/// The filters in a single bordered toolbar, with a slim progress line while
-/// a filter change is loading.
 class _FilterBar extends StatelessWidget {
   const _FilterBar({required this.child, required this.isLoading});
 
@@ -159,8 +150,6 @@ class _FilterBar extends StatelessWidget {
   }
 }
 
-/// Venue performance as a table: one row per venue, figures in aligned
-/// columns, occupancy as a bar.
 class _VenuePerformanceTable extends StatelessWidget {
   const _VenuePerformanceTable({required this.rows});
 

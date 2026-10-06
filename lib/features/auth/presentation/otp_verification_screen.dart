@@ -13,8 +13,6 @@ import 'package:hamro_futsal/features/auth/presentation/widgets/auth_screen_fram
 import 'package:hamro_futsal/features/auth/presentation/widgets/otp_digit_field.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Which flow the OTP screen was opened for, sent to `POST /auth/resend-otp`
-/// as `purpose` so the backend re-mails the right kind of code.
 abstract final class OtpPurpose {
   static const String registration = 'registration';
   static const String passwordReset = 'password_reset';
@@ -29,7 +27,6 @@ class OtpVerificationScreen extends StatefulWidget {
 
   final String? email;
 
-  /// One of [OtpPurpose]; decides what a resend asks the backend to send.
   final String purpose;
 
   @override

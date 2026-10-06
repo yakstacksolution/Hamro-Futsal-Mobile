@@ -21,7 +21,6 @@ import 'package:hamro_futsal/features/products/presentation/bloc/products_bloc.d
 class ProductsScreen extends StatelessWidget {
   const ProductsScreen({super.key, this.repository});
 
-  /// Injected in tests; the app uses the live repository.
   final ProductsRepository? repository;
 
   @override
@@ -538,8 +537,6 @@ class _ProductFormSheet extends StatefulWidget {
   final int venueId;
   final ProductModel? product;
 
-  /// Shown in a centred dialog (tablet / desktop): no drag handle, a close
-  /// button beside the title, and the dialog's own roomier padding.
   final bool asDialog;
 
   @override
@@ -876,9 +873,6 @@ class _EmptyProducts extends StatelessWidget {
   }
 }
 
-/// Tablet / desktop: products as a standard admin dashboard — a header with
-/// the venue picker and the primary action, summary figures, a search and
-/// status filter, and a table of products.
 class _ProductsDashboard extends StatefulWidget {
   const _ProductsDashboard({
     required this.state,
@@ -1192,7 +1186,6 @@ class _ProductsDashboardState extends State<_ProductsDashboard> {
   }
 }
 
-/// Column widths shared by the table header and its rows.
 const int _kColNumber = 1;
 const int _kColName = 6;
 const int _kColPrice = 3;
@@ -1489,7 +1482,6 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-/// All / Active / Inactive segmented filter with counts.
 class _FilterTabs extends StatelessWidget {
   const _FilterTabs({
     required this.value,

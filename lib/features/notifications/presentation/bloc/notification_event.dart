@@ -7,8 +7,6 @@ sealed class NotificationEvent extends Equatable {
   List<Object?> get props => const <Object?>[];
 }
 
-/// Loads notifications for the current filter. [silent] skips the loading
-/// spinner (used for pull-to-refresh and post-action resyncs).
 final class FetchNotificationsEvent extends NotificationEvent {
   const FetchNotificationsEvent({this.silent = false});
 

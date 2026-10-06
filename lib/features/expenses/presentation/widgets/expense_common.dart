@@ -3,7 +3,6 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 
-/// Standard card surface used across the expenses feature.
 class ExpenseSurface extends StatelessWidget {
   const ExpenseSurface({
     super.key,
@@ -59,7 +58,6 @@ class ExpenseSectionLabel extends StatelessWidget {
   }
 }
 
-/// Rich empty state with an optional contextual call to action.
 class ExpenseEmptyState extends StatelessWidget {
   const ExpenseEmptyState({
     super.key,

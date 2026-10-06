@@ -10,7 +10,6 @@ final class ChangePasswordState extends Equatable {
 
   final ChangePasswordStatus status;
 
-  /// Success message from the server, or the failure reason.
   final String? message;
 
   bool get isSubmitting => status == ChangePasswordStatus.submitting;

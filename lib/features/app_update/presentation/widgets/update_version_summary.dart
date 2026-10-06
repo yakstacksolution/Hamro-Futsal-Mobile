@@ -5,12 +5,6 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/app_update/domain/entities/app_update_check.dart';
 
-/// "Installed 1.2.0 → Latest 1.4.2" summary, plus the download size when the
-/// manifest supplies one.
-///
-/// Renders nothing when the source could not tell us a version name (a
-/// Play-only check knows a version *code* but not a version string), rather
-/// than showing a misleading "1.0.0 → 1.0.0".
 class UpdateVersionSummary extends StatelessWidget {
   const UpdateVersionSummary({super.key, required this.check});
 

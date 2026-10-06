@@ -58,17 +58,12 @@ class SlotsSelectionBloc
   int _recurringRequestSerial = 0;
   String? _preferredInitialStartTime;
 
-  /// Which flow opened this screen — walk-ins ask the API for manual-booking
-  /// availability. Set once on initialize and reused by every refresh.
   String _bookingType = BookingTypePayload.regular;
 
-  /// Live slot-availability wiring for the current venue.
   StreamSubscription<SlotAvailabilityUpdate>? _availabilitySub;
   Timer? _availabilityDebounce;
   int? _subscribedVenueId;
 
-  /// Live hold/booking wiring for the venue + date currently on screen
-  /// (the `venue.{venueId}.booking.{bookingDate}` presence channel).
   StreamSubscription<BookingSlotEvent>? _bookingEventsSub;
   StreamSubscription<int>? _viewersSub;
   int? _joinedBookingVenueId;
@@ -114,7 +109,6 @@ class SlotsSelectionBloc
     await _fetchSlotsAndCourts(emit, next);
   }
 
-  /// Subscribes (once per venue) to the `venue.{venueId}.slots` Reverb channel.
   void _listenToAvailability(int? venueId) {
     if (venueId == null || venueId <= 0) return;
     if (_availabilitySub != null && venueId == _subscribedVenueId) return;
@@ -125,8 +119,6 @@ class SlotsSelectionBloc
         .listen(_onAvailabilityPush);
   }
 
-  /// Debounces bursts of broadcasts into a single silent refresh, and ignores
-  /// updates that target a day other than the one currently on screen.
   void _onAvailabilityPush(SlotAvailabilityUpdate update) {
     if (update.date != null &&
         update.date != _formatApiDate(state.selectedDate)) {
@@ -146,9 +138,6 @@ class SlotsSelectionBloc
     });
   }
 
-  /// Joins the `venue.{venueId}.booking.{date}` presence channel for the day
-  /// on screen, leaving the previously joined one (per-date channel, so the
-  /// user must drop out of the old date's roster). No-op when already joined.
   void _joinBookingChannel(int? venueId, DateTime date) {
     if (venueId == null || venueId <= 0) return;
     final String bookingDate = _formatApiDate(date);
@@ -184,9 +173,6 @@ class SlotsSelectionBloc
     }
   }
 
-  /// Applies a live hold/booking broadcast directly to the matching court
-  /// cell. Do not re-fetch here: replacing the full grid after every socket
-  /// push causes unnecessary rebuilds, selection flicker and scroll shaking.
   FutureOr<void> _onBookingRealtimeEvent(
     SlotsBookingRealtimeEvent event,
     Emitter<SlotsSelectionState> emit,
@@ -204,9 +190,6 @@ class SlotsSelectionBloc
     return null;
   }
 
-  /// Immediate optimistic patch: flips the affected court's status when the
-  /// broadcast targets the currently selected slot. The debounced re-fetch
-  /// remains the source of truth for everything else (e.g. slot-level counts).
   void _patchCourtFromPush(
     BookingSlotEvent push,
     Emitter<SlotsSelectionState> emit,
@@ -249,9 +232,6 @@ class SlotsSelectionBloc
     return null;
   }
 
-  /// Silent refresh triggered by the socket: re-pulls authoritative
-  /// availability without flipping to a loading spinner, preserving the user's
-  /// current selection.
   Future<void> _onRealtimeRefresh(
     SlotsRealtimeRefreshRequested event,
     Emitter<SlotsSelectionState> emit,
@@ -384,8 +364,6 @@ class SlotsSelectionBloc
     await _fetchRecurringAvailability(emit, state);
   }
 
-  /// Hits `/bookings/recurring-availability` for the selected court, slot and
-  /// recurrence. No-op unless a recurring booking with a slot and court is set.
   Future<void> _fetchRecurringAvailability(
     Emitter<SlotsSelectionState> emit,
     SlotsSelectionState current,
@@ -457,9 +435,6 @@ class SlotsSelectionBloc
     }
   }
 
-  /// Loads the date's time slots and the available courts for that date in one
-  /// pass. Used on page open and whenever the date changes — the courts call
-  /// runs without a slot filter so the server returns courts for "now".
   Future<void> _fetchSlotsAndCourts(
     Emitter<SlotsSelectionState> emit,
     SlotsSelectionState current,
@@ -686,7 +661,6 @@ String? _statusForBookingEvent(String type) => switch (type) {
   _ => null,
 };
 
-/// Compares two API times (`18:00`, `18:00:00`, `6:00`) on hours + minutes.
 bool _sameApiTime(String? a, String? b) {
   if (a == null || b == null) return false;
   String normalize(String value) {

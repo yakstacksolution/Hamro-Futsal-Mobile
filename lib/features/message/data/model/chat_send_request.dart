@@ -17,10 +17,8 @@ final class ChatSendRequest {
   final int? replyToMessageId;
   final Object metadata;
 
-  /// Participants named in the body (`mentions: [5]`).
   final List<int> mentions;
 
-  /// `@all` — everyone in the conversation (`mention_all: true`).
   final bool mentionAll;
 
   bool get isValid => body.trim().isNotEmpty || attachments.isNotEmpty;

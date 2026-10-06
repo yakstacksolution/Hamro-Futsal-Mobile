@@ -9,25 +9,6 @@ import 'package:hamro_futsal/core/socket/reverb_connection.dart';
 import 'package:hamro_futsal/features/futsal_details/data/service/slot_socket_service.dart';
 import 'package:hamro_futsal/core/config/app_environment.dart';
 
-/// Realtime slot availability backed by **Laravel Reverb** (Pusher protocol).
-///
-/// Two channels feed the slot-selection screen, both multiplexed over the
-/// single shared [ReverbConnection] (the same socket chat uses):
-///
-/// 1. `venue.{venueId}.slots` — fires `venue.slots.updated` after a
-///    booking is created or cancelled; listeners re-fetch the grid.
-/// 2. `venue.{venueId}.booking.{bookingDate}` — fires the six
-///    `slot.*` / `booking.*` hold events plus a member roster of everyone
-///    currently viewing/booking that venue + date.
-///
-/// Both are auth-guarded, signed against Laravel's `/broadcasting/auth` with
-/// the signed-in user's bearer token (same as chat). Channel names are
-/// overridable via `REVERB_SLOT_CHANNEL` / `REVERB_BOOKING_CHANNEL` using the
-/// `{venueId}` / `{bookingDate}` placeholders.
-///
-/// [dispose] is a no-op — the connection is shared app-wide — but the per-date
-/// presence channel must be left via [leaveBookingChannel] when the screen is
-/// torn down so the user drops out of the roster.
 final class ReverbSlotSocketService implements SlotSocketService {
   ReverbSlotSocketService._();
 
@@ -38,7 +19,6 @@ final class ReverbSlotSocketService implements SlotSocketService {
     '${APIEndpoint.baseUrl}/broadcasting/auth',
   );
 
-  /// Laravel Echo private channel carrying slot availability for a venue.
   static String _venueSlotsChannel(int venueId) {
     final String template = AppEnvironment.read('REVERB_SLOT_CHANNEL');
     final String name = template.isNotEmpty
@@ -47,7 +27,6 @@ final class ReverbSlotSocketService implements SlotSocketService {
     return _withChannelPrefix(name, 'private');
   }
 
-  /// Presence channel carrying live hold/booking state for one venue + date.
   static String _bookingChannel(int venueId, String bookingDate) {
     final String template = AppEnvironment.read('REVERB_BOOKING_CHANNEL');
     final String name = template.isNotEmpty
@@ -64,7 +43,6 @@ final class ReverbSlotSocketService implements SlotSocketService {
     return '$prefix-$trimmed';
   }
 
-  /// The six hold/booking events broadcast on the presence channel.
   static const List<String> _holdEvents = <String>[
     BookingSlotEvent.held,
     BookingSlotEvent.released,
@@ -76,20 +54,16 @@ final class ReverbSlotSocketService implements SlotSocketService {
 
   // ── venue.slots.updated (private channel) ─────────────────────────────────
 
-  /// Broadcast controllers keyed by venue id.
   final Map<int, StreamController<SlotAvailabilityUpdate>> _slotControllers =
       <int, StreamController<SlotAvailabilityUpdate>>{};
 
   // ── presence-venue.{id}.booking.{date} ────────────────────────────────────
 
-  /// Per venue+date presence wiring, keyed by [_bookingKey].
   final Map<String, _PresenceBinding> _bookings = <String, _PresenceBinding>{};
 
   static String _bookingKey(int venueId, String bookingDate) =>
       '$venueId|$bookingDate';
 
-  /// HTTP token auth delegates that sign channel subscriptions against
-  /// Laravel's `/broadcasting/auth`, carrying the current bearer token.
   String? get _accessToken {
     if (!AppSettings().isInitialized) return null;
     final String? token = AppSettings().tokenModel.accessToken?.trim();
@@ -252,9 +226,6 @@ final class ReverbSlotSocketService implements SlotSocketService {
     _bookings[_bookingKey(venueId, bookingDate)]?.events.add(slotEvent);
   }
 
-  /// Maps a wire event name onto one of the six hold events. Besides Laravel's
-  /// optional leading dot, tolerate class-qualified event names and the usual
-  /// StudlyCase class names produced when `broadcastAs()` is omitted.
   String _normalizeHoldEvent(String name) {
     final String bare = (name.startsWith('.') ? name.substring(1) : name)
         .trim();
@@ -279,7 +250,6 @@ final class ReverbSlotSocketService implements SlotSocketService {
 
   // ── payload helpers ───────────────────────────────────────────────────────
 
-  /// Best-effort extraction of the affected day as `yyyy-MM-dd`.
   String? _dateFrom(Map<String, dynamic>? payload) {
     if (payload == null) return null;
     final dynamic data = payload['data'];
@@ -299,7 +269,6 @@ final class ReverbSlotSocketService implements SlotSocketService {
     return raw.split('T').first.split(' ').first;
   }
 
-  /// Broadcast payloads sometimes nest fields under `data` — flatten them.
   Map<String, dynamic> _eventPayload(Map<String, dynamic> payload) {
     final dynamic data = payload['data'];
     return data is Map
@@ -355,12 +324,10 @@ final class ReverbSlotSocketService implements SlotSocketService {
     );
   }
 
-  /// No-op: the connection is shared app-wide and outlives individual blocs.
   @override
   void dispose() {}
 }
 
-/// Streams + subscriptions backing one venue+date presence channel.
 final class _PresenceBinding {
   PresenceChannel? channel;
   int? latestViewerCount;
@@ -370,10 +337,6 @@ final class _PresenceBinding {
   final List<StreamSubscription<void>> rosterSubs =
       <StreamSubscription<void>>[];
 
-  /// Replays the current roster to late listeners. Subscription success can
-  /// arrive between [bookingEvents] and [bookingViewers] being wired by the
-  /// BLoC; a plain broadcast stream would lose that first (and often only)
-  /// count until another person joined or left.
   Stream<int> viewerStream() => Stream<int>.multi((controller) {
     final int? current = latestViewerCount;
     if (current != null) controller.add(current);

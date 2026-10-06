@@ -42,18 +42,14 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
 
   late String _selectedGender;
 
-  /// `use_nepali_calendar` — English (AD) is the default.
   late bool _useNepaliCalendar;
   DateTime? _dateOfBirth;
   String? _avatarUrl;
   int? _avatarMediaId;
   bool _isPhotoOnlyUpdate = false;
 
-  /// The form starts read-only; the app bar's Edit action unlocks it. Cancel
-  /// restores the last values received from the profile.
   bool _isEditing = false;
 
-  /// Last profile snapshot applied to the controllers, used to undo an edit.
   UserData? _syncedUser;
 
   late final TextEditingController _fullnameController;
@@ -280,7 +276,6 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     );
   }
 
-  /// Summary banner (phone/tablet) or side column (desktop), plus the form.
   Widget _buildBody(BuildContext context, {required bool isUpdating}) {
     // The synced profile, not `widget.user`: this page is usually opened
     // without one and fetches its own, and the read-only view is now the
@@ -369,8 +364,6 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     );
   }
 
-  /// The two section cards plus the save action. Identical at every width —
-  /// one field per row, never paired.
   List<Widget> _formSections(BuildContext context, {required bool isUpdating}) {
     return <Widget>[
       _sectionLabel(context, 'Personal information'),
@@ -458,8 +451,6 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     ];
   }
 
-  /// Read-only rows separated by hairlines. Same card, same rhythm as the
-  /// fields they replace — only the input chrome is gone.
   List<Widget> _readOnlyRows(List<Widget> rows) {
     return <Widget>[
       for (int i = 0; i < rows.length; i++) ...<Widget>[
@@ -562,8 +553,6 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       ? StringConstants.nepaliCalendar
       : StringConstants.englishCalendar;
 
-  /// The profile's choice; before the server sends one, whatever the app is
-  /// using now (English unless chosen otherwise).
   bool _resolvedUseNepaliCalendar(UserData? user) =>
       user?.useNepaliCalendar ?? AppCalendarController.instance.value.isBs;
 
@@ -612,8 +601,6 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     setState(() => _isEditing = true);
   }
 
-  /// Discards anything typed since Edit was tapped by replaying the last
-  /// profile snapshot into the controllers.
   void _cancelEditing() {
     FocusScope.of(context).unfocus();
     setState(() {
@@ -730,7 +717,6 @@ class _ProfileSummaryCard extends StatelessWidget {
   final String address;
   final String avatarUrl;
 
-  /// Null while the form is read-only, which hides the button entirely.
   final VoidCallback? onChangeImageTap;
 
   @override
@@ -905,11 +891,6 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-/// One profile value in the read-only view: icon, label, value.
-///
-/// The form's fields are only built while editing — a disabled `TextField`
-/// still paints a filled box, a border and a hint, which reads as an input the
-/// user cannot use. These rows carry the same information without that chrome.
 class _DetailRow extends StatelessWidget {
   const _DetailRow({
     required this.icon,

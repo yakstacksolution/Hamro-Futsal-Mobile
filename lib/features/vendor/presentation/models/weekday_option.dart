@@ -1,10 +1,3 @@
-/// Canonical weekday definition used across the court onboarding flow
-/// (weekend days, slot scheduling, pricing previews).
-///
-/// [id] starts at 1 for Sunday and runs through 7 for Saturday, matching the
-/// backend ordering. [key] is the lowercase short code persisted in
-/// `CourtDraft.weekendDays` and sent to the API (`weekend_days: ['sun', ...]`).
-/// [name] is the full detail label.
 class WeekdayOption {
   const WeekdayOption({
     required this.id,
@@ -12,16 +5,12 @@ class WeekdayOption {
     required this.name,
   });
 
-  /// 1 = Sunday ... 7 = Saturday.
   final int id;
 
-  /// Lowercase short code, e.g. `sun` — the value stored and sent to the API.
   final String key;
 
-  /// Full detail label, e.g. `Sunday`.
   final String name;
 
-  /// Capitalized short label for display, e.g. `Sun`.
   String get label =>
       key.isEmpty ? key : key[0].toUpperCase() + key.substring(1);
 
@@ -35,8 +24,6 @@ class WeekdayOption {
     WeekdayOption(id: 7, key: 'sat', name: 'Saturday'),
   ];
 
-  /// Resolves a weekday from an id, short key, short label, or full name,
-  /// regardless of casing. Returns `null` when nothing matches.
   static WeekdayOption? fromAny(Object? raw) {
     if (raw == null) return null;
     if (raw is num) {
@@ -58,7 +45,6 @@ class WeekdayOption {
     return null;
   }
 
-  /// The weekday for a given calendar date.
   static WeekdayOption forDate(DateTime date) {
     return values[date.weekday % DateTime.daysPerWeek];
   }

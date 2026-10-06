@@ -92,7 +92,6 @@ class ExpensesPageLoadingWidget extends StatelessWidget {
   }
 }
 
-/// Plain rounded shimmer block.
 class _Box extends StatelessWidget {
   const _Box({
     this.width,
@@ -117,7 +116,6 @@ class _Box extends StatelessWidget {
   }
 }
 
-/// One horizontal row of pill-shaped filter chips.
 class _ChipRow extends StatelessWidget {
   const _ChipRow({required this.widths});
 

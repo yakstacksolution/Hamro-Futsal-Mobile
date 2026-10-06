@@ -14,15 +14,6 @@ import 'package:hamro_futsal/features/vendor_operations/domain/usecase/get_court
 part 'vendor_ops_event.dart';
 part 'vendor_ops_state.dart';
 
-/// Drives the vendor operations dashboard: the selected date and filters, the
-/// board and summary built from them, and the manual-booking selection.
-///
-/// The selection outlives filter and date changes on purpose — narrowing the
-/// view must never silently throw away an unfinished booking.
-///
-/// It stays live: it watches the realtime channel for what is showing — the
-/// date's for the Day board, the court's week for the Week table — and an
-/// event on it fetches that again, quietly.
 class VendorOpsBloc extends Bloc<VendorOpsEvent, VendorOpsState> {
   VendorOpsBloc({
     VendorOpsRepository? repository,
@@ -84,17 +75,12 @@ class VendorOpsBloc extends Bloc<VendorOpsEvent, VendorOpsState> {
   Timer? _autoRefresh;
   late final StreamSubscription<VendorOpsLiveEvent> _live;
 
-  /// Gathers a burst of realtime events (a booking and its payment, say)
-  /// into one refetch.
   Timer? _liveDebounce;
   static const Duration _liveDelay = Duration(milliseconds: 600);
   bool _liveRefreshPending = false;
 
-  /// The channels being watched, to watch again only when they change.
   List<String> _liveChannels = const <String>[];
 
-  /// The channel for what [s] shows: the date's on the Day board, the shown
-  /// court's week on the Week table.
   static List<String> _channelsFor(VendorOpsState s) {
     if (s.view == OpsAvailabilityView.day) {
       return <String>[VendorOpsChannels.day(s.date)];
@@ -112,7 +98,6 @@ class VendorOpsBloc extends Bloc<VendorOpsEvent, VendorOpsState> {
     ];
   }
 
-  /// Follows the view, date, week and court as they change.
   @override
   void onChange(Change<VendorOpsState> change) {
     super.onChange(change);
@@ -136,8 +121,6 @@ class VendorOpsBloc extends Bloc<VendorOpsEvent, VendorOpsState> {
     });
   }
 
-  /// Guards against a slow response for an earlier date landing after the
-  /// vendor has moved on.
   int _dayRequest = 0;
   int _weekSlotsRequest = 0;
 
@@ -160,8 +143,6 @@ class VendorOpsBloc extends Bloc<VendorOpsEvent, VendorOpsState> {
     await _loadWeekSlots(emit);
   }
 
-  /// The same date, in a week that now begins elsewhere: its seven days are
-  /// a different request, kept apart by their first day.
   Future<void> _onWeekStartChanged(
     VendorOpsWeekStartChanged event,
     Emitter<VendorOpsState> emit,
@@ -171,12 +152,8 @@ class VendorOpsBloc extends Bloc<VendorOpsEvent, VendorOpsState> {
     await _loadWeekSlots(emit);
   }
 
-  /// A kept week older than this is shown at once and fetched again quietly.
   static const Duration _weekFresh = Duration(minutes: 1);
 
-  /// Requests in flight, by week key, so opening the Week table while its
-  /// week is being prefetched waits for that request instead of sending a
-  /// second one to a slow endpoint.
   final Map<
     String,
     Future<(Map<String, OpsCourtWeekAvailability>, AppException?)>
@@ -193,13 +170,6 @@ class VendorOpsBloc extends Bloc<VendorOpsEvent, VendorOpsState> {
     return at == null || KathmanduClock.now().difference(at) < _weekFresh;
   }
 
-  /// Loads the shown court's week from `GET /court-availability-slots` for
-  /// the Week table. A week already kept is shown at once: it is skipped
-  /// while fresh, and fetched again behind it when stale or when [force]
-  /// asks. If it fails, the court keeps what it had on screen.
-  ///
-  /// [prefetch] loads it while the Day board is showing, with no spinner or
-  /// warning, so the Week table opens on it.
   Future<void> _loadWeekSlots(
     Emitter<VendorOpsState> emit, {
     bool force = false,
@@ -276,18 +246,12 @@ class VendorOpsBloc extends Bloc<VendorOpsEvent, VendorOpsState> {
     );
   }
 
-  /// Whether the Day board has the selected date from the server for every
-  /// court.
   bool get _dayLoaded =>
       state.bookingsLoaded &&
       state.courts.every(
         (OpsCourt c) => state.daySlotsFor(c.id, state.date) != null,
       );
 
-  /// Loads the Day board for the selected date in one request — every
-  /// venue's courts, their slots and the bookings on them. Skipped while the
-  /// Week table is showing (once the courts are known), and when the date is
-  /// already loaded unless [force] asks for it again.
   Future<void> _loadDay(
     Emitter<VendorOpsState> emit, {
     required bool showLoading,

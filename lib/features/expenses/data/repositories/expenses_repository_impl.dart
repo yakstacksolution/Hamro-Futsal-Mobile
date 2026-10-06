@@ -129,7 +129,6 @@ final class ExpensesRepositoryImpl extends ExpensesRepository {
         .toList(growable: false);
   }
 
-  /// Walks [keys] up to 3 levels deep until a non-empty list is found.
   List<dynamic> _findList(
     dynamic node, {
     required List<String> keys,
@@ -199,8 +198,6 @@ final class ExpensesRepositoryImpl extends ExpensesRepository {
     }
   }
 
-  /// Applied to the in-memory copy only for now — wire to the update
-  /// endpoint (mirroring [addExpense]) once the backend route exists.
   @override
   Future<Either<AppException, ExpenseModel>> updateExpense(
     String id,
@@ -222,8 +219,6 @@ final class ExpensesRepositoryImpl extends ExpensesRepository {
     return right(updated);
   }
 
-  /// Pulls the created expense id out of `{...}`, `{data: {...}}` or
-  /// `{expense: {...}}` shaped responses.
   String? _extractId(dynamic payload) {
     if (payload is! Map) return null;
     final dynamic direct = payload['id'];

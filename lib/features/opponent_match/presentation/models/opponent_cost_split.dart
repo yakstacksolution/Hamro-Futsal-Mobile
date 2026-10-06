@@ -1,8 +1,6 @@
 import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_futsal/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 
-/// Pure calculator for the court-fee split — derives every figure the
-/// cost-split card and the outgoing request need from the form selections.
 class OpponentCostSplit {
   const OpponentCostSplit({
     required this.format,
@@ -15,9 +13,6 @@ class OpponentCostSplit {
     this.overrideYourShare,
   });
 
-  /// Split with server-authoritative figures — reuses the per-player math on
-  /// the accept flow where the fee and share come from the request/quote, not
-  /// the local format table.
   factory OpponentCostSplit.fromServerShare({
     required int totalFee,
     required int accepterShare,
@@ -37,25 +32,14 @@ class OpponentCostSplit {
   final SplitMode split;
   final SplitBasis basis;
 
-  /// Custom "my side pays" percentage (only meaningful for custom-by-team).
   final int myPercent;
 
-  /// Loser's percentage (only meaningful for custom-by-result).
   final int loserPercent;
   final int playerCount;
 
-  /// Server-quoted totals; when set they take precedence over the local
-  /// format fee table and percentage math.
   final int? overrideCourtFee;
   final int? overrideYourShare;
 
-  /// The real court fee, or 0 when no venue has supplied one yet.
-  ///
-  /// Deliberately NOT falling back to [MatchFormatX.courtFee]: that table is a
-  /// guess per format, so falling back to it showed a confident figure that
-  /// tracked neither the booking nor what the requester typed — the fee looked
-  /// like it had not updated. Callers render [hasCourtFee] == false as "not set
-  /// yet" instead.
   int get courtFee => overrideCourtFee ?? 0;
 
   bool get hasCourtFee => courtFee > 0;
@@ -66,7 +50,6 @@ class OpponentCostSplit {
   bool get isCustomTeams =>
       split == SplitMode.custom && basis == SplitBasis.teams;
 
-  /// Your side's fixed percentage; null when conditional on the result.
   int? get myPct {
     if (split == SplitMode.even) return 50;
     if (isResultBased) return null;
@@ -96,7 +79,6 @@ class OpponentCostSplit {
     return '$myPercent% my side';
   }
 
-  /// One-line share summary embedded in the outgoing request.
   String get shareSummary {
     if (!hasCourtFee) return 'Court fee not set yet';
     if (split == SplitMode.even) {

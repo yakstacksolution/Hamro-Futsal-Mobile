@@ -14,6 +14,5 @@ abstract class ProfileRepository {
     NotificationPreferences preferences,
   );
 
-  /// Deletes the current account and clears the local session.
   Future<Either<AppException, bool>> deleteAccount({required String reason});
 }

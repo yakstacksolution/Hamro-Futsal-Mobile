@@ -110,20 +110,14 @@ class FcmHelper {
 
   factory FcmHelper() => _instance;
 
-  /// Read lazily: on Windows / Linux Firebase is never initialised, and
-  /// touching `FirebaseMessaging.instance` there throws — which used to break
-  /// login, since every login path builds this helper to sync the token.
   FirebaseMessaging get _messaging => FirebaseMessaging.instance;
 
-  /// Firebase Messaging runs on Android, iOS and macOS only (Windows and
-  /// Linux have no implementation), and only once Firebase is initialised.
   static bool get isPushSupported {
     return FirebasePlatformSupport.messaging && Firebase.apps.isNotEmpty;
   }
 
   bool _loggedUnsupported = false;
 
-  /// True when push can run here; says once why not when it cannot.
   bool _pushAvailable() {
     if (isPushSupported) return true;
     if (!_loggedUnsupported) {
@@ -241,9 +235,6 @@ class FcmHelper {
     }
   }
 
-  /// True the first time a launch notification is claimed; false afterwards,
-  /// so the same launch is not replayed by another source or a later init.
-  /// Taps that arrive while the app runs do not go through this.
   bool _takeLaunchSlot() {
     if (_launchNotificationHandled) return false;
     _launchNotificationHandled = true;
@@ -351,13 +342,6 @@ class FcmHelper {
     _handleNotificationData(data);
   }
 
-  /// Whether this platform can produce an FCM token right now.
-  ///
-  /// * iOS / macOS: FCM needs the device's APNs token first, and asking before
-  ///   it arrives throws `apns-token-not-set`. It is waited for briefly; if it
-  ///   never comes (a macOS build without the Push Notifications capability,
-  ///   or a simulator), the sync is skipped quietly — [onTokenRefresh] still
-  ///   registers the token if APNs delivers one later.
   Future<bool> _canGetToken() async {
     if (!Platform.isIOS && !Platform.isMacOS) return true;
     for (int attempt = 0; attempt < _apnsAttempts; attempt++) {

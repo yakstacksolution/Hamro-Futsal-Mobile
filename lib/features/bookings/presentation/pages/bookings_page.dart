@@ -25,13 +25,6 @@ enum _BookingTab { futsal, mine }
 class BookingsPage extends StatelessWidget {
   const BookingsPage({super.key});
 
-  /// Which list a caller outside the page wants shown — a notification tap
-  /// lands on the booking the push is about, and the list behind it should be
-  /// the one that booking belongs to.
-  ///
-  /// Held as a notifier rather than a route argument because the page lives in
-  /// the dashboard's [IndexedStack]: it is usually already built and is never
-  /// re-created when the bookings tab is selected again.
   static final ValueNotifier<BookingListKind?> requestedList =
       ValueNotifier<BookingListKind?>(null);
 
@@ -135,8 +128,6 @@ class _BookingsViewState extends State<_BookingsView>
         BookingStatusFilter.cancelled,
       ];
 
-  /// Both lists offer the same statuses — the endpoints take the same `status`
-  /// values — so one label map serves the chips of either tab.
   static String _filterLabel(BookingStatusFilter filter) => switch (filter) {
     BookingStatusFilter.all => StringConstants.all,
     BookingStatusFilter.pending => StringConstants.pending,
@@ -160,9 +151,6 @@ class _BookingsViewState extends State<_BookingsView>
   bool get _showsMyBookings =>
       widget.isCandidate || _activeTab == _BookingTab.mine;
 
-  /// The visible list's date filter. Both tabs drive the same button and the
-  /// same strip through this, so the section has one code path rather than a
-  /// futsal branch and a my-bookings branch that drift apart.
   BookingDateFilter get _activeDateFilter =>
       _showsMyBookings ? _myDateFilter : _futsalDateFilter;
 
@@ -230,8 +218,6 @@ class _BookingsViewState extends State<_BookingsView>
     BookingsPage.requestedList.addListener(_applyRequestedList);
   }
 
-  /// Reads and clears [BookingsPage.requestedList]. A candidate only ever has
-  /// their own bookings, so a request is consumed without moving anything.
   _BookingTab? _takeRequestedTab() {
     final BookingListKind? requested = BookingsPage.requestedList.value;
     if (requested == null) return null;
@@ -242,8 +228,6 @@ class _BookingsViewState extends State<_BookingsView>
         : _BookingTab.futsal;
   }
 
-  /// Honours a list requested while the page is already alive — the usual
-  /// case, since the dashboard keeps this tab built.
   void _applyRequestedList() {
     final _BookingTab? tab = _takeRequestedTab();
     if (tab == null || !mounted || tab == _activeTab) return;

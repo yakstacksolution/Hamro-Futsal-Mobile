@@ -1,10 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 
-/// Builds the multipart part for one attachment.
-///
-/// Picker-owned paths are intentionally ignored here. Every retry therefore
-/// gets a fresh stream over the immutable bytes captured at selection time.
 MultipartFile buildUploadPart(UploadAttachment attachment) {
   if (attachment.bytes.isEmpty || attachment.size <= 0) {
     throw const UploadValidationException(
@@ -19,11 +15,6 @@ MultipartFile buildUploadPart(UploadAttachment attachment) {
   );
 }
 
-/// Last-line validation for every multipart request, including any legacy
-/// caller that did not use [buildUploadPart].
-///
-/// Feature code validates while selecting files; this second check runs at the
-/// transport boundary so an empty part can never leave the application.
 void validateMultipartFormData(FormData form) {
   if (form.files.length > kUploadMaxFilesPerRequest) {
     throw const UploadValidationException(

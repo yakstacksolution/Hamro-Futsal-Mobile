@@ -1,15 +1,8 @@
 import 'package:equatable/equatable.dart';
 
-/// Parsing helpers shared by every reward model.
-///
-/// The reward endpoints wrap their payload in a `data` envelope, but which keys
-/// carry the numbers varies (`points` / `points_balance` / `available_points`).
-/// Every model reads through these tolerant helpers so a key rename on the
-/// backend degrades to a zero instead of a thrown parse error.
 class RewardParse {
   RewardParse._();
 
-  /// Unwraps nested `data` envelopes until a map without one is reached.
   static Map<String, dynamic> unwrap(dynamic payload) {
     dynamic current = payload;
     for (int depth = 0; depth < 5; depth++) {
@@ -23,7 +16,6 @@ class RewardParse {
     return <String, dynamic>{};
   }
 
-  /// First non-null value among [keys], looked up in [map].
   static dynamic pick(Map<String, dynamic> map, List<String> keys) {
     for (final String key in keys) {
       final dynamic value = map[key];
@@ -80,7 +72,6 @@ class RewardParse {
   }
 }
 
-/// The reward wallet, from `GET /customer/rewards`.
 class RewardsSummaryModel extends Equatable {
   const RewardsSummaryModel({
     this.availablePoints = 0,
@@ -97,48 +88,34 @@ class RewardsSummaryModel extends Equatable {
     this.note = '',
   });
 
-  /// Points the customer can spend right now.
   final int availablePoints;
   final int totalEarnedPoints;
   final int totalRedeemedPoints;
 
-  /// Points consumed by one generated coupon. `0` when the server does not
-  /// publish a threshold, in which case redemption is offered unconditionally
-  /// and the server decides.
   final int pointsPerCoupon;
 
-  /// Money value of one generated coupon, in [currency].
   final double couponValue;
 
   final String tier;
   final String currency;
 
-  /// Points that lapse on [expiresAt]; both are optional.
   final int expiringPoints;
   final DateTime? expiresAt;
 
-  /// Server-side eligibility flag when present; [canRedeem] falls back to
-  /// comparing [availablePoints] against [pointsPerCoupon].
   final bool? canGenerateCoupon;
 
-  /// Points the server says are still needed for the next coupon
-  /// (`points_required`). Null when not sent; [pointsToNextCoupon] then works
-  /// it out from the balance and [pointsPerCoupon].
   final int? pointsRequired;
 
-  /// Free-text programme note shown under the balance.
   final String note;
 
   static const RewardsSummaryModel empty = RewardsSummaryModel();
 
-  /// Whether a coupon can be generated from the current balance.
   bool get canRedeem =>
       canGenerateCoupon ??
       (pointsPerCoupon > 0
           ? availablePoints >= pointsPerCoupon
           : availablePoints > 0);
 
-  /// Points still needed for the next coupon; `0` once redeemable.
   int get pointsToNextCoupon {
     if (canRedeem) return 0;
     final int? fromServer = pointsRequired;
@@ -149,8 +126,6 @@ class RewardsSummaryModel extends Equatable {
     return remaining.clamp(0, pointsPerCoupon);
   }
 
-  /// Progress towards the next coupon, in `0..1`. Full bar when no threshold is
-  /// published but points exist, so the meter never looks broken.
   double get progressToNextCoupon {
     if (pointsPerCoupon <= 0) return availablePoints > 0 ? 1 : 0;
     if (canRedeem) return 1;
@@ -166,7 +141,6 @@ class RewardsSummaryModel extends Equatable {
     return (availablePoints / pointsPerCoupon).clamp(0, 1).toDouble();
   }
 
-  /// How many coupons the balance covers right now.
   int get redeemableCoupons =>
       pointsPerCoupon <= 0 ? 0 : availablePoints ~/ pointsPerCoupon;
 
@@ -296,10 +270,8 @@ class RewardsSummaryModel extends Equatable {
   ];
 }
 
-/// What a history entry did to the balance.
 enum RewardEntryType { earned, redeemed, expired, adjusted }
 
-/// One row of `GET /customer/rewards/history`.
 class RewardHistoryEntryModel extends Equatable {
   const RewardHistoryEntryModel({
     required this.id,
@@ -316,16 +288,13 @@ class RewardHistoryEntryModel extends Equatable {
   final String id;
   final RewardEntryType type;
 
-  /// Always positive; [type] carries the direction.
   final int points;
 
   final String title;
   final String description;
 
-  /// Set on redemption rows that produced a coupon.
   final String couponCode;
 
-  /// Booking/order reference the points came from, when the server sends one.
   final String reference;
 
   final int? balanceAfter;
@@ -333,7 +302,6 @@ class RewardHistoryEntryModel extends Equatable {
 
   bool get isCredit => type == RewardEntryType.earned;
 
-  /// `+120` / `-500`, ready to render.
   String get signedPoints => '${isCredit ? '+' : '-'}$points';
 
   factory RewardHistoryEntryModel.fromJson(Map<String, dynamic> json) {
@@ -385,8 +353,6 @@ class RewardHistoryEntryModel extends Equatable {
     );
   }
 
-  /// Reads the explicit type when the server sends one, otherwise infers the
-  /// direction from the sign of the points change.
   static RewardEntryType _resolveType(Map<String, dynamic> json, int points) {
     final String raw = RewardParse.stringOf(
       RewardParse.pick(json, <String>[
@@ -426,7 +392,6 @@ class RewardHistoryEntryModel extends Equatable {
   ];
 }
 
-/// One page of reward history, plus the pagination cursor.
 class RewardHistoryPageModel extends Equatable {
   const RewardHistoryPageModel({
     this.entries = const <RewardHistoryEntryModel>[],
@@ -442,8 +407,6 @@ class RewardHistoryPageModel extends Equatable {
   final int total;
   final int? lastPage;
 
-  /// Whether another page exists. Falls back to comparing the accumulated count
-  /// with [total] when the server omits `last_page`.
   bool get hasMore {
     if (lastPage != null) return page < lastPage!;
     if (total > 0) return page * perPage < total;
@@ -520,7 +483,6 @@ class RewardHistoryPageModel extends Equatable {
   List<Object?> get props => <Object?>[entries, page, perPage, total, lastPage];
 }
 
-/// The coupon produced by `POST /customer/rewards/generate-coupon`.
 class GeneratedRewardCouponModel extends Equatable {
   const GeneratedRewardCouponModel({
     this.code = '',
@@ -535,14 +497,11 @@ class GeneratedRewardCouponModel extends Equatable {
 
   final String code;
 
-  /// Flat money discount, or [discountPercent] for percentage coupons. Both may
-  /// be null when the server only returns the code.
   final double? discountAmount;
   final double? discountPercent;
 
   final int pointsUsed;
 
-  /// Balance left after redemption, when reported.
   final int? remainingPoints;
 
   final String currency;

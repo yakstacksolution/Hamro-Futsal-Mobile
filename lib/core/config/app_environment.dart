@@ -1,26 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// The environments the app can run against. One env file per value.
 enum AppFlavor { staging, production }
 
-/// Single source of truth for which backend the app talks to.
-///
-/// The flavour is chosen in `main.dart` via `kAppFlavor`, and that choice
-/// decides which bundled asset is loaded:
-///
-/// | `kAppFlavor`            | file loaded           |
-/// |-------------------------|-----------------------|
-/// | [AppFlavor.staging]     | `env_staging.env`     |
-/// | [AppFlavor.production]  | `env_production.env`  |
-///
-/// Every env-backed value in the app (`APIEndpoint`, the Reverb sockets, the
-/// Google sign-in client ids, the store ids) reads from the `dotenv` instance
-/// this class fills, so they all follow the same choice automatically.
 abstract final class AppEnvironment {
-  /// Keys that must be present and non-empty for the app to work at all.
-  /// A missing one means the wrong file was bundled, or a key was added to one
-  /// env file but not the other.
   static const List<String> requiredKeys = <String>[
     'API_URL',
     'SECURE_API_TOKEN',
@@ -31,10 +14,6 @@ abstract final class AppEnvironment {
 
   static const String _raw = String.fromEnvironment('ENV');
 
-  /// Hard override set from `main.dart` (`kAppFlavor`). It wins over
-  /// `--dart-define=ENV` so that editing `kAppFlavor` always takes effect,
-  /// whatever the IDE launch config or Makefile target passes. Leave it `null`
-  /// to follow the build flag (what CI relies on).
   static AppFlavor? selected;
 
   static AppFlavor get flavor => selected ?? _fromFlag ?? _defaultFlavor;
@@ -59,35 +38,20 @@ abstract final class AppEnvironment {
 
   static bool get isExplicit => selected != null || _raw.trim().isNotEmpty;
 
-  /// Bundled asset for the current [flavor] — `env_staging.env` or
-  /// `env_production.env`. Must match the `assets:` list in `pubspec.yaml`.
   static String get envFileName => 'env_$name.env';
 
-  /// The flavour whose file is actually loaded, or `null` before [load] runs.
-  /// It can differ from [flavor] only if someone reassigns [selected] after
-  /// start-up, which [assertLoaded] catches.
   static AppFlavor? loadedFlavor;
 
   static bool get isLoaded => loadedFlavor != null;
 
-  /// Reads one key. Returns `''` when absent, so callers never see a `null`
-  /// leaking into a URL or header.
   static String read(String key) =>
       dotenv.isInitialized ? (dotenv.maybeGet(key)?.trim() ?? '') : '';
 
-  /// Reads one key, falling back to [fallback] when it is absent or blank.
   static String readOr(String key, String fallback) {
     final String value = read(key);
     return value.isEmpty ? fallback : value;
   }
 
-  /// Loads [envFileName] into `dotenv`.
-  ///
-  /// Throws [EnvLoadException] in debug builds if the file is missing or a
-  /// [requiredKeys] entry is blank — a packaging mistake should stop the app
-  /// at start-up rather than surface later as confusing network failures.
-  /// Release builds do not throw; they leave the values empty (requests then
-  /// fail loudly at the API) and let the caller report the error.
   static Future<void> load() async {
     final AppFlavor target = flavor;
     try {
@@ -117,14 +81,10 @@ abstract final class AppEnvironment {
     }
   }
 
-  /// Leaves `dotenv` in a usable (empty) state after a failed [load], so that
-  /// [read] keeps returning `''` instead of throwing.
   static void ensureInitialized() {
     if (!dotenv.isInitialized) dotenv.loadFromString(envString: '');
   }
 
-  /// Guards a code path that must not run before [load] has succeeded, and
-  /// catches a flavour that changed after start-up. Debug builds only.
   static void assertLoaded() {
     assert(
       isLoaded,
@@ -144,8 +104,6 @@ abstract final class AppEnvironment {
   }
 }
 
-/// Raised when the env file for the selected flavour cannot be loaded or is
-/// incomplete.
 class EnvLoadException implements Exception {
   const EnvLoadException(this.message, [this.cause]);
 

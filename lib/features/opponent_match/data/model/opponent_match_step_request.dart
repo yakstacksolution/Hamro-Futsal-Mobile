@@ -1,10 +1,3 @@
-/// The match section of an opponent request — what step one of the wizard
-/// sends, both when opening the request and when the user comes back and
-/// edits it.
-///
-/// `POST /auth/opponent-requests` opens the request with this body;
-/// `PATCH /auth/opponent-requests/{id}/match` re-sends the same body against
-/// the id that came back.
 class OpponentMatchStepRequest {
   const OpponentMatchStepRequest({
     required this.teamId,
@@ -23,15 +16,9 @@ class OpponentMatchStepRequest {
   };
 }
 
-/// Where the court behind an opponent request comes from. The server switches
-/// on this, so the wire values are fixed.
 enum OpponentVenueSource {
-  /// Already booked through this platform — the booking carries the court,
-  /// date, time and fee, so only its id is sent.
   booking('booking'),
 
-  /// Booked somewhere outside this platform: the requester describes the court
-  /// themselves, so every field travels in the body.
   external('external');
 
   const OpponentVenueSource(this.wireValue);
@@ -39,13 +26,7 @@ enum OpponentVenueSource {
   final String wireValue;
 }
 
-/// The venue section of an opponent request — what step two of the wizard
-/// sends against the id step one opened.
-///
-/// `PUT /auth/opponent-requests/{id}/venue`.
 class OpponentVenueStepRequest {
-  /// The "my bookings" branch: the match is hosted by an existing platform
-  /// booking, identified by [bookingId].
   const OpponentVenueStepRequest.existingBooking(this.bookingId)
     : source = OpponentVenueSource.booking,
       venueName = '',
@@ -57,12 +38,6 @@ class OpponentVenueStepRequest {
       preferredDate = null,
       feeAmount = 0;
 
-  /// The "booked elsewhere" branch: the court is described by hand. [endTime]
-  /// is optional — the server derives one when it is absent.
-  ///
-  /// [preferredDate] is the match day. Step one no longer asks for a date, so
-  /// this branch is where it is stated and it travels as `preferred_date`
-  /// alongside the booked window.
   const OpponentVenueStepRequest.external({
     required this.venueName,
     required this.courtName,
@@ -77,10 +52,8 @@ class OpponentVenueStepRequest {
 
   final OpponentVenueSource source;
 
-  /// Set for [OpponentVenueSource.booking].
   final int bookingId;
 
-  /// Set for [OpponentVenueSource.external].
   final String venueName;
   final String courtName;
   final String address;
@@ -89,9 +62,6 @@ class OpponentVenueStepRequest {
   final ({int hour, int minute})? endTime;
   final int feeAmount;
 
-  /// The match day, sent as `preferred_date`. Defaults to [date] when the
-  /// caller leaves it out, since for an external court the booked day *is* the
-  /// match day.
   final DateTime? preferredDate;
 
   Map<String, dynamic> toJson() => switch (source) {
@@ -125,13 +95,9 @@ class OpponentVenueStepRequest {
   static String _two(int value) => value.toString().padLeft(2, '0');
 }
 
-/// How the court fee is divided. Wire values are fixed — the server switches
-/// on them.
 enum OpponentSplitType {
-  /// Half each; no percentage travels with it.
   even('even'),
 
-  /// A percentage the requester sets, read together with [OpponentSplitBasis].
   custom('custom');
 
   const OpponentSplitType(this.wireValue);
@@ -139,12 +105,9 @@ enum OpponentSplitType {
   final String wireValue;
 }
 
-/// What a custom percentage is keyed to.
 enum OpponentSplitBasis {
-  /// Fixed per side: the requesting team always pays its percentage.
   team('team'),
 
-  /// Keyed to the outcome: the percentage applies to whoever loses.
   result('result');
 
   const OpponentSplitBasis(this.wireValue);
@@ -152,24 +115,12 @@ enum OpponentSplitBasis {
   final String wireValue;
 }
 
-/// The cost section of an opponent request — what step three of the wizard
-/// sends against the id step one opened.
-///
-/// `PUT /auth/opponent-requests/{id}/cost`.
 class OpponentCostStepRequest {
-  /// Half each. The server derives both shares, so nothing else is sent.
   const OpponentCostStepRequest.even()
     : splitType = OpponentSplitType.even,
       basis = null,
       requestingTeamPercent = 0;
 
-  /// A custom percentage, read according to [basis].
-  ///
-  /// With [OpponentSplitBasis.team] it is the requesting team's fixed share and
-  /// travels as `requesting_team_percent`. With [OpponentSplitBasis.result] it
-  /// is the *loser's* share, and the pair `loser_pay_percent` /
-  /// `winner_pay_percent` travels instead — neither side is fixed in advance,
-  /// so naming one "the requesting team" would say the wrong thing.
   const OpponentCostStepRequest.custom({
     required OpponentSplitBasis this.basis,
     required this.requestingTeamPercent,
@@ -177,18 +128,12 @@ class OpponentCostStepRequest {
 
   final OpponentSplitType splitType;
 
-  /// Null for an even split, which has no percentage to key.
   final OpponentSplitBasis? basis;
 
-  /// Percentage of the court fee carried by the side [basis] names: the
-  /// requesting team for a fixed split (1–99), the loser when keyed to the
-  /// result (1–100, where 100 means the loser covers the whole fee).
   final int requestingTeamPercent;
 
-  /// The loser's share of a result-keyed split.
   int get loserPayPercent => requestingTeamPercent;
 
-  /// What is left for the winner. 0 when the loser carries the whole fee.
   int get winnerPayPercent => 100 - requestingTeamPercent;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -204,11 +149,6 @@ class OpponentCostStepRequest {
   };
 }
 
-/// What the server hands back when the request is opened.
-///
-/// Only the id is load-bearing — every later step patches against it — but the
-/// status is kept so the UI can tell a draft from a published request without
-/// a second fetch.
 class OpponentRequestRefModel {
   const OpponentRequestRefModel({required this.id, this.status = ''});
 
@@ -217,9 +157,6 @@ class OpponentRequestRefModel {
 
   bool get isValid => id.isNotEmpty;
 
-  /// The id can arrive at the top level, under `data`, or under
-  /// `data.opponent_request` depending on the endpoint, so the search walks
-  /// down rather than assuming one shape.
   factory OpponentRequestRefModel.fromResponse(dynamic payload) {
     final Map<String, dynamic>? node = _locate(payload, 0);
     if (node == null) return const OpponentRequestRefModel(id: '');

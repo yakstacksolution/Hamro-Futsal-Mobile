@@ -1,6 +1,5 @@
 import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
 
-/// A single pricing window of a court (e.g. Morning 6 AM – 12 PM → Rs 1000).
 class CourtPriceRule {
   const CourtPriceRule({
     required this.label,
@@ -17,12 +16,6 @@ class CourtPriceRule {
   final double price;
 }
 
-/// What the server charges for a court at the requested slot, and what it
-/// would have charged without the discount (`actual_price`).
-///
-/// The figures are the server's: discounts, weekend and holiday rates are all
-/// already applied there, so the app shows these rather than recomputing a
-/// price from the court's own rules.
 class CourtActualPrice {
   const CourtActualPrice({
     required this.amount,
@@ -32,27 +25,20 @@ class CourtActualPrice {
     this.discount,
   });
 
-  /// What the customer pays.
   final double amount;
 
-  /// What it would cost without the discount. Equal to [amount] when there is
-  /// none.
   final double originalAmount;
 
-  /// `base`, `weekend`, `holiday`, `custom` — which of the court's rates the
-  /// server used.
   final String priceType;
 
   final bool hasDiscount;
   final CourtDiscount? discount;
 
-  /// How much is taken off; zero when nothing is.
   double get savings {
     final double diff = originalAmount - amount;
     return diff > 0 ? diff : 0;
   }
 
-  /// A discount worth showing: switched on, and actually cheaper.
   bool get showsDiscount => hasDiscount && savings > 0;
 
   factory CourtActualPrice.fromJson(Map<String, dynamic> json) {
@@ -78,7 +64,6 @@ class CourtActualPrice {
   }
 }
 
-/// The discount behind a [CourtActualPrice].
 class CourtDiscount {
   const CourtDiscount({
     required this.type,
@@ -87,16 +72,12 @@ class CourtDiscount {
     this.label = '',
   });
 
-  /// `flat` or `percentage`.
   final String type;
 
-  /// The rule's own number: rupees for a flat discount, percent otherwise.
   final double value;
 
-  /// Rupees actually taken off.
   final double amount;
 
-  /// The server's own wording, e.g. `Rs. 100 off`.
   final String label;
 
   bool get isPercent {
@@ -120,7 +101,6 @@ double? _priceDouble(dynamic value) {
   return double.tryParse(value.toString().replaceAll(',', ''));
 }
 
-/// The slot a court was matched against (`matching_slot`).
 class CourtMatchingSlot {
   const CourtMatchingSlot({
     this.id,
@@ -135,7 +115,6 @@ class CourtMatchingSlot {
   final String? endTime;
 }
 
-/// A court shown in the courts list of the slot selection page.
 class VenueCourtItemModel {
   const VenueCourtItemModel({
     this.id,
@@ -167,43 +146,31 @@ class VenueCourtItemModel {
   final String courtType;
   final List<CourtPriceRule> priceList;
 
-  /// Availability of the court for the selected slot, from the server's
-  /// `availability_status` field.
   final SlotStatus status;
   final String? startTime;
   final String? endTime;
 
-  /// Extra amount added on Saturdays (weekend in Nepal). Only used when the
-  /// server did not price the slot itself.
   final double weekendSurcharge;
 
   final String? slug;
 
-  /// The court's list price before any slot rate or discount.
   final double? basePrice;
 
-  /// What the server charges for the requested slot. Authoritative when
-  /// present — it already carries weekend, holiday and discount handling.
   final CourtActualPrice? actualPrice;
 
-  /// The slot this court was matched against.
   final CourtMatchingSlot? matchingSlot;
 
   final int? slotDurationMinutes;
 
-  /// Why the court is (un)available, e.g. `available`, `booked`.
   final String? availabilityReason;
 
   bool get isAvailable => status.canSelect;
 
-  /// True when the server priced this slot below its original amount.
   bool get hasDiscount => actualPrice?.showsDiscount ?? false;
 
-  /// What the slot costs before the discount, or null when there is none.
   double? get originalPriceForSlot =>
       hasDiscount ? actualPrice!.originalAmount : null;
 
-  /// How much a single session saves.
   double get savingsPerSession => actualPrice?.savings ?? 0;
 
   VenueCourtItemModel copyWith({
@@ -248,8 +215,6 @@ class VenueCourtItemModel {
     );
   }
 
-  /// The rule whose window contains [slotTime] (e.g. '7:00 AM'),
-  /// or null when nothing matches.
   CourtPriceRule? ruleForTime(String? slotTime) {
     if (slotTime == null || priceList.isEmpty) return null;
     final int hour = _slotHour(slotTime);
@@ -259,12 +224,6 @@ class VenueCourtItemModel {
     return null;
   }
 
-  /// Price for the given date + slot.
-  ///
-  /// The server's `actual_price` wins whenever it is present: it already
-  /// applies the slot's weekend, holiday and discount rules, so adding the
-  /// local surcharge on top would double-charge. The rule list is the fallback
-  /// for responses that carry no priced slot.
   double priceFor(DateTime date, String? slotTime) {
     final CourtActualPrice? priced = actualPrice;
     if (priced != null) return priced.amount;
@@ -275,7 +234,6 @@ class VenueCourtItemModel {
     return isWeekend ? base + weekendSurcharge : base;
   }
 
-  /// What [priceFor] would have been without the discount.
   double originalPriceFor(DateTime date, String? slotTime) {
     final CourtActualPrice? priced = actualPrice;
     if (priced != null) return priced.originalAmount;

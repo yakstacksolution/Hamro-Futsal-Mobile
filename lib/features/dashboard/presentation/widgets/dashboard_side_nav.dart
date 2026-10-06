@@ -5,16 +5,6 @@ import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/dashboard/presentation/widgets/dashboard_nav_destinations.dart';
 
-/// Side navigation shown instead of the bottom bar on tablet and desktop.
-///
-/// Renders the same [dashboardNavDestinations] as [CustomBottomNavigationBar]
-/// and takes the same `currentIndex` / `onTap` contract, so the shell can swap
-/// one for the other without any other change.
-///
-/// * [extended] `false` — icon-only rail, [AppDimens.dashboardRailWidth] wide,
-///   labels surfaced through tooltips (tablet, 600-900).
-/// * [extended] `true` — icons plus labels, [AppDimens.dashboardRailExtendedWidth]
-///   wide (desktop, >=900).
 class DashboardSideNav extends StatelessWidget {
   const DashboardSideNav({
     super.key,

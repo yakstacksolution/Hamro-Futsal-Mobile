@@ -5,11 +5,6 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/widgets/data_card.dart';
 import 'package:shimmer/shimmer.dart';
 
-/// The whole "Your Venues" screen while its first load is in flight.
-///
-/// The header's figures and the search box are drawn as placeholders too: the
-/// real header would otherwise report a portfolio of four zeros for as long as
-/// the request takes, which reads as an answer rather than as waiting.
 class VenueCourtsPageLoading extends StatelessWidget {
   const VenueCourtsPageLoading({super.key, this.itemCount = 3});
 
@@ -32,9 +27,6 @@ class VenueCourtsPageLoading extends StatelessWidget {
   }
 }
 
-/// The venue list alone, for the case where the header and search box are
-/// already on screen — traces the real card: cover, name and contact lines,
-/// the figures row with its badge, the courts toggle and two court rows.
 class VenueListLoading extends StatelessWidget {
   const VenueListLoading({super.key, this.itemCount = 3});
 
@@ -45,8 +37,6 @@ class VenueListLoading extends StatelessWidget {
       _Shimmer(child: _VenueCardListSkeleton(itemCount: itemCount));
 }
 
-/// One shimmer sweep for everything beneath it, so the whole screen pulses
-/// together instead of each card running its own animation.
 class _Shimmer extends StatelessWidget {
   const _Shimmer({required this.child});
 
@@ -87,8 +77,6 @@ class _VenueCardListSkeleton extends StatelessWidget {
   }
 }
 
-/// `_TopDashboardHeader`: title, subtitle, the "New futsal" pill, then the
-/// four-figure portfolio strip in its [DataCard].
 class _HeaderSkeleton extends StatelessWidget {
   const _HeaderSkeleton();
 
@@ -149,8 +137,6 @@ class _HeaderSkeleton extends StatelessWidget {
   }
 }
 
-/// One figure in the portfolio strip: the number above, its name beneath,
-/// both centred like `_PortfolioMetric`.
 class _MetricSkeleton extends StatelessWidget {
   const _MetricSkeleton();
 
@@ -169,7 +155,6 @@ class _MetricSkeleton extends StatelessWidget {
   }
 }
 
-/// `_VenueSearchField`: a 44-high filled box with a leading glyph.
 class _SearchFieldSkeleton extends StatelessWidget {
   const _SearchFieldSkeleton();
 
@@ -201,11 +186,9 @@ class _SearchFieldSkeleton extends StatelessWidget {
   }
 }
 
-/// `_VenueCardV2`, block for block.
 class _VenueCardSkeleton extends StatelessWidget {
   const _VenueCardSkeleton({this.expanded = true});
 
-  /// Whether the courts panel is drawn open, as an expanded card's is.
   final bool expanded;
 
   @override
@@ -365,7 +348,6 @@ class _VenueCardSkeleton extends StatelessWidget {
   }
 }
 
-/// The 1px rule between figures, as `_MetricSeparator` draws it.
 class _SeparatorSkeleton extends StatelessWidget {
   const _SeparatorSkeleton();
 
@@ -378,7 +360,6 @@ class _SeparatorSkeleton extends StatelessWidget {
   );
 }
 
-/// `_VenueStat`: the label above, the value beneath, both left-aligned.
 class _VenueStatSkeleton extends StatelessWidget {
   const _VenueStatSkeleton();
 
@@ -398,7 +379,6 @@ class _VenueStatSkeleton extends StatelessWidget {
   }
 }
 
-/// `_CourtRowV2`: thumb, name and meta, menu — then price and two chips.
 class _CourtRowSkeleton extends StatelessWidget {
   const _CourtRowSkeleton();
 
@@ -470,7 +450,6 @@ class _CourtRowSkeleton extends StatelessWidget {
   }
 }
 
-/// One grey placeholder. A null [width] fills the space it is given.
 class _Block extends StatelessWidget {
   const _Block({
     required this.height,

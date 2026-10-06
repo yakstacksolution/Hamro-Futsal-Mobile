@@ -12,11 +12,6 @@ import 'package:hamro_futsal/features/account/data/model/account_models.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/payment_qr_model.dart';
 import 'package:hamro_futsal/features/account/presentation/utils/account_ui_utils.dart';
 
-/// Gradient hero card: the commission the vendor owes Hamro Futsal, which is
-/// what a settlement pays. Earnings and the cleared balance sit underneath as
-/// context — they explain where the commission came from, they are not the
-/// figure being settled. When the CTA is disabled, [disabledReason] explains
-/// why right below it.
 class AccountBalanceCard extends StatelessWidget {
   const AccountBalanceCard({
     super.key,
@@ -29,18 +24,14 @@ class AccountBalanceCard extends StatelessWidget {
     this.wide = false,
   });
 
-  /// The amount a settlement pays — commission retained by the platform.
   final double commissionPayable;
   final double availableBalance;
   final double pendingClearance;
   final double totalEarned;
 
-  /// Null renders the CTA disabled.
   final VoidCallback? onRequestSettlement;
   final String? disabledReason;
 
-  /// Tablet / desktop: the amounts on the left and the CTA as a fixed-width
-  /// button on the right, instead of a button stretched across the window.
   final bool wide;
 
   @override
@@ -205,7 +196,6 @@ class AccountBalanceCard extends StatelessWidget {
   }
 }
 
-/// Lifetime totals under the hero card: earned / commission / settled.
 class AccountStatsRow extends StatelessWidget {
   const AccountStatsRow({super.key, required this.summary});
 
@@ -308,8 +298,6 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-/// Chevron navigation row used in the main screen's shortcuts card
-/// (futsal breakdown, payout method, settlements).
 class AccountNavTile extends StatelessWidget {
   const AccountNavTile({
     super.key,
@@ -324,9 +312,6 @@ class AccountNavTile extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  /// Defaults to the brand foreground for the active brightness. Held nullable
-  /// because a `const` default cannot read a theme getter, and the fixed brand
-  /// green it used to hold only managed ~3:1 on the dark ground.
   final Color? iconColor;
   final VoidCallback? onTap;
 
@@ -400,22 +385,6 @@ class AccountNavTile extends StatelessWidget {
   }
 }
 
-/// One ledger entry, as a card carrying every field the endpoint sends.
-///
-/// Built from the shared card language in `core/widgets/data_card.dart`, so
-/// this and the booking lists stay visually identical as either changes.
-///
-/// The ledger arrives in credit/debit pairs — a booking payment and the
-/// commission taken out of it repeat the same reference, venue, slot date and
-/// `created_at` — so the card leads with what distinguishes them: the
-/// description and the signed amount, with a `CREDIT`/`DEBIT` chip so the
-/// direction never rests on colour alone. What the pair has in common is
-/// listed beneath the hairline as labelled rows.
-///
-/// Both timestamps are shown and named, because they are different facts and
-/// are usually days apart: `Booking date` is the slot the money is for
-/// (`date`), `Recorded` is when the ledger wrote the row (`created_at`). A
-/// field the payload omits takes its row away rather than showing a blank.
 class AccountEntryTile extends StatelessWidget {
   const AccountEntryTile({super.key, required this.entry});
 
@@ -498,12 +467,6 @@ class AccountEntryTile extends StatelessWidget {
   }
 }
 
-/// The day heading a run of entry cards sits under — `TODAY · 12 SEP 2026`.
-///
-/// Set in small, wide-tracked capitals so it reads as a heading rather than
-/// another card, while staying quieter than the cards it labels. Grouping is
-/// on the recorded day; each card still names its own exact timestamps, since
-/// the slot it is for often falls on a different day than the heading.
 class AccountActivityDateHeader extends StatelessWidget {
   const AccountActivityDateHeader({
     super.key,
@@ -513,8 +476,6 @@ class AccountActivityDateHeader extends StatelessWidget {
 
   final DateTime day;
 
-  /// Tightens the space above — used for the first heading in a list, where
-  /// there is nothing above it to separate from.
   final bool dense;
 
   @override
@@ -549,16 +510,6 @@ class AccountActivityDateHeader extends StatelessWidget {
   }
 }
 
-/// One settlement request, as an amount-led card.
-///
-/// The figure is the anchor — it is what the vendor scans the list for — with
-/// its caption naming which figure it is, so a pending claim is never read as
-/// money already received. Identity (code, venue, timestamp) sits underneath,
-/// and the references and the proof link share a footer below a hairline.
-///
-/// Everything is optional in the payload: a missing venue, reference, proof or
-/// timestamp takes its own slot away rather than leaving an empty one, and long
-/// values truncate instead of overflowing.
 class SettlementCard extends StatelessWidget {
   const SettlementCard({super.key, required this.settlement});
 
@@ -753,8 +704,6 @@ class SettlementCard extends StatelessWidget {
   }
 }
 
-/// Status badge — colour and wording come from the parsed status, never from
-/// the raw string, so an unknown server status still renders sensibly.
 class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.status});
 
@@ -799,7 +748,6 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-/// Why a request did not go through, called out rather than buried in the meta.
 class _RejectionBanner extends StatelessWidget {
   const _RejectionBanner({required this.reason});
 
@@ -844,11 +792,6 @@ class _RejectionBanner extends StatelessWidget {
   }
 }
 
-/// Compact text action that opens the attached proof full screen.
-///
-/// Deliberately no inline thumbnail: the list would otherwise pull a full-size
-/// receipt per row over the network, and a half-loaded image reads as a broken
-/// card. The image is fetched only once the vendor asks to see it.
 class _SettlementProofAction extends StatelessWidget {
   const _SettlementProofAction({required this.imageUrl});
 
@@ -897,8 +840,6 @@ class _SettlementProofAction extends StatelessWidget {
   }
 }
 
-/// "View proof" with the download beside it, so a vendor reconciling a payout
-/// can keep the receipt without opening it first.
 class _SettlementProofRow extends StatelessWidget {
   const _SettlementProofRow({required this.imageUrl});
 
@@ -919,8 +860,6 @@ class _SettlementProofRow extends StatelessWidget {
   }
 }
 
-/// Full-screen, zoomable view of a settlement's payment proof, with the
-/// download action every proof surface offers.
 class SettlementProofViewer extends StatelessWidget {
   const SettlementProofViewer({super.key, required this.imageUrl});
 
@@ -931,7 +870,6 @@ class SettlementProofViewer extends StatelessWidget {
       AttachmentViewer(url: imageUrl, title: StringConstants.paymentProof);
 }
 
-/// Shared empty placeholder for the statement / settlements lists.
 class AccountEmptyState extends StatelessWidget {
   const AccountEmptyState({
     super.key,
@@ -989,12 +927,6 @@ class AccountEmptyState extends StatelessWidget {
   }
 }
 
-/// The QR step of the settlement form, as one card.
-///
-/// Every QR shares the card's chrome — header, amount row, border — and only
-/// the code itself slides. Giving each QR its own full card duplicated all of
-/// that per slide and forced a fixed slide height with dead space inside it;
-/// here the card is exactly as tall as one QR plus its label.
 class SettlementQrCarouselCard extends StatefulWidget {
   const SettlementQrCarouselCard({
     super.key,
@@ -1006,13 +938,11 @@ class SettlementQrCarouselCard extends StatefulWidget {
     this.payeePhone = '',
   });
 
-  /// `/auth/qr-codes`, already filtered and ordered by the model.
   final List<SettlementQrCodeModel> codes;
 
   final String amountLabel;
   final String amountValue;
 
-  /// Used when [codes] is empty — the QR the settlement preview carried.
   final PaymentQrModel? fallbackQr;
   final String fallbackPayeeName;
   final String payeePhone;
@@ -1034,8 +964,6 @@ class _SettlementQrCarouselCardState extends State<SettlementQrCarouselCard> {
     super.dispose();
   }
 
-  /// One synthetic entry keeps the slider a single code path when the list is
-  /// empty — the layout below never has to branch on which source it drew.
   List<SettlementQrCodeModel> get _slides => widget.codes.isNotEmpty
       ? widget.codes
       : <SettlementQrCodeModel>[
@@ -1045,10 +973,6 @@ class _SettlementQrCarouselCardState extends State<SettlementQrCarouselCard> {
           ),
         ];
 
-  /// Save action for [code], or nothing when that slide has no QR.
-  ///
-  /// The vendor pays the commission from their banking app, not this one, so
-  /// keeping the QR matters here for the same reason it does at checkout.
   Widget? _downloadAction(SettlementQrCodeModel code, {Color? color}) {
     if (!code.hasQr) return null;
     return AttachmentDownloadAction(
@@ -1061,8 +985,6 @@ class _SettlementQrCarouselCardState extends State<SettlementQrCarouselCard> {
     );
   }
 
-  /// Names the saved file after the QR's own label, so a vendor saving two of
-  /// them does not overwrite the first.
   String _fileName(SettlementQrCodeModel code) {
     final String label =
         (code.title.isEmpty ? widget.fallbackPayeeName : code.title)
@@ -1262,8 +1184,6 @@ class _SettlementQrCarouselCardState extends State<SettlementQrCarouselCard> {
   }
 }
 
-/// QR bitmap from either of the two shapes the API sends, with a neutral
-/// placeholder when it sends neither.
 class _QrImage extends StatelessWidget {
   const _QrImage({required this.qr, required this.size});
 
@@ -1320,8 +1240,6 @@ class _QrImage extends StatelessWidget {
   );
 }
 
-/// Who the vendor pays, as `/auth/settlement-preview` reports it — logo, name
-/// and the phone to send the transfer to, plus the payable figures.
 class SettlementRecipientCard extends StatelessWidget {
   const SettlementRecipientCard({
     super.key,
@@ -1335,8 +1253,6 @@ class SettlementRecipientCard extends StatelessWidget {
   final double maximumPayable;
   final double pendingClearance;
 
-  /// Lifetime gross earnings. Context for the commission — it is where the
-  /// commission was charged from — never a figure this request pays.
   final double totalEarned;
 
   @override
@@ -1515,7 +1431,6 @@ class _RecipientRow extends StatelessWidget {
   }
 }
 
-/// Server-reported settlement counts as a compact chip row.
 class SettlementSummaryRow extends StatelessWidget {
   const SettlementSummaryRow({super.key, required this.counts});
 

@@ -134,15 +134,6 @@ class CustomCheckbox extends StatelessWidget {
   }
 }
 
-/// Hands its child a bounded width even when it is offered an unbounded one,
-/// by substituting the child's own maximum intrinsic width.
-///
-/// The `Flexible` label above needs bounded constraints — a flex child under
-/// an unbounded main axis throws — but the checkbox is also used inside
-/// horizontally scrolling rows and unbounded `Row`s, where the width is
-/// infinite. Deciding that with a `LayoutBuilder` made the whole subtree
-/// unmeasurable for intrinsics; this decides it one level lower, in layout,
-/// where intrinsics still pass through to the child.
 class _BoundedWidth extends SingleChildRenderObjectWidget {
   const _BoundedWidth({required Widget super.child});
 

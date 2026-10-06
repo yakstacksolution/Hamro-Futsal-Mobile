@@ -6,20 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/routers/app_routers.dart';
 import 'package:hamro_futsal/core/routers/deep_link_target.dart';
 
-/// Opens shared links inside the app.
-///
-/// Two ways in, both handled: a cold start where the link *is* the launch
-/// intent ([AppLinks.getInitialLink]), and a link arriving while the app is
-/// already running ([AppLinks.uriLinkStream]).
-///
-/// Navigation is queued rather than attempted immediately, because a cold
-/// start delivers the link before the router has a navigator — the same
-/// approach `notification_redirection.dart` takes for FCM taps.
-///
-/// Resolving the link to a venue is *not* done here: the link becomes a
-/// location (`/venues/<slug>?venue=<id>`) and the route behind it fetches the
-/// venue. That way a cold-start link the platform hands straight to the
-/// router and a link tapped while the app is running end on the same screen.
 class DeepLinkService {
   DeepLinkService._();
 
@@ -31,7 +17,6 @@ class DeepLinkService {
   bool _navigationInProgress = false;
   bool _started = false;
 
-  /// Begins listening. Safe to call more than once.
   Future<void> start() async {
     if (_started) return;
     _started = true;
@@ -56,11 +41,6 @@ class DeepLinkService {
     _started = false;
   }
 
-  /// Queues [uri] for navigation, ignoring anything the app does not own.
-  ///
-  /// [isLaunchLink] marks the URI the app was started with. The router already
-  /// opened that one — the platform hands it over as the initial route — so
-  /// re-opening it here would stack a second copy of the same page.
   void handleUri(Uri uri, {bool isLaunchLink = false}) {
     final DeepLinkTarget? target = DeepLinkTarget.parse(uri);
     if (target == null) {
@@ -78,12 +58,6 @@ class DeepLinkService {
     flush();
   }
 
-  /// Opens a link that was tapped *inside* the app — a venue URL pasted into a
-  /// chat, say — reusing the queue so it behaves exactly like the same link
-  /// arriving from the OS.
-  ///
-  /// Returns false when the app does not own the URI, which is the caller's cue
-  /// to hand it to the browser instead.
   bool openInternal(Uri uri) {
     final DeepLinkTarget? target = DeepLinkTarget.parse(uri);
     if (target == null) return false;
@@ -94,8 +68,6 @@ class DeepLinkService {
     return true;
   }
 
-  /// Navigates to whatever is queued, as soon as there is a router to do it
-  /// with. Called again from the first frame, so a cold-start link is not lost.
   void flush() {
     final DeepLinkTarget? target = _pending;
     final GoRouter? router = AppRouters.instance;

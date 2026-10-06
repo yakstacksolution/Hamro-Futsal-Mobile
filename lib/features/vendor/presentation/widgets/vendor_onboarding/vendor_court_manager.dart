@@ -45,16 +45,8 @@ class VendorCourtManager extends StatelessWidget {
   final VendorOnboardingCubit cubit;
   final VendorOnboardingState state;
 
-  /// Courts whose editor is currently being opened.
-  ///
-  /// Opening awaits two network calls before the route is pushed, and this
-  /// widget is rebuilt (and re-created) by the onboarding builder, so the guard
-  /// has to outlive the widget instance — same approach as `ChatLauncher`.
-  /// Without it, every tap during that window pushed another editor route.
   static final Set<String> _openingCourtIds = <String>{};
 
-  /// True while the add-court sheet or a delete confirmation is on screen, so a
-  /// second tap cannot stack another one.
   static bool _isAddCourtSheetOpen = false;
   static final Set<String> _removingCourtIds = <String>{};
 

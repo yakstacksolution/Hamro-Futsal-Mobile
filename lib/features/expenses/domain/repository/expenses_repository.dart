@@ -8,8 +8,6 @@ abstract class ExpensesRepository {
   Future<Either<AppException, VenueCourtsModel>> getVenueCourts();
   Future<Either<AppException, List<ExpenseCategoryModel>>> getCategories();
 
-  /// Fetches the server-computed report (summary + analytics + records) for
-  /// the given query params (date_filter, venue_id, payment_method, …).
   Future<Either<AppException, ExpenseReport>> getExpenses(
     Map<String, dynamic> query,
   );

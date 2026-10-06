@@ -27,43 +27,23 @@ final class VenueCourtModel {
   final List<CourtDraft> courts;
   final String? imageUrl;
 
-  /// Contact email the venue was registered with (`email`).
   final String email;
 
-  /// Url-safe identifier (`slug`), e.g. `dhanawantary-sports`.
   final String? slug;
 
-  /// The venue's business registration number (`registration_number`).
   final String? registrationNumber;
 
-  /// Owner of the venue (`user_id`).
   final int? userId;
 
-  /// The onboarding run this venue was created from, when it came from one
-  /// (`vendor_onboarding_id`); null for venues added later.
   final int? vendorOnboardingId;
 
-  /// How far the vendor got in the venue setup wizard (`main_step` /
-  /// `sub_step`). A venue still at step 0 has only its registration details —
-  /// no address, no cover image and no courts — so the UI can send the vendor
-  /// back to finish it instead of showing an empty venue.
   final int? mainStep;
   final int? subStep;
 
   bool get isActive => status.toLowerCase() == 'active';
 
-  /// True while the venue setup wizard has not been completed.
-  ///
-  /// The step counters are the only signal for this: such a venue is returned
-  /// with `status: inactive`, null `futsal_address`, null `cover_image_media`
-  /// and an empty `courts` list.
   bool get isSetupIncomplete => (mainStep ?? 0) <= 0 && (subStep ?? 0) <= 0;
 
-  /// A copy with [courts] (or any other field) replaced.
-  ///
-  /// Local edits — a court added, renamed or removed without a refetch — must
-  /// go through this rather than rebuilding the venue field by field, which
-  /// silently dropped every field the caller forgot to carry over.
   VenueCourtModel copyWith({
     int? id,
     String? title,
@@ -168,11 +148,6 @@ final class VenueCourtModel {
     throw const FormatException('Court detail payload is not an object.');
   }
 
-  /// Parses slot responses into editable slots. Accepts:
-  /// * a bare list, `{data: [...]}`, or a map with `slots`/`slot_schedules`
-  ///   (list endpoints), and
-  /// * a single-slot create/update response `{data: {slot: {...}}}` where the
-  ///   slot carries nested `slot_pricing`.
   static List<SlotPricingDraft> slotsFromResponse(dynamic payload) {
     final dynamic data = payload is Map ? payload['data'] ?? payload : payload;
 
@@ -381,10 +356,6 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
   );
 }
 
-/// Extracts a display image url for the venue. The vendor endpoints send media
-/// objects (`cover_image_media`, `gallery_media`); other endpoints may send a
-/// direct string (`feature_image`) or a gallery list (`venue_gallery_images`),
-/// so check each shape in turn.
 String? _venueImageUrlFromJson(Map<String, dynamic> json) {
   final String direct = _imageUrlFromAny(
     json['cover_image_media'] ??
@@ -410,7 +381,6 @@ String? _venueImageUrlFromJson(Map<String, dynamic> json) {
   return null;
 }
 
-/// Resolves an image url from either a plain string or a media object.
 String _imageUrlFromAny(dynamic value) {
   if (value is Map) {
     return _normalizeUrl(
@@ -432,9 +402,6 @@ String _imageUrlFromAny(dynamic value) {
   return _normalizeUrl(_asString(value));
 }
 
-/// The API concatenates its app url with a leading-slash path, so media urls
-/// arrive as `https://hamrofutsal.com//storage/...`. Collapse the duplicate
-/// slashes in the path — some hosts 404 on them — leaving `https://` alone.
 String _normalizeUrl(String url) {
   if (url.isEmpty) return url;
   final int schemeEnd = url.indexOf('://');
@@ -466,10 +433,6 @@ String? _optionName(Object? value) {
   return null;
 }
 
-/// Resolves a human-readable option name. List responses commonly include
-/// only the type/format id, while detail responses may provide a nested option
-/// or a dedicated `*_name` field. Numeric ids must never be rendered as the
-/// label, so known ids get their corresponding display names instead.
 String _optionDisplayName({
   required Object? value,
   required Object? explicitName,
@@ -487,8 +450,6 @@ String _optionDisplayName({
   return labelsById[id] ?? '';
 }
 
-/// Trimmed text, or null when the field is absent or blank — the endpoint
-/// sends `null` for details a half-finished venue has not supplied yet.
 String? _nullIfEmpty(Object? value) {
   final String text = _asString(value);
   return text.isEmpty ? null : text;
@@ -619,8 +580,6 @@ bool _isMediaMap(Map<String, dynamic> map) {
       map.containsKey('file_url');
 }
 
-/// A QR row may be the media itself or a link row wrapping it under `media`;
-/// the media's own id is what `payment_qr_ids` must send back.
 Map<String, dynamic> _paymentQrMediaMap(Map item) {
   final dynamic media = item['media'] ?? item['payment_qr_media'];
   return Map<String, dynamic>.from(media is Map ? media : item);
@@ -666,8 +625,6 @@ List<ClosedDateDraft> _closedDatesFromAny(dynamic value) {
       .toList(growable: false);
 }
 
-/// Resolves the full-day flag from either the legacy `is_full_day` boolean or
-/// the `closure_type` string (`full_day` / `hourly`) the backend now returns.
 bool _isFullDayFromAny(Map item) {
   final Object? closureType = item['closure_type'] ?? item['closer_type'];
   if (closureType != null) {
@@ -676,11 +633,6 @@ bool _isFullDayFromAny(Map item) {
   return _asBool(item['isFullDay'] ?? item['is_full_day']) ?? true;
 }
 
-/// Builds the editable slot list from the backend. Newer responses split slot
-/// structure (`slot_schedules`: label, days, times) from pricing
-/// (`slot_pricings`), so we combine them by id. Older pricing-only shapes still
-/// work via the fallback. Days are normalized to the capitalized UI labels and
-/// times to the picker's display format so the schedule UI renders the values.
 List<SlotPricingDraft> _slotsFromResponse(dynamic schedules, dynamic pricings) {
   final List<dynamic> scheduleList = _listFromAny(schedules);
   final List<dynamic> pricingList = _listFromAny(pricings);
@@ -788,7 +740,6 @@ SlotPricingDraft _slotFromMaps(
   });
 }
 
-/// Normalizes custom date prices (`[{date, price}]`) for [SlotPricingDraft].
 List<Map<String, dynamic>> _customDatePricesFromAny(dynamic value) {
   return _listFromAny(value)
       .whereType<Map>()
@@ -802,8 +753,6 @@ List<Map<String, dynamic>> _customDatePricesFromAny(dynamic value) {
       .toList(growable: false);
 }
 
-/// Normalizes backend day codes (lowercase, e.g. `sun`) to the capitalized
-/// short labels the slot UI uses (`Sun`).
 Set<String> _slotDayLabelsFromAny(dynamic value) {
   return _listFromAny(value)
       .map((dynamic item) => WeekdayOption.fromAny(item)?.label)
@@ -811,8 +760,6 @@ Set<String> _slotDayLabelsFromAny(dynamic value) {
       .toSet();
 }
 
-/// Converts a backend time (`HH:mm` or `HH:mm:ss`, 24-hour) into the 12-hour
-/// display string the time picker produces (e.g. `23:36:00` -> `11 : 36 PM`).
 String _slotApiTime(Object? value) {
   final String raw = _asString(value);
   if (raw.isEmpty) return '';

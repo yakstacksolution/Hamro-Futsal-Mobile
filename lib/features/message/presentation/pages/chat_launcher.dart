@@ -38,8 +38,6 @@ class ChatLauncher {
     );
   }
 
-  /// Direct user↔user chat — e.g. messaging the requester of an opponent
-  /// match request.
   static Future<void> startDirectUser(
     BuildContext context, {
     required int userId,
@@ -67,12 +65,6 @@ class ChatLauncher {
     );
   }
 
-  /// Opens a thread the server already created, by its id — e.g. the match
-  /// chat room that comes with a confirmed opponent request.
-  ///
-  /// Preferred over [startDirectUser] whenever a conversation id is known: it
-  /// lands in the room both teams share rather than opening a second,
-  /// captain-to-captain thread beside it.
   static Future<void> openConversation(
     BuildContext context, {
     required int conversationId,
@@ -112,7 +104,6 @@ class ChatLauncher {
     );
   }
 
-  /// The signed-in user's id, taken from the access token's `sub` claim.
   static int _currentUserId() => MessageRepositoryImpl().currentUserId;
 
   static Future<void> _start(

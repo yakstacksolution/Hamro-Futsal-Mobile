@@ -264,14 +264,6 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     }
   }
 
-  /// One row of `/auth/opponent-requests?tab=…`.
-  ///
-  /// A row may either be the request itself or a wrapper carrying it under
-  /// `opponent_request`/`request`; [_unwrapRequest] handles both. On the
-  /// `my_requests` tab every row belongs to the caller by definition, so
-  /// `is_mine` is stamped on rather than trusted from the payload — the UI keys
-  /// its actions off it. The other tabs carry other teams' requests, so their
-  /// ownership is left to whatever the payload says.
   Map<String, dynamic> _requestRow(
     Map<dynamic, dynamic> raw, {
     required OpponentRequestTab tab,
@@ -589,8 +581,6 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     }
   }
 
-  /// An invitation row may be the object itself or a wrapper carrying it under
-  /// `invitation`; both shapes have been served by this endpoint.
   Map<String, dynamic> _unwrapInvitation(Map<String, dynamic> raw) {
     for (final key in const ['invitation', 'opponent_invitation']) {
       final dynamic child = raw[key];
@@ -632,9 +622,6 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     }
   }
 
-  /// True when [row] is the request itself rather than the created invitation.
-  /// An invitation row carries no schedule or venue of its own, which is what
-  /// the cards and the details screen are built from.
   bool _isRequestRow(Map<String, dynamic> row) {
     if (row.isEmpty) return false;
     const List<String> requestOnlyKeys = <String>[
@@ -649,9 +636,6 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     return requestOnlyKeys.any((String key) => row[key] != null);
   }
 
-  /// Reads the request back after an accept whose response only echoed the
-  /// invitation. A failure here is not an accept failure: the acceptance did
-  /// land, so surface the server's own message and let the list refresh.
   Future<Either<AppException, OpponentRequestModel>> _refetchAfterAccept(
     String requestId,
   ) async {
@@ -666,9 +650,6 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     return right(OpponentRequestModel.fromJson(row));
   }
 
-  /// POST/DELETE then refresh the list — the server copy is the truth after
-  /// any request mutation (mirrors the teams `_mutateThenReload` pattern,
-  /// including the 204-as-success carve-out for DELETE).
   Future<Either<AppException, List<OpponentRequestModel>>>
   _mutateRequestsThenReload(Future<dynamic> Function() action) async {
     final response = await action();
@@ -695,7 +676,6 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     return <String, dynamic>{};
   }
 
-  /// Unique-enough key for request deduplication; no uuid dependency needed.
   String _idempotencyKey() {
     final random = Random();
     final suffix = List.generate(

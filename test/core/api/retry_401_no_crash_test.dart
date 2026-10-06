@@ -182,6 +182,7 @@ final class _AlwaysFailsHttp implements IHttp {
     String? token,
     Map<dynamic, dynamic>? query,
     dynamic data,
+    ResponseType? responseType,
   }) async => _fail(url ?? '');
 
   @override

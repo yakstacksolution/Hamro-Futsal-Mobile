@@ -171,9 +171,6 @@ class _FutsalPlanSelectionContentState
     );
   }
 
-  /// Applies [option] to the draft. Swapping an already-chosen plan changes
-  /// the commission the vendor is billed at, so it is confirmed first; the
-  /// very first pick has nothing to lose and goes straight through.
   Future<void> _selectPackage({
     required _PackageOption option,
     required FutsalDraft futsalDraft,

@@ -1,11 +1,5 @@
 import 'package:hamro_futsal/features/coupons/data/model/coupon_model.dart';
 
-/// The result of `GET /coupons/active`.
-///
-/// The server may signal availability with just a flag
-/// (`{ has_active_coupon: true }`) and no list, so [hasActiveCoupon] is tracked
-/// independently of [coupons] — the coupon section is shown whenever the flag is
-/// true, even when there are no specific coupons to list.
 class ActiveCouponsModel {
   const ActiveCouponsModel({
     this.hasActiveCoupon = false,

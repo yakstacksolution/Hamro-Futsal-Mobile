@@ -23,14 +23,6 @@ import 'package:hamro_futsal/features/message/presentation/pages/user_profile_pa
 import 'package:hamro_futsal/features/message/presentation/widgets/group_conversation_sheet.dart';
 import 'package:hamro_futsal/features/message/presentation/widgets/group_member_widgets.dart';
 
-/// The group behind a chat: its picture, its name and everyone in it.
-///
-/// Reached by tapping the chat's app-bar header, the same gesture that opens a
-/// person's profile in a direct chat. The member list used to live in the
-/// chat's overflow sheet, which could only ever show a cramped strip of it.
-///
-/// Pops `true` when the user has left the group, which is the chat page's cue
-/// to close itself — the thread it is showing is no longer theirs.
 Future<bool> openGroupProfilePage({
   required BuildContext context,
   required ConversationModel conversation,
@@ -50,8 +42,6 @@ Future<bool> openGroupProfilePage({
 class GroupProfilePage extends StatefulWidget {
   const GroupProfilePage({super.key, required this.conversation});
 
-  /// The conversation as the chat page knows it — the fallback while the bloc
-  /// holds no fresher copy of it.
   final ConversationModel conversation;
 
   @override
@@ -59,9 +49,6 @@ class GroupProfilePage extends StatefulWidget {
 }
 
 class _GroupProfilePageState extends State<GroupProfilePage> {
-  /// Owns the media library sheet's working state — the same throwaway cubit
-  /// the profile screen uses to pick an avatar. It holds no onboarding draft;
-  /// the library is simply where the app keeps its images.
   late final VendorOnboardingCubit _mediaCubit;
 
   @override
@@ -145,8 +132,6 @@ class _GroupProfilePageState extends State<GroupProfilePage> {
   }
 }
 
-/// Picture, name and size. A group has no image of its own in the API, so its
-/// members' faces stand in for one — the same read the inbox row gives.
 class _Header extends StatelessWidget {
   const _Header({
     required this.group,
@@ -170,12 +155,6 @@ class _Header extends StatelessWidget {
     bloc.add(UpdateGroupConversationEvent(group.id, title: title));
   }
 
-  /// Picks a new group photo from the app's media library and sends it on its
-  /// own — the name is edited separately, and pairing them would make changing
-  /// one look like changing both.
-  ///
-  /// The library returns saved images by id, and new uploads land there first,
-  /// so what goes to the API is always a media id rather than a file.
   Future<void> _changePhoto(BuildContext context) async {
     final MessageBloc bloc = context.read<MessageBloc>();
     final List<UploadRef>? picked = await showVendorMediaLibrarySheet(
@@ -306,19 +285,13 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// One large circle: a single member's photo when that is all there is, and a
-/// two-by-two of faces once the group is bigger, with the group glyph as the
-/// fallback for members who have no picture.
 class _GroupImage extends StatelessWidget {
   const _GroupImage({required this.members, this.imageUrl = '', this.onEdit});
 
   final List<ParticipantModel> members;
 
-  /// The group's own picture. When it has one, it replaces the collage of
-  /// member faces that stands in until then.
   final String imageUrl;
 
-  /// Opens the picker. Null while an edit is already in flight.
   final VoidCallback? onEdit;
 
   static const double _size = 108;
@@ -446,7 +419,6 @@ class _GroupImage extends StatelessWidget {
   }
 }
 
-/// What can be done to the group from here: pull more people in, or step out.
 class _Actions extends StatelessWidget {
   const _Actions({required this.group, required this.busy});
 
@@ -613,8 +585,6 @@ class _LeaveGroupSheet extends StatelessWidget {
   }
 }
 
-/// Everyone in the group. Tapping a row opens that person's profile; the
-/// overflow carries the block action the chat's overflow sheet used to hold.
 class _Members extends StatelessWidget {
   const _Members({required this.group, required this.currentUserId});
 
@@ -691,8 +661,6 @@ class _MemberRow extends StatelessWidget {
   final bool isSelf;
   final int conversationId;
 
-  /// A superadmin's group: who is in it, and who may speak, is not the
-  /// members' call, so the row offers no overflow menu to block anyone from.
   final bool locked;
 
   @override
@@ -789,14 +757,6 @@ class _MemberRow extends StatelessWidget {
   }
 }
 
-/// Asks for a new group name, returning it trimmed, or null when the user
-/// backed out or did not change anything.
-///
-/// A bottom sheet rather than an `AlertDialog`: the app asks for input this way
-/// everywhere else, it rides the keyboard instead of fighting it, and the
-/// dialog form tripped the framework's `!semantics.parentDataDirty` assertion —
-/// `CustomButton` builds through a `LayoutBuilder`, which `AlertDialog.actions`
-/// lays out in an `OverflowBar`.
 Future<String?> showChangeGroupNameDialog({
   required BuildContext context,
   required String currentTitle,

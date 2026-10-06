@@ -23,11 +23,6 @@ import 'package:hamro_futsal/features/transactions/presentation/widgets/transact
 import 'package:hamro_futsal/features/transactions/presentation/widgets/transaction_loading_widgets.dart';
 import 'package:hamro_futsal/features/transactions/presentation/widgets/transaction_widgets.dart';
 
-/// Infinitely scrolling `GET /auth/transaction-history` (`per_page=20`).
-///
-/// Everything the user can narrow by — `direction`, `type`, `search`,
-/// `date_from`/`date_to` — is applied server-side, so every control refetches
-/// from page 1 rather than filtering the rows already on screen.
 class TransactionHistoryPage extends StatelessWidget {
   const TransactionHistoryPage({
     super.key,
@@ -35,8 +30,6 @@ class TransactionHistoryPage extends StatelessWidget {
     this.repository,
   });
 
-  /// Only drives the empty-state wording; the ledger itself is whatever the
-  /// server returns for the signed-in user.
   final TransactionPerspective perspective;
   final TransactionRepository? repository;
 
@@ -66,13 +59,10 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
   final ScrollController _scrollController = ScrollController();
   Timer? _searchDebounce;
 
-  /// Distance from the bottom at which the next page is requested.
   static const double _loadMoreThreshold = 280;
 
-  /// Keystrokes are coalesced before hitting the endpoint.
   static const Duration _searchDebounceDelay = Duration(milliseconds: 400);
 
-  /// Long enough to read as a transition, short enough not to delay the result.
   static const Duration _transition = Duration(milliseconds: 220);
 
   @override
@@ -133,9 +123,6 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
     );
   }
 
-  /// `Custom` opens the calendar sheet directly — the same one the Expenses
-  /// screen uses — rather than routing through the filter sheet; every other
-  /// chip resolves to a window immediately.
   Future<void> _onRangeChipSelected(TransactionRangeFilter filter) async {
     if (filter == TransactionRangeFilter.custom) {
       await _pickCustomRange();
@@ -190,7 +177,6 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
     );
   }
 
-  /// Readable width of the ledger column on wider screens.
   static const double _tabletMaxWidth = 760;
   static const double _desktopMaxWidth = 920;
 
@@ -373,8 +359,6 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
     );
   }
 
-  /// Flattens the accumulated items into month headers plus rows, so the whole
-  /// ledger is one lazily built sliver — which also lets it fade as a unit.
   List<_ListRow> _buildRows(List<TransactionHistoryItemModel> items) {
     final List<_ListRow> rows = <_ListRow>[];
     String? currentMonth;
@@ -417,7 +401,6 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
   }
 }
 
-/// One entry in the flattened list: a month header or a transaction.
 sealed class _ListRow {
   const _ListRow();
 
@@ -455,16 +438,12 @@ class _TransactionRow extends _ListRow {
   );
 }
 
-/// Pins the search bar, painting the page background behind it so rows do not
-/// show through as they scroll past.
 class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
   _SearchHeaderDelegate({required this.child, required this.horizontal});
 
   final Widget child;
   final double horizontal;
 
-  /// The hairline's space is always reserved, so revealing it never nudges the
-  /// list.
   static const double _height =
       AppDimens.sizeX44 + (AppDimens.paddingX12 * 2) + 1;
 
@@ -511,15 +490,6 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
       oldDelegate.child != child || oldDelegate.horizontal != horizontal;
 }
 
-/// The in-flight line under the range chips.
-///
-/// Nothing is painted once the query settles — the row leaves no rule behind
-/// it — but its 3px stays reserved, so the bar appearing and disappearing
-/// never nudges the list.
-///
-/// The indicator is built only while loading: an indeterminate one animates
-/// forever, so mounting it at zero opacity would burn frames and never let a
-/// test settle.
 class _FilterProgressLine extends StatelessWidget {
   const _FilterProgressLine({required this.isLoading});
 
@@ -548,7 +518,6 @@ class _FilterProgressLine extends StatelessWidget {
   }
 }
 
-/// Reads back what is currently narrowing the list, with a one-tap reset.
 class _ActiveFilterSummary extends StatelessWidget {
   const _ActiveFilterSummary({required this.state, required this.onClear});
 
@@ -626,7 +595,6 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/// Pagination spinner, load-more retry, or the end-of-list marker.
 class _ListFooter extends StatelessWidget {
   const _ListFooter({required this.state});
 

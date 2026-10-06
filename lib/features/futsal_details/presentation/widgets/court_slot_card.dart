@@ -8,11 +8,6 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_court_item_model.dart';
 
-/// Compact selectable court row: thumbnail, name + meta chips, and the price
-/// for the selected date & slot with a selection indicator.
-///
-/// Everything sits on a single row and every flexible part is constrained, so
-/// the card keeps its height at the narrow two-column tile width as well.
 class CourtSlotCard extends StatelessWidget {
   const CourtSlotCard({
     super.key,
@@ -28,17 +23,12 @@ class CourtSlotCard extends StatelessWidget {
   final VenueCourtItemModel court;
   final DateTime selectedDate;
 
-  /// Selected slot time (e.g. '7:00 AM'), null when none selected.
   final String? selectedTime;
 
-  /// Preformatted label for the selected date & slot.
   final String? slotLabel;
 
-  /// When set (recurring booking), all weekly session dates. The card then
-  /// shows the combined total instead of a single-session price.
   final List<DateTime>? recurringDates;
 
-  /// Whether this court is the currently selected one.
   final bool selected;
   final VoidCallback? onTap;
 
@@ -276,7 +266,6 @@ class CourtSlotCard extends StatelessWidget {
     );
   }
 
-  /// `Rs 1,200` — grouped, so four-figure prices stay readable.
   String _money(double value) =>
       'Rs ${Money.group(value.round().abs().toString())}';
 
@@ -290,7 +279,6 @@ class CourtSlotCard extends StatelessWidget {
   }
 }
 
-/// Round check/blocked indicator on the trailing edge of the card.
 class _SelectIndicator extends StatelessWidget {
   const _SelectIndicator({
     required this.isSelected,

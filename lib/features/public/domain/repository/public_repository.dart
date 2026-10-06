@@ -20,10 +20,6 @@ abstract class PublicRepository {
   Future<Either<AppException, List<PublicOptionModel>>> getFacilities();
   Future<Either<AppException, List<PublicTemplateModel>>> getTemplates();
 
-  /// `GET /venues` — one page of the public listing.
-  ///
-  /// [latitude]/[longitude] are the origin the server measures `distance_km`
-  /// from; they fall back to the device fix when omitted.
   Future<Either<AppException, PublicListingVenuePage>> getVenueList({
     int page,
     int perPage,
@@ -32,8 +28,6 @@ abstract class PublicRepository {
     double? longitude,
   });
 
-  /// Resolves a shared link to the venue behind it, or null when no venue on
-  /// the listing matches the link's slug/id.
   Future<Either<AppException, PublicListingVenueModel?>> getVenueByLink({
     String? slug,
     int? id,
@@ -43,19 +37,13 @@ abstract class PublicRepository {
 
   Future<Either<AppException, List<CategoryFilterModel>>> getCategoryFilter();
 
-  /// `GET /auth/wishlist` — same response shape as the venue listing.
   Future<Either<AppException, PublicListingVenuePage>> getWishlist();
 
-  /// `POST /venues/{venue}/wishlist` — adds/removes the venue from the
-  /// signed-in user's wishlist.
   Future<Either<AppException, bool>> toggleWishlist(int venueId);
 
-  /// `GET /faqs` — public frequently-asked questions.
   Future<Either<AppException, List<PublicFaqModel>>> getFaqs();
 
-  /// `GET /helps` — public help topics.
   Future<Either<AppException, List<PublicHelpModel>>> getHelps();
 
-  /// `GET /youtube-videos` — Help & FAQ video guides, playable items only.
   Future<Either<AppException, List<HelpVideo>>> getYoutubeVideos();
 }

@@ -1,10 +1,7 @@
 part of 'venue_reviews_bloc.dart';
 
-/// Reviews shown inline on the venue details page before "View all".
 const int kVenueReviewsPreviewSize = 5;
 
-/// The venue reviews endpoint is consumed five rows at a time everywhere:
-/// `/venues/{id}/reviews?page=1&per_page=5`.
 const int kVenueReviewsPageSize = 5;
 
 sealed class VenueReviewsEvent extends Equatable {
@@ -14,7 +11,6 @@ sealed class VenueReviewsEvent extends Equatable {
   List<Object?> get props => <Object?>[];
 }
 
-/// Loads page 1, replacing whatever was held.
 final class FetchVenueReviewsEvent extends VenueReviewsEvent {
   const FetchVenueReviewsEvent({
     required this.venueId,
@@ -25,20 +21,16 @@ final class FetchVenueReviewsEvent extends VenueReviewsEvent {
   final int venueId;
   final int perPage;
 
-  /// Keeps the current rows on screen while refetching, for pull-to-refresh.
   final bool refresh;
 
   @override
   List<Object?> get props => <Object?>[venueId, perPage, refresh];
 }
 
-/// Appends the next page.
 final class LoadMoreVenueReviewsEvent extends VenueReviewsEvent {
   const LoadMoreVenueReviewsEvent();
 }
 
-/// Asks the venue admin to let the signed-in user edit or delete their own
-/// review, with the reason they typed in the sheet.
 final class SubmitReviewChangeRequestEvent extends VenueReviewsEvent {
   const SubmitReviewChangeRequestEvent({
     required this.reviewId,

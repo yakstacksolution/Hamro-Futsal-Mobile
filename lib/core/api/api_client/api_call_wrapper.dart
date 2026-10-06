@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -41,6 +43,7 @@ class ApiCallWrapper {
     HttpVerb method = HttpVerb.get,
     dynamic data,
     Map? query,
+    ResponseType? responseType,
   }) async {
     if (SessionGate.blocks(url)) {
       return Result.error(DataError('Session ended', 401, null));
@@ -48,7 +51,13 @@ class ApiCallWrapper {
     printTokenDetails(token);
     try {
       if (isTokenFreshApiCalling) {
-        return await retryApiCallWithDelay(url, method, data, query);
+        return await retryApiCallWithDelay(
+          url,
+          method,
+          data,
+          query,
+          responseType,
+        );
       } else {
         var response = await getResponseFromApi(
           url: url,
@@ -56,6 +65,7 @@ class ApiCallWrapper {
           method: method,
           data: data,
           query: query,
+          responseType: responseType,
         );
         numberOfRetry = 0;
         return Result.success(response.data);
@@ -75,7 +85,13 @@ class ApiCallWrapper {
       }
       if (error.response?.statusCode == 401 && token != null) {
         if (isTokenFreshApiCalling) {
-          return await retryApiCallWithDelay(url, method, data, query);
+          return await retryApiCallWithDelay(
+            url,
+            method,
+            data,
+            query,
+            responseType,
+          );
         } else {
           TokenModel tokenModel = AppSettings().tokenModel;
           var payload = {'refresh_token': tokenModel.refreshToken};
@@ -108,6 +124,7 @@ class ApiCallWrapper {
                 method: method,
                 data: data,
                 query: query,
+                responseType: responseType,
               );
               return Result.success(await response.data);
             } catch (error) {
@@ -128,8 +145,9 @@ class ApiCallWrapper {
     String? url,
     HttpVerb method,
     dynamic data,
-    Map<dynamic, dynamic>? query,
-  ) async {
+    Map<dynamic, dynamic>? query, [
+    ResponseType? responseType,
+  ]) async {
     return Future.delayed(const Duration(seconds: 2), () async {
       try {
         numberOfRetry++;
@@ -141,6 +159,7 @@ class ApiCallWrapper {
               method: method,
               data: data,
               query: query,
+              responseType: responseType,
             );
             numberOfRetry = 0;
             return Result.success(await response.data);
@@ -153,7 +172,13 @@ class ApiCallWrapper {
           }
         } else {
           if (numberOfRetry < maxNumberOfRetry) {
-            return await retryApiCallWithDelay(url, method, data, query);
+            return await retryApiCallWithDelay(
+              url,
+              method,
+              data,
+              query,
+              responseType,
+            );
           } else {
             numberOfRetry = 0;
             await revokeAuthFromApp();
@@ -176,6 +201,7 @@ class ApiCallWrapper {
     HttpVerb method = HttpVerb.get,
     dynamic data,
     Map? query,
+    ResponseType? responseType,
   }) async {
     final dynamic requestData = data is FormData ? data.clone() : data;
     dynamic response;
@@ -186,6 +212,7 @@ class ApiCallWrapper {
           token: token,
           query: query,
           data: requestData,
+          responseType: responseType,
         );
         break;
       case HttpVerb.post:
@@ -254,7 +281,7 @@ class ApiCallWrapper {
     if (error is DioException) {
       DioException dioError = error;
       statusCode = dioError.response?.statusCode ?? 0;
-      responseData = dioError.response?.data;
+      responseData = _decodeBytesBody(dioError.response?.data);
       final bool isUpload = dioError.requestOptions.data is FormData;
       if (isUpload && dioError.type == DioExceptionType.sendTimeout) {
         errorDescription =
@@ -273,6 +300,15 @@ class ApiCallWrapper {
       errorDescription = 'Unexpected error';
     }
     return DataError(errorDescription, statusCode, responseData);
+  }
+
+  dynamic _decodeBytesBody(dynamic body) {
+    if (body is! List<int>) return body;
+    try {
+      return jsonDecode(utf8.decode(body));
+    } catch (_) {
+      return null;
+    }
   }
 
   void printTokenDetails(String? token) {

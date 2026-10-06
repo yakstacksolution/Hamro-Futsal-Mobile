@@ -4,17 +4,8 @@ import 'package:hamro_futsal/core/api/client.dart';
 import 'package:hamro_futsal/features/opponent_match/data/model/accept_opponent_request_request.dart';
 import 'package:hamro_futsal/features/opponent_match/data/model/opponent_request_tab.dart';
 
-/// Compile-time switch that serves opponent requests from contract-shaped
-/// canned JSON only (network never attempted) — run with
-/// `flutter run --dart-define=OPPONENT_MOCK=true`.
-///
-/// Without the flag the default is [OpponentRequestFallbackDataSourceImpl]:
-/// hit the real API first and serve the canned success response only when the
-/// call fails (endpoints not deployed yet).
 const bool kUseOpponentRequestMock = bool.fromEnvironment('OPPONENT_MOCK');
 
-/// Team CRUD + member management, backed by the `/api/teams` endpoints.
-/// Also serves the `/positions` and `/opponent-levels` lookups.
 abstract class TeamRemoteDataSource {
   Future<Result> getTeams();
   Future<Result> getTeam(int teamId);
@@ -84,8 +75,6 @@ final class TeamRemoteDataSourceImpl extends TeamRemoteDataSource {
       );
 }
 
-/// Local demo source for the one part of the feature without a backend yet —
-/// venue name suggestions.
 abstract class OpponentMatchDataSource {
   Future<List<String>> fetchVenues();
 }
@@ -101,61 +90,38 @@ final class OpponentMatchLocalDataSourceImpl
   ];
 }
 
-/// Opponent requests. Every list the app shows comes from the authenticated
-/// `/auth/opponent-requests?tab=…` slices — there is no unauthenticated list
-/// call — plus the single-call accept (the accepting team, no payment), which
-/// posts an invitation to `/auth/opponent-requests/{id}/invitations`.
 abstract class OpponentRequestRemoteDataSource {
   Future<Result> fetchRequest(String requestId);
 
-  /// `GET /auth/opponent-requests/{id}/match-details` — the confirmed match
-  /// behind a settled request.
   Future<Result> fetchMatchDetails(String requestId);
 
-  /// One server-side request tab, e.g.
-  /// `/auth/opponent-requests?tab=settled&page=1&per_page=15`.
   Future<Result> fetchRequests({
     required OpponentRequestTab tab,
     int page = 1,
     int perPage = 15,
   });
 
-  /// One of my own requests by id (`/auth/opponent-requests/{id}`) — the
-  /// authoritative copy the wizard hydrates a resumed draft from.
   Future<Result> fetchMyRequest(String requestId);
 
   Future<Result> createRequest(Map<String, dynamic> data);
 
-  /// Opens a request from the wizard's first step. Returns the created
-  /// request, whose id every later step patches against.
   Future<Result> createMatchStep(Map<String, dynamic> data);
 
-  /// Re-sends the match section of an already-opened request.
   Future<Result> updateMatchStep(String requestId, Map<String, dynamic> data);
 
-  /// Sends the wizard's second step — the venue behind the match.
   Future<Result> saveVenueStep(String requestId, Map<String, dynamic> data);
 
-  /// Sends the wizard's third step — how the court fee is split.
   Future<Result> saveCostStep(String requestId, Map<String, dynamic> data);
 
-  /// Publishes the draft, carrying only the requester's optional message.
   Future<Result> publishRequest(String requestId, Map<String, dynamic> data);
 
   Future<Result> accept(AcceptOpponentRequestRequest request);
 
-  /// The teams that accepted one of my requests
-  /// (`GET /auth/opponent-requests/{id}/invitations`).
   Future<Result> fetchInvitations(String requestId);
 
   Future<Result> decline(String requestId);
   Future<Result> delete(String requestId);
 
-  /// Requester confirms the chosen opponent (closing the request for the
-  /// other invitations) or releases it back to the pool.
-  ///
-  /// [invitationId] is the invitation being accepted — the team the requester
-  /// picked from the invitations list.
   Future<Result> selectOpponent(String requestId, String invitationId);
   Future<Result> rejectInvitation(String requestId, String reason);
 }
@@ -273,12 +239,6 @@ final class OpponentRequestRemoteDataSourceImpl
       );
 }
 
-/// Live API with a static fallback: every call hits `/opponent-requests`
-/// first; when it fails (the backend hasn't shipped these endpoints yet) the
-/// contract-shaped canned success response is served instead, so the accept
-/// flow works end-to-end today and switches to real data the moment the
-/// backend lands. Teams/members are NOT routed through this — they stay
-/// backend-only.
 final class OpponentRequestFallbackDataSourceImpl
     implements OpponentRequestRemoteDataSource {
   final OpponentRequestRemoteDataSourceImpl _remote =
@@ -325,23 +285,14 @@ final class OpponentRequestFallbackDataSourceImpl
     () => _mock.fetchRequests(tab: tab, page: page, perPage: perPage),
   );
 
-  /// Reading a confirmed match never falls back: a canned stand-in would show
-  /// a fixture, a venue and a split that belong to nobody. Reports its errors.
   @override
   Future<Result> fetchMatchDetails(String requestId) =>
       _remote.fetchMatchDetails(requestId);
 
-  /// Hydrating a resumed draft: a canned stand-in would silently autofill the
-  /// wizard with somebody else's data, so this one call reports its errors.
   @override
   Future<Result> fetchMyRequest(String requestId) =>
       _remote.fetchMyRequest(requestId);
 
-  /// The create-request wizard's write steps never fall back. Each one builds
-  /// up a real draft on the server, and a canned success would hide the reason
-  /// the server refused — a 422 like "attach a venue with a fee amount before
-  /// configuring the cost split" is exactly what the user needs to read. They
-  /// report the API's own error so the wizard can show it.
   @override
   Future<Result> createRequest(Map<String, dynamic> data) =>
       _remote.createRequest(data);
@@ -362,23 +313,14 @@ final class OpponentRequestFallbackDataSourceImpl
   Future<Result> saveCostStep(String requestId, Map<String, dynamic> data) =>
       _remote.saveCostStep(requestId, data);
 
-  /// Publishing is a state change the user is told succeeded — a canned
-  /// success would claim the request is live when it is still a draft, so this
-  /// call reports its own errors.
   @override
   Future<Result> publishRequest(String requestId, Map<String, dynamic> data) =>
       _remote.publishRequest(requestId, data);
 
-  /// Sending an acceptance is a write the user is told succeeded, so it never
-  /// falls back to a canned response: a swallowed 409/422 would show
-  /// "Acceptance sent" for an invitation the server never created. This one
-  /// call reports the API's own error instead.
   @override
   Future<Result> accept(AcceptOpponentRequestRequest request) =>
       _remote.accept(request);
 
-  /// Never falls back: the requester picks a real opponent from this list, so
-  /// a canned team would be worse than an error the page can retry.
   @override
   Future<Result> fetchInvitations(String requestId) =>
       _remote.fetchInvitations(requestId);
@@ -390,16 +332,9 @@ final class OpponentRequestFallbackDataSourceImpl
     () => _mock.decline(requestId),
   );
 
-  /// `DELETE /auth/opponent-requests/{id}` is deployed, and a destructive call
-  /// must never report a canned success: falling back would drop the row from
-  /// the UI while the server still has it. Errors are returned as-is so the
-  /// screen can surface them.
   @override
   Future<Result> delete(String requestId) => _remote.delete(requestId);
 
-  /// Confirming the opponent creates the match and rejects every other
-  /// invitation — a canned success would tell the requester the match is on
-  /// while the server never made it. Reports the API's own error instead.
   @override
   Future<Result> selectOpponent(String requestId, String invitationId) =>
       _remote.selectOpponent(requestId, invitationId);
@@ -413,18 +348,10 @@ final class OpponentRequestFallbackDataSourceImpl
       );
 }
 
-/// Contract-shaped mock behind [kUseOpponentRequestMock] — every payload here
-/// is byte-for-byte what the Laravel side is expected to return, so this class
-/// doubles as the living API-contract example while the backend is built.
-///
-/// Special id: accepting request `409` simulates losing the double-accept
-/// race.
 final class OpponentRequestMockDataSourceImpl
     implements OpponentRequestRemoteDataSource {
   static List<Map<String, dynamic>>? _requests;
 
-  /// Keeps mock request ids unique within a session, so a wizard run patches
-  /// the id it just created rather than one from an earlier run.
   static int _mockMatchStepSerial = 0;
 
   List<Map<String, dynamic>> get _store => _requests ??= _seed();
@@ -610,9 +537,6 @@ final class OpponentRequestMockDataSourceImpl
     return null;
   }
 
-  /// Mirrors the server's list slices and paginates the rows just as the
-  /// live endpoint does. This keeps the debug mock faithful to the typed
-  /// `tab`, `page`, and `per_page` contract.
   @override
   Future<Result> fetchRequests({
     required OpponentRequestTab tab,
@@ -698,7 +622,6 @@ final class OpponentRequestMockDataSourceImpl
     return Result.success({'data': r});
   }
 
-  /// Mirrors the real endpoint, which wraps the single row in a list.
   @override
   Future<Result> fetchMyRequest(String requestId) async {
     final r = _find(requestId);
@@ -710,8 +633,6 @@ final class OpponentRequestMockDataSourceImpl
     });
   }
 
-  /// Mirrors the real endpoint's contract: a request with an id, which the
-  /// wizard then patches. No pricing or venue is known at this point.
   @override
   Future<Result> createMatchStep(Map<String, dynamic> data) async {
     await Future.delayed(const Duration(milliseconds: 300));

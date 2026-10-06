@@ -14,12 +14,6 @@ import 'package:hamro_futsal/features/app_update/presentation/widgets/update_err
 import 'package:hamro_futsal/features/app_update/presentation/widgets/update_release_notes.dart';
 import 'package:hamro_futsal/features/app_update/presentation/widgets/update_version_summary.dart';
 
-/// Full-screen, non-dismissible update wall shown when the installed build is
-/// below the minimum supported version or the release is flagged mandatory.
-///
-/// Deliberately not a route: it is layered above the whole app by
-/// [AppUpdateGate], so no navigation — including a notification deep link — can
-/// get behind it. The system back button is swallowed too.
 class ForceUpdateScreen extends StatelessWidget {
   const ForceUpdateScreen({super.key});
 

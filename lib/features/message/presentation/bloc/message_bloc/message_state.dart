@@ -38,7 +38,6 @@ final class MessageState extends Equatable {
     int? conversationsRefreshTick,
   }) : _conversationsRefreshTick = conversationsRefreshTick;
 
-  /// Signed-in user's id — own messages render right-aligned.
   final int currentUserId;
   final MessageStatus conversationsStatus;
   final List<ConversationModel> conversations;
@@ -49,25 +48,20 @@ final class MessageState extends Equatable {
   final bool conversationsLoadingMore;
   final String? conversationsLoadMoreError;
 
-  /// Thread of the conversation currently open in [activeConversationId].
   final MessageStatus chatStatus;
   final int? activeConversationId;
   final ConversationModel? activeConversation;
   final List<ChatMessageModel> messages;
 
-  /// Oldest page of the thread fetched so far — paging walks backwards in
-  /// time, so "load more" means page + 1 and prepends to [messages].
   final int messagesCurrentPage;
   final int messagesLastPage;
   final int messagesTotal;
 
-  /// True when older history remains above the top of the thread.
   final bool messagesHasMorePages;
   final bool messagesLoadingOlder;
   final String? messagesLoadOlderError;
   final bool sending;
 
-  /// True while the other side is typing (realtime).
   final bool peerTyping;
   final bool showingArchived;
   final bool groupCreating;
@@ -75,19 +69,13 @@ final class MessageState extends Equatable {
   final bool actionBusy;
   final String? actionMessage;
 
-  /// Set for one emit after the user has left a group, so the screens showing
-  /// that conversation can close themselves. Cleared with
-  /// [ClearLeftConversationEvent] once handled.
   final int? leftConversationId;
 
-  /// Other user's view-only profile, shown in the profile bottom sheet.
   final MessageStatus profileStatus;
   final MessageProfileModel? profile;
   final String? profileErrorMessage;
   final String? errorMessage;
 
-  /// Increments whenever a conversation fetch finishes, including failures.
-  /// This lets pull-to-refresh wait for the actual request to complete.
   final int? _conversationsRefreshTick;
 
   // A running app may still hold MessageState instances created before this

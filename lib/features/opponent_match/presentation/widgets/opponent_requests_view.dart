@@ -22,11 +22,8 @@ import 'package:hamro_futsal/features/opponent_match/presentation/utils/opponent
 import 'package:hamro_futsal/features/opponent_match/presentation/widgets/opponent_common.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Fallback accept window for requests without a server `accept_deadline`
-/// (mock data only — the server owns the real deadline).
 const Duration kAcceptWindow = Duration(minutes: 20);
 
-/// The sections of the requests list, in the order their chips are shown.
 enum RequestFilter { open, mine, invitations, settled }
 
 extension RequestFilterX on RequestFilter {
@@ -37,7 +34,6 @@ extension RequestFilterX on RequestFilter {
     RequestFilter.settled => 'Settled',
   };
 
-  /// Each chip is one server-side tab of `/auth/opponent-requests`.
   OpponentRequestTab get tab => switch (this) {
     RequestFilter.open => OpponentRequestTab.needOpponent,
     RequestFilter.mine => OpponentRequestTab.myRequests,
@@ -46,21 +42,12 @@ extension RequestFilterX on RequestFilter {
   };
 }
 
-/// Requests I sent live under "My Requests"; they stay pending until the
-/// opponent replies and can be removed at any time. Drafts belong here too —
-/// `/auth/opponent-requests?tab=all` only ever serves them to their owner.
 bool _isMine(OpponentRequestModel r) =>
     r.isMine ||
     r.status == RequestStatus.sent ||
     r.status == RequestStatus.draft ||
     r.status == RequestStatus.pendingApproval;
 
-/// Requests tab: filter chips over a swipeable page per section.
-///
-/// The chips and the pager are two views of the same selection — tapping a
-/// chip animates the pager, swiping the pager selects the chip — so the
-/// section can be changed either way and the parent only ever hears about one
-/// [onFilter].
 class OpponentRequestsView extends StatefulWidget {
   const OpponentRequestsView({
     super.key,
@@ -72,7 +59,6 @@ class OpponentRequestsView extends StatefulWidget {
   final RequestFilter filter;
   final ValueChanged<RequestFilter> onFilter;
 
-  /// Reopens the create wizard on an unpublished draft so it can be finished.
   final ValueChanged<OpponentRequestModel> onCompleteDraft;
 
   @override
@@ -82,8 +68,6 @@ class OpponentRequestsView extends StatefulWidget {
 class _OpponentRequestsViewState extends State<OpponentRequestsView> {
   late final PageController _pageCtrl;
 
-  /// The chip strip scrolls, so the selected chip is scrolled back into view
-  /// when the section changes by swiping the pager rather than by tapping it.
   final ScrollController _chipCtrl = ScrollController();
 
   RequestFilter get filter => widget.filter;
@@ -121,8 +105,6 @@ class _OpponentRequestsViewState extends State<OpponentRequestsView> {
     super.dispose();
   }
 
-  /// Swiping is the same act as tapping the chip: it selects the section,
-  /// which is what triggers that section's lazy fetch.
   void _onPageChanged(int index) {
     final RequestFilter next = RequestFilter.values[index];
     if (next == widget.filter) return;
@@ -130,7 +112,6 @@ class _OpponentRequestsViewState extends State<OpponentRequestsView> {
     _revealChip(index);
   }
 
-  /// Scrolls the chip strip so the active chip is not left off-screen.
   void _revealChip(int index) {
     if (!_chipCtrl.hasClients) return;
     // Approximate chip pitch — exact enough to bring the active one into view,
@@ -148,25 +129,12 @@ class _OpponentRequestsViewState extends State<OpponentRequestsView> {
     );
   }
 
-  /// Every section is server-scoped: the backend decides what belongs in each
-  /// tab, so nothing is counted on-device.
-  ///
-  /// The server's own numbers, not the rows in hand — `pagination.total` for
-  /// the fetched tab (with pages loading in, the chip must show the size of
-  /// the whole section rather than however much has been scrolled to), and the
-  /// `summary` block for the tabs not opened yet, which is why all four chips
-  /// carry a count from the first load.
   int _count(OpponentMatchState state, RequestFilter f) =>
       state.totalFor(f.tab);
 
-  /// Who this card's chat talks to: on my own requests it's the accepting
-  /// captain (once someone accepts); on incoming requests it's the requester.
-  /// 0 means nobody to chat with yet, so the button stays hidden.
   int _chatPeerId(OpponentRequestModel r) =>
       _isMine(r) ? r.acceptedByUserId : r.requesterUserId;
 
-  /// Accept → the accept page (pick my team, send the acceptance).
-  /// A successful accept pops with the updated request, patched in place.
   Future<void> _openAcceptFlow(
     BuildContext context,
     OpponentRequestModel request,
@@ -189,7 +157,6 @@ class _OpponentRequestsViewState extends State<OpponentRequestsView> {
     if (updated != null) bloc.addIfOpen(RequestAcceptedEvent(updated));
   }
 
-  /// My request → review the invitations that came in and pick one opponent.
   void _openInvitations(BuildContext context, OpponentRequestModel request) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -201,7 +168,6 @@ class _OpponentRequestsViewState extends State<OpponentRequestsView> {
     );
   }
 
-  /// Confirmed match → the fixture both teams see, with the match chat.
   void _openMatchDetails(BuildContext context, OpponentRequestModel request) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -290,9 +256,6 @@ class _OpponentRequestsViewState extends State<OpponentRequestsView> {
     );
   }
 
-  /// One section's list. Takes its own [pageFilter] rather than reading the
-  /// selected one, so the pages either side of the current one render their
-  /// own rows while they are being swiped past.
   Widget _sectionPage(
     BuildContext context,
     OpponentMatchState state,
@@ -415,8 +378,6 @@ class _OpponentRequestsViewState extends State<OpponentRequestsView> {
   }
 }
 
-/// Trailing row of a paginated section: a spinner while the next page is in
-/// flight, and quiet space once it is only waiting to be asked for.
 class _LoadMoreFooter extends StatelessWidget {
   const _LoadMoreFooter({required this.loading});
 
@@ -440,12 +401,6 @@ class _LoadMoreFooter extends StatelessWidget {
   );
 }
 
-/// Loading / error shell for the selected section — each one is backed by its
-/// own call, so each has its own spinner and retry.
-///
-/// The spinner and the retry only take over while there is nothing to show —
-/// with rows already on screen a refresh stays silent rather than flashing the
-/// list away.
 class _RequestsTabGate extends StatelessWidget {
   const _RequestsTabGate({
     required this.filter,
@@ -540,26 +495,18 @@ class OpponentRequestCard extends StatefulWidget {
 
   final OpponentRequestModel request;
 
-  /// This row came from the `settled` tab. Its match is already decided — one
-  /// way or the other — so it offers the match view instead of the accept and
-  /// ignore actions, which the server would refuse anyway.
   final bool settled;
 
   final VoidCallback onAccept;
   final VoidCallback onDelete;
   final VoidCallback onExpire;
 
-  /// Opens the invitation review for a request I published.
   final VoidCallback onInvitations;
 
-  /// Opens the confirmed-match view once an opponent is locked in.
   final VoidCallback onMatchDetails;
 
-  /// Resumes the wizard on this (draft) request so it can be published.
   final VoidCallback onComplete;
 
-  /// Opens a direct chat with the request's counterparty (the requester on
-  /// incoming requests, the accepting captain on my own); hidden when null.
   final VoidCallback? onMessage;
 
   @override
@@ -570,15 +517,8 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
   Timer? _ticker;
   Duration _remaining = Duration.zero;
 
-  /// Local instant the countdown runs to.
-  ///
-  /// `countdown.accept_until_at` is a real moment, so the ticker counts down to
-  /// it against [DateTime.now]. Only a payload that gave seconds and no
-  /// timestamp needs anchoring, and that is set once per payload here.
   DateTime? _target;
 
-  /// Server-owned deadline (`countdown.accept_until_at`); falls back to
-  /// `createdAt + kAcceptWindow` for mock rows without one.
   DateTime? get _deadline =>
       widget.request.acceptDeadline ??
       widget.request.createdAt?.add(kAcceptWindow);
@@ -655,15 +595,12 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
     super.dispose();
   }
 
-  /// Footer label for the invitation review action on my own requests.
   String _invitationsLabel(OpponentRequestModel request) {
     final int count = request.invitationCount;
     if (count == 0) return 'Awaiting Invitations';
     return count == 1 ? 'Review Invitation' : 'Review $count Invitations';
   }
 
-  /// Where an unpublished draft stopped, from the backend's `main_step`
-  /// (1 = match, 2 = venue, 3 = cost & message).
   String _draftProgressLabel(OpponentRequestModel request) {
     final String next = switch (request.mainStep) {
       <= 1 => 'match details',
@@ -684,11 +621,6 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
     if (confirmed) widget.onDelete();
   }
 
-  /// The money line on the card.
-  ///
-  /// A result-keyed rule has no fixed share for either side, so quoting "your
-  /// share" as Rs 0 read as a free match. It states what the loser carries
-  /// instead — the only figure that rule actually fixes.
   static String _priceText(
     OpponentRequestModel request, {
     required bool isDraft,
@@ -1179,8 +1111,6 @@ class _FooterNote extends StatelessWidget {
   }
 }
 
-/// Compact chat entry in the card header — pre-accept vetting and
-/// post-accept coordination with the requester.
 class _MessageIconButton extends StatelessWidget {
   const _MessageIconButton({required this.onTap});
 
@@ -1252,8 +1182,6 @@ class _InfoMini extends StatelessWidget {
   }
 }
 
-/// Tinted (Reject) or filled (Accept) pill action at the foot of an open
-/// request card. [glow] adds the same soft brand shadow as the tab indicator.
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.icon,

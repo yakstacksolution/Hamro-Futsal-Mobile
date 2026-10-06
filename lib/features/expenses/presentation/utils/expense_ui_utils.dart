@@ -7,7 +7,6 @@ import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_futsal/features/expenses/presentation/bloc/expenses_bloc/expenses_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 
-/// Visual identity (icon + accent color) for each expense category.
 extension ExpenseCategoryUi on ExpenseCategory {
   IconData get icon => switch (this) {
     ExpenseCategory.rent => Icons.home_work_outlined,
@@ -21,10 +20,8 @@ extension ExpenseCategoryUi on ExpenseCategory {
     ExpenseCategory.other => Icons.more_horiz_rounded,
   };
 
-  /// Brightness-adapted accent for this category.
   Color get color => LightColor.categoryAccent(_baseColor);
 
-  /// Tinted fill that pairs with [color].
   Color get containerColor => LightColor.categoryContainer(_baseColor);
 
   Color get _baseColor => switch (this) {
@@ -112,7 +109,6 @@ class ExpenseFmt {
   static String npr(int v) =>
       '${v < 0 ? '-' : ''}NPR ${group(v.abs().toString())}';
 
-  /// Groups a digit-only string with thousands separators: 1234567 → 1,234,567.
   static String group(String digits) {
     final buf = StringBuffer();
     for (int i = 0; i < digits.length; i++) {
@@ -123,7 +119,6 @@ class ExpenseFmt {
   }
 }
 
-/// Live thousands-separator formatting for amount fields (max 9 digits).
 class ThousandsInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -141,5 +136,4 @@ class ThousandsInputFormatter extends TextInputFormatter {
   }
 }
 
-/// e.g. `Jun 4`.
 String formatShortDate(DateTime d) => AppDateFormat.format(d, 'MMM d');

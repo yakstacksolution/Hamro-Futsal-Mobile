@@ -9,8 +9,6 @@ import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_comm
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Hourly/daily/monthly spend column chart with tracks and tap tooltips,
-/// driven by the server-computed [ExpenseReport.trend].
 class ExpenseTrendCard extends StatelessWidget {
   const ExpenseTrendCard({super.key, required this.report});
 
@@ -290,8 +288,6 @@ class ExpenseCategoryCard extends StatelessWidget {
   }
 }
 
-/// Compact court-spend breakdown — name, amount and a percentage bar per
-/// court, from the server-computed [ExpenseReport.byCourt].
 class ExpenseCourtCard extends StatelessWidget {
   const ExpenseCourtCard({super.key, required this.report});
 

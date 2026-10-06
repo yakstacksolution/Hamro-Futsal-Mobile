@@ -25,7 +25,6 @@ final class CancelBookingEvent extends BookingDetailsEvent {
   List<Object?> get props => <Object?>[bookingId];
 }
 
-/// Verifies a booking's payment proof.
 final class VerifyPaymentEvent extends BookingDetailsEvent {
   const VerifyPaymentEvent({
     required this.bookingId,
@@ -48,7 +47,6 @@ final class VerifyPaymentEvent extends BookingDetailsEvent {
   ];
 }
 
-/// Rejects a booking's payment proof with an optional reason.
 final class RejectPaymentEvent extends BookingDetailsEvent {
   const RejectPaymentEvent({
     required this.bookingId,
@@ -64,7 +62,6 @@ final class RejectPaymentEvent extends BookingDetailsEvent {
   List<Object?> get props => <Object?>[bookingId, paymentId, note];
 }
 
-/// Accepts the booking itself.
 final class AcceptBookingEvent extends BookingDetailsEvent {
   const AcceptBookingEvent({required this.bookingId});
 
@@ -74,7 +71,6 @@ final class AcceptBookingEvent extends BookingDetailsEvent {
   List<Object?> get props => <Object?>[bookingId];
 }
 
-/// Rejects the booking itself with an optional reason.
 final class RejectBookingEvent extends BookingDetailsEvent {
   const RejectBookingEvent({required this.bookingId, this.note});
 
@@ -85,7 +81,6 @@ final class RejectBookingEvent extends BookingDetailsEvent {
   List<Object?> get props => <Object?>[bookingId, note];
 }
 
-/// Reflects a successful complete-booking response directly in state.
 final class BookingCompletedEvent extends BookingDetailsEvent {
   const BookingCompletedEvent({required this.booking});
 
@@ -95,7 +90,6 @@ final class BookingCompletedEvent extends BookingDetailsEvent {
   List<Object?> get props => <Object?>[booking];
 }
 
-/// Asks whether this booking already carries a review.
 final class CheckBookingReviewEvent extends BookingDetailsEvent {
   const CheckBookingReviewEvent({required this.bookingId});
 

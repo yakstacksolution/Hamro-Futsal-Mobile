@@ -9,33 +9,18 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/data_card.dart';
 
-/// Presentational building blocks for the booking details screen.
-///
-/// The page composes only these primitives, so spacing, radii, typography and
-/// colour usage stay consistent across every section and can be tuned in one
-/// place.
 class BookingDetailsSpacing {
   const BookingDetailsSpacing._();
 
-  /// Gap between a section header and its card.
   static const double headerGap = 10;
 
-  /// Gap between two sections.
   static const double sectionGap = 22;
 
-  /// Gap between two rows inside a card.
   static const double rowGap = 10;
 
-  /// Horizontal page padding.
   static const double page = 20;
 }
 
-/// Neutral surface every section renders on.
-///
-/// The same panel as [DataCard] — the booking lists and the account ledger use
-/// it too — so a card keeps its surface, radius and hairline when the reader
-/// taps through from a list into this page. [padding] is kept for the
-/// list-style sections that run their own rows to the card's edge.
 class BookingDetailCard extends StatelessWidget {
   const BookingDetailCard({
     super.key,
@@ -61,8 +46,6 @@ class BookingDetailCard extends StatelessWidget {
   }
 }
 
-/// Section heading — a quiet label above its card, with an optional trailing
-/// widget (count, action, …).
 class BookingSectionHeader extends StatelessWidget {
   const BookingSectionHeader({super.key, required this.title, this.trailing});
 
@@ -102,12 +85,6 @@ class BookingSectionHeader extends StatelessWidget {
   }
 }
 
-/// Label/value row used inside list-style cards.
-///
-/// The label sits in the same fixed column the cards use, so every value in a
-/// section starts at the same x and the column reads straight down. Values are
-/// left-aligned against that column rather than pushed to the right edge,
-/// which is what made a short value and a long one look unrelated.
 class BookingDetailRow extends StatelessWidget {
   const BookingDetailRow({
     super.key,
@@ -176,13 +153,6 @@ class BookingDetailRow extends StatelessWidget {
   }
 }
 
-/// Compact money/label line used in the payment breakdown.
-///
-/// Set at the page's reading size, with the figure right-aligned in tabular
-/// digits so a column of amounts lines up on its decimal. Emphasis is carried
-/// by weight and colour, never by a bigger face — a breakdown where one row
-/// is several points larger than its neighbours reads as a different section
-/// rather than as the same list.
 class BookingAmountRow extends StatelessWidget {
   const BookingAmountRow({
     super.key,
@@ -200,8 +170,6 @@ class BookingAmountRow extends StatelessWidget {
   final FontWeight valueWeight;
   final Color? valueColor;
 
-  /// A summing row (a total). Takes one step up — no more — so it reads as the
-  /// end of the list it closes.
   final bool emphasised;
 
   @override
@@ -243,11 +211,6 @@ class BookingAmountRow extends StatelessWidget {
   }
 }
 
-/// The figure a breakdown settles on — a grand total, or what is still owed.
-///
-/// Same size as the total rows around it; the weight, the colour and the rule
-/// above it carry the emphasis. It used to run four points larger than its
-/// neighbours, which made the card look like two cards.
 class BookingTotalHighlight extends StatelessWidget {
   const BookingTotalHighlight({
     super.key,
@@ -260,7 +223,6 @@ class BookingTotalHighlight extends StatelessWidget {
   final String label;
   final String value;
 
-  /// Optional accent for the figure (e.g. an outstanding balance).
   final Color? color;
   final String? caption;
 
@@ -314,8 +276,6 @@ class BookingTotalHighlight extends StatelessWidget {
   }
 }
 
-/// Small rounded status label. [color] carries the semantic (green = settled,
-/// orange = pending, red = rejected).
 class BookingStatusPill extends StatelessWidget {
   const BookingStatusPill({
     super.key,
@@ -349,7 +309,6 @@ class BookingStatusPill extends StatelessWidget {
   }
 }
 
-/// Inline failure banner with a retry affordance.
 class BookingErrorBanner extends StatelessWidget {
   const BookingErrorBanner({
     super.key,
@@ -404,7 +363,6 @@ class BookingErrorBanner extends StatelessWidget {
   }
 }
 
-/// Sticky action bar shared by the accept/reject, cancel and complete footers.
 class BookingActionBar extends StatelessWidget {
   const BookingActionBar({
     super.key,
@@ -414,8 +372,6 @@ class BookingActionBar extends StatelessWidget {
 
   final Widget child;
 
-  /// On tablet / desktop, keeps the buttons within the booking details page's
-  /// content width, at its right edge, instead of across the whole window.
   final bool alignToDetailsContent;
 
   @override
@@ -471,13 +427,10 @@ class BookingActionBar extends StatelessWidget {
   }
 }
 
-/// Booking details content width on tablet: one centred column.
 const double kBookingDetailsSingleColumnMaxWidth = 760;
 
-/// Booking details content width on desktop: booking and payment side by side.
 const double kBookingDetailsTwoColumnMaxWidth = 1200;
 
-/// Inserts hairline dividers between list rows.
 List<Widget> bookingRowsWithDividers(List<Widget> rows) {
   final List<Widget> children = <Widget>[];
   for (int index = 0; index < rows.length; index++) {
@@ -496,9 +449,6 @@ List<Widget> bookingRowsWithDividers(List<Widget> rows) {
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 
-/// Human label for the API's `booking_type`. Returns null when the field is
-/// absent or blank — older payloads omit it, and callers hide the row instead
-/// of showing a placeholder.
 String? bookingTypeLabel(String? type) {
   final String normalized = type?.trim().toLowerCase() ?? '';
   if (normalized.isEmpty) return null;
@@ -512,7 +462,6 @@ String? bookingTypeLabel(String? type) {
   };
 }
 
-/// `NPR 1,200` — see [Money], which every screen shares.
 String bookingCurrency(double value) => Money.npr(value);
 
 String bookingTitleCase(String value) {
@@ -535,7 +484,6 @@ String bookingFormatShortDate(DateTime date) {
   return AppDateFormat.format(date, 'dd/MM/yyyy');
 }
 
-/// Semantic colour for a payment status string (`paid`, `partial`, …).
 Color bookingPaymentStatusColor(String status) {
   final String normalized = status.trim().toLowerCase();
   if (normalized == 'paid' || normalized == 'completed') {
@@ -547,7 +495,6 @@ Color bookingPaymentStatusColor(String status) {
   return LightColor.warningColor;
 }
 
-/// Semantic colour for a payment-proof verification status.
 Color bookingVerificationColor(String status) {
   final String normalized = status.trim().toLowerCase();
   if (normalized == 'verified' ||

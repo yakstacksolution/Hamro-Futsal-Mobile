@@ -3,7 +3,6 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 
-/// Rounded label + count pill for the messages filter row.
 class MessageFilterChip extends StatelessWidget {
   const MessageFilterChip({
     super.key,

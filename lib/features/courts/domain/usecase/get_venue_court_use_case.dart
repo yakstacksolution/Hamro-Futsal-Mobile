@@ -11,9 +11,6 @@ final class GetVenueCourtUseCase {
 
   final VenueCourtRepository _repository;
 
-  /// [purpose] says which of the endpoint's two answers is wanted — see
-  /// [VenueCourtPurpose]. It has no default on purpose: every screen has to
-  /// name the one it means.
   Future<Either<AppException, VenueCourtPageModel>> call({
     required int page,
     required VenueCourtPurpose purpose,
@@ -24,7 +21,6 @@ final class GetVenueCourtUseCase {
     purpose: purpose,
   );
 
-  /// Loads every page for flows that need the complete venue set in a picker.
   Future<Either<AppException, List<VenueCourtModel>>> getAllVenueCourts({
     required VenueCourtPurpose purpose,
     int perPage = 10,

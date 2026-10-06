@@ -1,6 +1,5 @@
 import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
 
-/// Client-side filter chips on the conversations list.
 enum ConversationFilter { all, unread, direct, group, archived }
 
 extension ConversationFilterX on ConversationFilter {
@@ -13,7 +12,6 @@ extension ConversationFilterX on ConversationFilter {
   };
 }
 
-/// One member of a conversation (`participants[]` of ConversationResource).
 class ParticipantModel {
   const ParticipantModel({
     required this.id,
@@ -44,16 +42,12 @@ class ParticipantModel {
   String get email => _email ?? '';
   final String role;
 
-  /// Where this member stands on their invitation: `accepted`, `pending`, or
-  /// `declined`. Empty when the server does not report one.
   final String invitationStatus;
   final DateTime? invitedAt;
   final DateTime? respondedAt;
 
-  /// Still waiting on this member to answer their group invitation.
   bool get isInvitePending => invitationStatus.toLowerCase() == 'pending';
 
-  /// Media library id behind [avatarUrl] (`avatar.id`), null when unset.
   final int? avatarId;
   final String avatarUrl;
   final bool isBlocked;
@@ -192,9 +186,6 @@ class ConversationModel {
   final String? title;
   final String status;
 
-  /// The signed-in user's own standing in this conversation: `accepted`,
-  /// `pending` or `declined`. A group someone added them to arrives `pending`
-  /// and must be answered before the thread opens.
   final String invitationStatus;
   final bool canAcceptInvitation;
   final bool canDeclineInvitation;
@@ -214,29 +205,19 @@ class ConversationModel {
   final List<ParticipantModel> participants;
   final DateTime? createdAt;
 
-  /// The group's own picture, set from the group info screen. Empty when it
-  /// has none, which is when the members' faces stand in for it.
   final String imageUrl;
 
-  /// The media id behind [imageUrl] — what `conversations/{id}/update` takes
-  /// back as `image_id`.
   final int? imageId;
 
-  /// A group created by a superadmin. Its picture and name belong to whoever
-  /// set it up, so the app offers no way to change either.
   final bool isSuperadminCreatedGroup;
 
   bool get isGroup => type == 'group';
   bool get isUnread => unreadCount > 0;
 
-  /// An invitation this user has not answered yet. The server's two `can_*`
-  /// flags are the authority — the status alone can read `pending` on a row
-  /// the user is not the one being asked about.
   bool get isInvitePending =>
       invitationStatus.toLowerCase() == 'pending' &&
       (canAcceptInvitation || canDeclineInvitation);
 
-  /// The participant who isn't the signed-in user (direct chats).
   ParticipantModel? otherParticipant(int currentUserId) {
     for (final p in participants) {
       if (p.userId != currentUserId) return p;
@@ -244,15 +225,12 @@ class ConversationModel {
     return participants.isEmpty ? null : participants.first;
   }
 
-  /// Group title, or the other side's name for direct chats.
   String displayTitle(int currentUserId) {
     final t = title?.trim();
     if (t != null && t.isNotEmpty) return t;
     return otherParticipant(currentUserId)?.name ?? 'Conversation';
   }
 
-  /// The picture for the inbox row: a group's own photo when it has one,
-  /// otherwise the other person's avatar. Empty means "draw the placeholder".
   String displayAvatar(int currentUserId) =>
       isGroup ? imageUrl : (otherParticipant(currentUserId)?.avatarUrl ?? '');
 
@@ -262,8 +240,6 @@ class ConversationModel {
   DateTime? peerLastSeenAt(int currentUserId) =>
       isGroup ? null : otherParticipant(currentUserId)?.lastSeenAt;
 
-  /// Inbox preview line, prefixed with `You:` when the latest message was
-  /// sent by the signed-in user.
   String preview(int currentUserId) {
     final text = lastMessage?.trim() ?? '';
     if (text.isEmpty) return 'No messages yet — say hello!';
@@ -365,11 +341,6 @@ class ConversationModel {
     'is_superadmin_created_group': isSuperadminCreatedGroup,
   };
 
-  /// The group picture, however the server spells it.
-  ///
-  /// It is sent to `conversations/{id}/update` as `media`, and comes back as
-  /// a media object (`{id, url}`), a bare URL, or under one of the other names
-  /// this API uses for the same thing.
   static int? _imageIdFromJson(Map<String, dynamic> json) {
     final dynamic direct = json['image_id'] ?? json['media_id'];
     final int? fromKey = int.tryParse(direct?.toString() ?? '');
@@ -442,11 +413,6 @@ class ConversationModel {
         isSuperadminCreatedGroup ?? this.isSuperadminCreatedGroup,
   );
 
-  /// Returns a copy with [message] as the conversation's latest message —
-  /// refreshing the inbox preview line, the full detail and the timestamp.
-  /// Pass [incrementUnread] for messages from the other side that arrive while
-  /// the thread isn't open. The `You:` prefix is derived later from
-  /// [lastMessageDetail]'s sender, so this works for messages from either side.
   ConversationModel withLatestMessage(
     ChatMessageModel message, {
     bool incrementUnread = false,
@@ -489,8 +455,6 @@ class ConversationModel {
   }
 }
 
-/// The archived flag, however this API spells it: a boolean column, the
-/// pivot's `archived_at` timestamp, or a plain `archived` field.
 bool _archivedFromJson(Map<String, dynamic> json) {
   final dynamic archivedAt = json['archived_at'];
   if (archivedAt != null && archivedAt.toString().trim().isNotEmpty) {

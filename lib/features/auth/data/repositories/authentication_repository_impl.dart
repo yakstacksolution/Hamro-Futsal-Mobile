@@ -259,7 +259,6 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
     return right(true);
   }
 
-  /// Best-effort presence teardown; a failure here must not block logout.
   Future<void> _markOffline() async {
     try {
       await Client.instance().getAuthManager().setPresence(false);

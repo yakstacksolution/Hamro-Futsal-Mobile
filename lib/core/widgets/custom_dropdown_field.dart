@@ -5,15 +5,6 @@ import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 
-/// A dropdown that looks exactly like [CustomTextField] and opens its menu
-/// *below* the field instead of over it.
-///
-/// Material's `DropdownButtonFormField` positions its menu so the selected row
-/// lands on top of the button, which covers the field and the label above it.
-/// This widget keeps the same API — including [DropdownMenuItem] children, so
-/// call sites did not change — but anchors an overlay panel to the bottom edge
-/// of the field. It always opens downwards — when the room below is tight the
-/// panel shortens and its rows scroll rather than flipping over the field.
 class CustomDropdownField<T> extends StatefulWidget {
   const CustomDropdownField({
     super.key,
@@ -49,7 +40,6 @@ class CustomDropdownField<T> extends StatefulWidget {
   final bool enabled;
   final bool isRequired;
 
-  /// Tallest the open panel may get before its rows scroll.
   final double menuMaxHeight;
 
   @override
@@ -67,8 +57,6 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
 
   T? _value;
 
-  /// Kept between frames so the panel can be sized without measuring the
-  /// field again while it is open.
   double _fieldWidth = 0;
   double _availableHeight = AppDimens.sizeX250;
 
@@ -116,7 +104,6 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
     setState(() {});
   }
 
-  /// Works out the panel's width and how tall it may get below the field.
   void _measure() {
     final RenderBox? box =
         _fieldKey.currentContext?.findRenderObject() as RenderBox?;
@@ -271,8 +258,6 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
   }
 }
 
-/// The open panel: a full-screen dismiss layer with the list anchored to the
-/// field's bottom edge.
 class _MenuOverlay<T> extends StatelessWidget {
   const _MenuOverlay({
     required this.link,

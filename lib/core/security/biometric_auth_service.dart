@@ -1,7 +1,5 @@
 import 'package:local_auth/local_auth.dart';
 
-/// Small wrapper around device authentication so biometric policy stays
-/// consistent between Settings and the login screen.
 final class BiometricAuthService {
   BiometricAuthService({LocalAuthentication? authentication})
     : _authentication = authentication ?? LocalAuthentication();

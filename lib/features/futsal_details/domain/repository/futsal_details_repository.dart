@@ -18,20 +18,16 @@ abstract class FutsalDetailsRepository {
     required int venueId,
   });
 
-  /// Addressed by the venue's slug — see `ApiClient.getVenueDescription`.
   Future<Either<AppException, VenueDescriptionModel>> getVenueDescription({
     required String venueSlug,
   });
 
-  /// One page of `/venues/{venue_id}/reviews`.
   Future<Either<AppException, VenueReviewPageModel>> getVenueReviews({
     required int venueId,
     int page,
     int perPage,
   });
 
-  /// `POST /reviews/{review}/change-request` — asks for the signed-in user's
-  /// own review to be edited or removed. Resolves to the server's message.
   Future<Either<AppException, String>> submitReviewChangeRequest({
     required int reviewId,
     required ReviewChangeRequestInput input,
@@ -67,13 +63,10 @@ abstract class FutsalDetailsRepository {
     List<String> recurringDates = const <String>[],
   });
 
-  /// Holds every slot in [holds] in one `POST /booking-holds`, sent as
-  /// `{"holds": [...]}`. The holds come back in the order sent.
   Future<Either<AppException, List<BookingHoldModel>>> createBookingHolds({
     required List<BookingHoldRequest> holds,
   });
 
-  /// Releases the holds with [holdIds] in one `DELETE /booking-holds`.
   Future<Either<AppException, Unit>> releaseBookingHolds({
     required List<String> holdIds,
   });

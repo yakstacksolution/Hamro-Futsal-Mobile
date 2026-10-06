@@ -10,7 +10,6 @@ import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// What came back from a download attempt.
 enum DownloadOutcome {
   savedToGallery,
 
@@ -96,6 +95,40 @@ abstract final class DownloadHelper {
               '${_extensionForBytes(data)}';
 
     return _offer(bytes: data, name: name, originKey: originKey);
+  }
+
+  static Future<File?> saveFile({
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    if (bytes.isEmpty) return null;
+    final String name = _sanitize(fileName);
+    final List<Future<Directory?> Function()> targets =
+        <Future<Directory?> Function()>[
+          _saveDirectory,
+          () async {
+            try {
+              return await getApplicationDocumentsDirectory();
+            } catch (_) {
+              return null;
+            }
+          },
+          () async => Directory.systemTemp,
+        ];
+    for (final Future<Directory?> Function() target in targets) {
+      final Directory? directory = await target();
+      if (directory == null) continue;
+      try {
+        final File file = File(
+          '${directory.path}/${_uniqueIn(directory, name)}',
+        );
+        await file.writeAsBytes(bytes, flush: true);
+        return file;
+      } on FileSystemException {
+        continue;
+      }
+    }
+    return null;
   }
 
   static Future<DownloadOutcome> _offer({
@@ -278,6 +311,9 @@ abstract final class DownloadHelper {
     if (type.contains('webp')) return '.webp';
     if (type.contains('heic') || type.contains('heif')) return '.heic';
     if (type.contains('pdf')) return '.pdf';
+    if (type.contains('csv')) return '.csv';
+    if (type.contains('spreadsheetml')) return '.xlsx';
+    if (type.contains('ms-excel')) return '.xls';
     if (type.contains('jpeg') || type.contains('jpg')) return '.jpg';
     return '.jpg';
   }
@@ -340,6 +376,10 @@ abstract final class DownloadHelper {
     'webp' => 'image/webp',
     'heic' || 'heif' => 'image/heic',
     'pdf' => 'application/pdf',
+    'csv' => 'text/csv',
+    'xlsx' =>
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'xls' => 'application/vnd.ms-excel',
     'jpg' || 'jpeg' => 'image/jpeg',
     _ => null,
   };

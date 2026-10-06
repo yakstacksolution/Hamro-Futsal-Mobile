@@ -40,8 +40,6 @@ class FutsalHomePage extends StatelessWidget {
 
   final VenueFilter filter;
 
-  /// Height of the dashboard header floating over the top of the feed. It is
-  /// reserved inside the scroll content, so it scrolls away with the cards.
   final double topInset;
 
   @override
@@ -96,17 +94,8 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     _fetchFirstPage();
   }
 
-  /// How long the first request waits for a location fix before going out
-  /// without one.
-  ///
-  /// Firing immediately means the listing comes back with no `distance_km`,
-  /// and the fix that lands a moment later re-queries it — the user sees the
-  /// home page load twice. A cached fix resolves in milliseconds, so a short
-  /// wait usually collapses those two requests into one; a cold GPS start
-  /// falls through to the original behaviour rather than holding the screen.
   static const Duration _originWait = Duration(milliseconds: 1200);
 
-  /// Loads the first page, giving the device position a brief head start.
   Future<void> _fetchFirstPage() async {
     // `GET /venues` carries the position as latitude/longitude, and the server
     // computes `distance_km` from it.
@@ -119,9 +108,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
   }
 
-  /// Whether the initial fetch has been dispatched. A fix arriving while the
-  /// wait above is still running must not queue a fetch of its own — the
-  /// pending initial one already picks that fix up.
   bool _firstPageRequested = false;
 
   void _retryFailedFetchOnTabVisible() {
@@ -157,7 +143,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     super.dispose();
   }
 
-  /// Distance from the bottom of the list at which the next page is requested.
   static const double _loadMoreThreshold = 300;
 
   void _onScroll() {
@@ -170,11 +155,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     }
   }
 
-  /// Requests the next page when the loaded venues do not fill the viewport.
-  ///
-  /// The scroll listener alone cannot cover this: with a short first page (or a
-  /// tall tablet screen) there is nothing to scroll, so the list would sit at
-  /// page 1 even though the server reports more.
   void _loadMoreIfViewportNotFilled() {
     if (!mounted || !_scrollController.hasClients) return;
     if (!_publicVenueBloc.state.canLoadMore) return;
@@ -183,12 +163,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     }
   }
 
-  /// Refetches the listing when a location fix arrives.
-  ///
-  /// The first page is requested before the GPS lock resolves, so it comes back
-  /// without distances; re-running the query with coordinates is what fills the
-  /// `distance_km` on the cards. Only the first fix triggers this — later
-  /// updates would silently reset the user's scroll position.
   void _onPositionChanged() {
     if (!mounted || !_firstPageRequested) return;
     if (DeviceLocationHelper.instance.position.value == null) return;
@@ -196,11 +170,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
   }
 
-  /// Refetches the venue list and the header's category filters.
-  ///
-  /// The strip is its own request, and it fails with the list when there is no
-  /// connection — so anything that retries the list has to retry the strip
-  /// too, or the filters stay missing on a screen that otherwise recovered.
   void _reloadHomeData({Completer<void>? completer}) {
     _publicVenueBloc.add(
       FetchPublicVenuesEvent(filter: widget.filter, completer: completer),
@@ -209,8 +178,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     context.read<CategoryFilterBloc>().add(const FetchCategoryFilterEvent());
   }
 
-  /// Upper bound on how long the pull-to-refresh spinner can stay up, so a
-  /// request stuck in the network layer never pins it on screen.
   static const Duration _refreshTimeout = Duration(seconds: 20);
 
   Future<void> _refresh() async {
@@ -437,8 +404,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
   }
 }
 
-/// Bottom-of-list state for the paginated venue listing: the next-page spinner
-/// or a retry for a failed page.
 class _VenueListFooter extends StatelessWidget {
   const _VenueListFooter({required this.state, required this.onRetry});
 
@@ -566,13 +531,6 @@ class _VenueMessageView extends StatelessWidget {
 class CourtCard extends StatefulWidget {
   final PublicListingVenueModel publicListingVenueModel;
 
-  /// When true the cover image flexes to fill whatever height is left over
-  /// instead of being pinned to [AppDimens.sizeX200].
-  ///
-  /// Set this in the grid layout, where the cell height is fixed: the text
-  /// block below takes its natural height and the cover absorbs the rest, so
-  /// the card can never overflow its cell. The list layout leaves it false and
-  /// keeps the original fixed-height cover.
   final bool flexibleCover;
 
   const CourtCard({
@@ -589,8 +547,6 @@ class _CourtCardState extends State<CourtCard> {
   bool _isPressed = false;
   bool _isHovered = false;
 
-  /// The richer treatment is only used from tablet up; phones keep the
-  /// original card exactly as it was.
   bool get _wide => context.isTabletOrWider;
 
   Future<void> _toggleWishlist() async {
@@ -836,15 +792,6 @@ class _CourtCardState extends State<CourtCard> {
   }
 }
 
-/// Save/unsave chip on the cover.
-///
-/// Split out of [CourtCard] so a wishlist change repaints this 36px chip
-/// instead of rebuilding the whole card subtree.
-/// The "verified by Hamro Futsal" mark shown after a venue's name.
-///
-/// Icon only: the cards are dense, and a labelled chip would push the name into
-/// an ellipsis on a phone. The meaning is carried for screen readers by the
-/// semantics label and for sighted users by the tooltip.
 class _VerifiedBadge extends StatelessWidget {
   const _VerifiedBadge({required this.wide});
 
@@ -908,11 +855,6 @@ class _WishlistButton extends StatelessWidget {
   }
 }
 
-/// Distance for one venue, as reported by the API.
-///
-/// `distance_km` is computed server-side from the `latitude`/`longitude` sent
-/// with the listing request, so there is nothing to resolve on the client:
-/// either the venue carries a distance or the label is omitted.
 class _DistanceLabel extends StatelessWidget {
   const _DistanceLabel({required this.venue});
 
@@ -933,9 +875,6 @@ class _DistanceLabel extends StatelessWidget {
     );
   }
 
-  /// Converts the API's numeric `distance_km` to home-card text without
-  /// throwing away its precision. Trailing zeroes are removed, so values such
-  /// as 184.50 remain compact while 21.53 is not rounded to 22.
   static String? _formatHomeDistanceKm(double? distanceKm) {
     if (distanceKm == null || !distanceKm.isFinite || distanceKm < 0) {
       return null;

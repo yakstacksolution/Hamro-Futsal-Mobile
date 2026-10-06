@@ -54,15 +54,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   int _notificationRefreshGeneration = 0;
   late final Set<int> _visitedTabIndexes;
 
-  /// How much of the home header is on screen: 1 fully shown, 0 scrolled
-  /// away. It tracks the feed's scroll 1:1 (LinkedIn-style) and only animates
-  /// for the snap once a scroll settles.
   late final AnimationController _headerController;
   late final Animation<Offset> _headerOffset;
 
-  /// Measured height of the home header. The header floats over the feed
-  /// rather than sitting above it, so the feed reserves this much space at the
-  /// top of its scroll content.
   final ValueNotifier<double> _homeHeaderHeight = ValueNotifier<double>(0);
 
   @override
@@ -292,9 +286,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  /// The signed-in user's first name for the homes' greeting, "there" until
-  /// the profile has loaded. Watches the profile, so a greeting rebuilds once
-  /// the name arrives.
   String _greetingName() {
     final ProfileState profileState = context.watch<ProfileBloc>().state;
     return profileState.profile?.data.fullName.trim().isNotEmpty == true
@@ -677,14 +668,9 @@ class HomeGreeting extends StatelessWidget {
   }
 }
 
-/// Crossfades the Home tab between the futsal home and the operations home
-/// when a vendor switches, in step with the header's own fade above it: the
-/// old home fades out while the new one fades in and settles a few pixels
-/// up. Both keep the full tab's size throughout, so nothing reflows.
 class _HomeSwitchTransition extends StatelessWidget {
   const _HomeSwitchTransition({required this.homeKey, required this.child});
 
-  /// Which home [child] is; a new key is what starts the transition.
   final String homeKey;
   final Widget child;
 
@@ -716,7 +702,6 @@ class _HomeSwitchTransition extends StatelessWidget {
   }
 }
 
-/// Reports its child's height after layout, whenever it changes.
 class _SizeReporter extends SingleChildRenderObjectWidget {
   const _SizeReporter({required this.onHeightChanged, super.child});
 

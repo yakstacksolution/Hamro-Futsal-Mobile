@@ -82,9 +82,6 @@ class _AboutAppPageState extends State<AboutAppPage> {
   }
 }
 
-/// Tablet / desktop About: one centred column whose sections share edges —
-/// the subtitle sits inside it, paired cards and the feature cards are laid
-/// out as equal-height rows (four across on desktop, two on tablet).
 class _WideAbout extends StatelessWidget {
   const _WideAbout({required this.version});
 

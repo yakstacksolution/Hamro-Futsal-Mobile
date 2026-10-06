@@ -44,9 +44,6 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
     text: 'Paid at counter',
   );
 
-  /// Optional override for what the booking should cost. Left blank, the
-  /// server prices the slots itself — which is the normal case; it is filled
-  /// in only when a counter price was agreed that the slot rates do not give.
   final TextEditingController _totalAmount = TextEditingController();
 
   List<VenueCourtModel> _venues = const <VenueCourtModel>[];
@@ -261,16 +258,12 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
     if (booked == true && mounted) Navigator.of(context).pop(true);
   }
 
-  /// The typed total, or null when the box is empty. Null is a valid answer —
-  /// it means "let the server price it".
   double? get _parsedTotalAmount {
     final String raw = _totalAmount.text.trim();
     if (raw.isEmpty) return null;
     return double.tryParse(raw);
   }
 
-  /// Optional, so an empty box passes. Anything typed still has to be a
-  /// number the server can charge.
   String? _optionalAmount(String? value) {
     final String raw = value?.trim() ?? '';
     if (raw.isEmpty) return null;
@@ -637,7 +630,6 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
 
   Widget _gap() => const SizedBox(height: AppDimens.paddingX16);
 
-  /// Between the page's cards — one spacing throughout.
   Widget _sectionGap() => const SizedBox(height: AppDimens.paddingX14);
 
   Widget _field(
@@ -866,8 +858,6 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
   }
 }
 
-/// The page's one action, laid out like venue onboarding's bottom bar: the
-/// app's [CustomButton] at the bar's height, above the safe area.
 class _ManualBookingActionBar extends StatelessWidget {
   const _ManualBookingActionBar({required this.onContinue});
 

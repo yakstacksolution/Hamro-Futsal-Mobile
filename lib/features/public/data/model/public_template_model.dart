@@ -14,11 +14,8 @@ final class PublicTemplateModel extends Equatable {
   final String id;
   final String title;
 
-  /// Stable identifier (`court-description`, `venue-description`, …). Titles
-  /// are editable by admins, so matching goes by slug first.
   final String slug;
 
-  /// HTML body of the template.
   final String description;
   final DateTime? createdAt;
   final DateTime? updatedAt;

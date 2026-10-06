@@ -19,22 +19,12 @@ import 'package:hamro_futsal/features/bookings/presentation/utils/booking_search
 import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_products_sheet.dart';
 import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 
-/// Which endpoint a page draws from.
 enum BookingListKind {
-  /// `/futsal-bookings` — the bookings made at the vendor's own venues.
   futsal,
 
-  /// `/bookings` — the bookings this user made.
   mine,
 }
 
-/// One status's page of bookings: the rows the server returned for
-/// `?status=…`, with its own pagination, refresh and empty state.
-///
-/// One page per status, held side by side in the caller's [PageView], is what
-/// makes the status switch smooth: every status keeps its own rows, its own
-/// cursor and its own scroll offset, so swiping back to one is instant instead
-/// of a fresh request and a skeleton.
 class BookingStatusPage extends StatelessWidget {
   const BookingStatusPage({
     super.key,
@@ -49,8 +39,6 @@ class BookingStatusPage extends StatelessWidget {
   final BookingListKind kind;
   final BookingStatusFilter filter;
 
-  /// Search and the date range stay on-device: they narrow the rows in hand,
-  /// where status is the server's own filter.
   final String searchQuery;
   final BookingDateOrder dateOrder;
   final DateTime? fromDate;
@@ -309,9 +297,6 @@ class BookingStatusPage extends StatelessWidget {
         notification is OverscrollNotification;
   }
 
-  /// A slim line above the list while this status is being refetched — the
-  /// swipe onto the page starts one, and the rows underneath stay readable
-  /// instead of being replaced by a skeleton.
   Widget _refreshBar(BookingListSlice slice, Widget child) {
     // The shape is the same whether or not a refresh is running. Adding the
     // Column only while `isRefreshing` re-parented [child], so the
@@ -339,8 +324,6 @@ class BookingStatusPage extends StatelessWidget {
     );
   }
 
-  /// A page with nothing on it still scrolls, so pull-to-refresh works from an
-  /// empty status too.
   Widget _empty(BuildContext context) {
     final bool hasCriteria =
         filter != BookingStatusFilter.all ||
@@ -380,8 +363,6 @@ class BookingStatusPage extends StatelessWidget {
     );
   }
 
-  /// Names the filter that came up empty rather than a generic "try again":
-  /// on a status page the status is usually the reason.
   String get _emptySubtitle {
     final bool narrowed =
         searchQuery.trim().isNotEmpty || fromDate != null || toDate != null;
@@ -427,11 +408,6 @@ class BookingStatusPage extends StatelessWidget {
   }
 }
 
-/// Quick actions on a futsal booking card: "Add products" and "Complete".
-///
-/// Both open the same sheets the details page uses, so the vendor can sell an
-/// add-on or close a booking out without leaving the list. [onChanged] refetches
-/// the status page whenever one of them actually changed something.
 class _BookingCardActions extends StatelessWidget {
   const _BookingCardActions({required this.booking, required this.onChanged});
 
@@ -516,8 +492,6 @@ class _BookingCardActions extends StatelessWidget {
   }
 }
 
-/// One footer action. [filled] paints the brand surface for the primary move;
-/// the rest sit on a soft tint of [color] so the card stays quiet until read.
 class _CardAction extends StatelessWidget {
   const _CardAction({
     required this.icon,

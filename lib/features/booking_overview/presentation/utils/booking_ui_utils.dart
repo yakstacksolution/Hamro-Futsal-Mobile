@@ -3,7 +3,6 @@ import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/features/booking_overview/data/model/booking_overview_model.dart';
 
-/// Accent color for each booking status.
 extension BookingStatusUi on BookingStatus {
   Color get color => switch (this) {
     BookingStatus.completed => LightColor.secondaryColor,
@@ -13,7 +12,6 @@ extension BookingStatusUi on BookingStatus {
   };
 }
 
-/// Parses `#RRGGBB` / `#AARRGGBB`; null when missing or malformed.
 Color? bookingHexColor(String hex) {
   var h = hex.trim().replaceFirst('#', '');
   if (h.length == 6) h = 'FF$h';
@@ -23,7 +21,6 @@ Color? bookingHexColor(String hex) {
 }
 
 extension StatusMixEntryUi on StatusMixEntry {
-  /// Server color when provided, theme color otherwise.
   Color get color => bookingHexColor(colorHex) ?? status.color;
 
   String get displayLabel => label.isEmpty ? status.label : label;
@@ -33,15 +30,12 @@ class BookingFmt {
   static String npr(int v) =>
       '${v < 0 ? '-' : ''}NPR ${group(v.abs().toString())}';
 
-  /// `2` → `2`, `1.5` → `1.5`, `1.25` → `1.3`.
   static String hours(double v) =>
       v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
 
-  /// `100` → `100`, `22.2` → `22.2`.
   static String percent(double v) =>
       v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
 
-  /// Groups a digit-only string with thousands separators: 1234567 → 1,234,567.
   static String group(String digits) {
     final buf = StringBuffer();
     for (int i = 0; i < digits.length; i++) {
@@ -51,7 +45,6 @@ class BookingFmt {
     return buf.toString();
   }
 
-  /// e.g. `Jun 4` (appends the year when it isn't the current one).
   static String shortDate(DateTime d) {
     final year = AppDateFormat.year(d);
     final suffix = year != AppDateFormat.year(DateTime.now()) ? ', $year' : '';

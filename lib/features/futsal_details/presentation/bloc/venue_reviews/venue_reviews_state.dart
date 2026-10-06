@@ -9,7 +9,6 @@ enum VenueReviewsStatus {
   failure,
 }
 
-/// Lifecycle of one `/reviews/{review}/change-request` submission.
 enum ReviewChangeRequestStatus { idle, submitting, success, failure }
 
 final class VenueReviewsState extends Equatable {
@@ -26,23 +25,16 @@ final class VenueReviewsState extends Equatable {
 
   final VenueReviewsStatus status;
 
-  /// The most recent page's metadata — counts, rating summary, paging.
   final VenueReviewPageModel page;
 
-  /// Every review loaded so far, across pages.
   final List<VenueReviewModel> reviews;
 
   final int venueId;
   final String? errorMessage;
 
-  /// Tracked apart from [status] so a submission never disturbs the list: the
-  /// rows stay put while the request is in flight, and the page only shows a
-  /// message when it settles.
   final ReviewChangeRequestStatus changeRequestStatus;
   final String? changeRequestMessage;
 
-  /// The review the in-flight (or just-settled) request belongs to, so a single
-  /// card can show its own spinner.
   final int changeRequestReviewId;
 
   bool get isLoading => status == VenueReviewsStatus.loading;
@@ -55,7 +47,6 @@ final class VenueReviewsState extends Equatable {
 
   bool get canLoadMore => page.hasMorePages && venueId > 0;
 
-  /// Total the server reports, falling back to what is loaded.
   int get totalCount => page.total > 0 ? page.total : reviews.length;
 
   VenueReviewsState copyWith({

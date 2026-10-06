@@ -200,8 +200,6 @@ class CompactDateTimeSelector extends StatelessWidget {
     );
   }
 
-  /// Background / foreground colours for a slot pill based on its [SlotStatus].
-  /// A selected slot always uses the primary highlight regardless of status.
   _SlotPalette _paletteFor(SlotStatus status, bool selected) {
     if (selected) {
       return _SlotPalette(
@@ -266,7 +264,6 @@ class CompactDateTimeSelector extends StatelessWidget {
   }
 }
 
-/// Resolved colours for a single time-slot pill.
 class _SlotPalette {
   const _SlotPalette({
     required this.background,

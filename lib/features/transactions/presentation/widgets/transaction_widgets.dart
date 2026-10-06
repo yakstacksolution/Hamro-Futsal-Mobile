@@ -8,16 +8,9 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/transactions/data/model/transaction_history_model.dart';
 import 'package:intl/intl.dart';
 
-/// `NPR 1,167` — whole rupees, since the ledger is read at a glance.
 String formatTransactionAmount(double amount) =>
     '${StringConstants.npr} ${NumberFormat('#,##0', 'en_US').format(amount)}';
 
-/// Colour for a status label. Statuses are an open vocabulary
-/// (`pending_clearance`, `cleared`, `recorded`, `partial`, …), so they are
-/// matched by substring rather than enumerated.
-///
-/// Only genuinely notable states get a hue; everything settled stays neutral,
-/// so a long statement is not a wall of colour.
 Color transactionStatusColor(String? status) {
   final String value = status?.toLowerCase() ?? '';
   if (value.contains('cancel') ||
@@ -61,17 +54,10 @@ String transactionDirectionLabel(TransactionDirectionFilter direction) =>
       TransactionDirectionFilter.outgoing => StringConstants.outgoing,
     };
 
-/// Tabular figures keep every amount in the ledger on the same digit grid, so
-/// a column of totals lines up instead of shimmying by a pixel per digit.
 const List<FontFeature> _tabularFigures = <FontFeature>[
   FontFeature.tabularFigures(),
 ];
 
-/// Statement header: a raised card carrying the net figure for the active
-/// filters, with the money-in / money-out split as two stats beneath a rule.
-///
-/// Figures come from the server's `summary`, which covers the whole filtered
-/// set rather than the pages loaded so far.
 class TransactionSummaryPanel extends StatelessWidget {
   const TransactionSummaryPanel({
     super.key,
@@ -83,7 +69,6 @@ class TransactionSummaryPanel extends StatelessWidget {
   final TransactionHistorySummaryModel? summary;
   final String rangeLabel;
 
-  /// Used when the payload carries no `transaction_count`.
   final int fallbackCount;
 
   @override
@@ -186,7 +171,6 @@ class TransactionSummaryPanel extends StatelessWidget {
   }
 }
 
-/// How many transactions the active filters match, as a quiet pill.
 class _CountBadge extends StatelessWidget {
   const _CountBadge({required this.count});
 
@@ -215,7 +199,6 @@ class _CountBadge extends StatelessWidget {
   }
 }
 
-/// One half of the in/out split: a tinted arrow, its label, and the total.
 class _SummaryStat extends StatelessWidget {
   const _SummaryStat({
     required this.label,
@@ -283,7 +266,6 @@ class _SummaryStat extends StatelessWidget {
   }
 }
 
-/// Cross-fades its child whenever the child's key changes.
 class _FadeOnChange extends StatelessWidget {
   const _FadeOnChange({required this.child});
 
@@ -306,7 +288,6 @@ class _FadeOnChange extends StatelessWidget {
   }
 }
 
-/// Search field plus the filter button.
 class TransactionSearchBar extends StatelessWidget {
   const TransactionSearchBar({
     super.key,
@@ -417,8 +398,6 @@ class TransactionSearchBar extends StatelessWidget {
   }
 }
 
-/// Quick-access date-range chips. `Custom` opens the filter sheet, where the
-/// two dates are picked.
 class TransactionRangeChips extends StatelessWidget {
   const TransactionRangeChips({
     super.key,
@@ -472,8 +451,6 @@ class TransactionRangeChips extends StatelessWidget {
   };
 }
 
-/// Understated pill shared by the range row and the filter sheet: a tinted
-/// outline when selected, plain surface otherwise.
 class TransactionFilterChip extends StatelessWidget {
   const TransactionFilterChip({
     super.key,
@@ -533,8 +510,6 @@ class TransactionFilterChip extends StatelessWidget {
   }
 }
 
-/// Month label above each group of rows — an overline, so it reads as a
-/// divider between blocks rather than as another row.
 class TransactionSectionHeader extends StatelessWidget {
   const TransactionSectionHeader({super.key, required this.title});
 
@@ -561,10 +536,6 @@ class TransactionSectionHeader extends StatelessWidget {
   }
 }
 
-/// One statement row: description on the left, signed amount on the right.
-///
-/// Rows in a month sit on one continuous card, so [isFirst] / [isLast] round
-/// only the outer edges of the group.
 class TransactionTile extends StatelessWidget {
   const TransactionTile({
     super.key,
@@ -578,13 +549,11 @@ class TransactionTile extends StatelessWidget {
   final TransactionHistoryItemModel item;
   final VoidCallback? onTap;
 
-  /// The last row in a group drops its divider.
   final bool showDivider;
 
   final bool isFirst;
   final bool isLast;
 
-  /// Icon width plus its gutter — dividers start where the text does.
   static const double _dividerIndent =
       AppDimens.paddingX14 + AppDimens.sizeX40 + AppDimens.sizeX12;
 
@@ -683,7 +652,6 @@ class TransactionTile extends StatelessWidget {
     );
   }
 
-  /// `02 Oct 2026 · BK-8ZYZNZLN · Dhananjay sport · Fee NPR 108`
   String _metaLine(TransactionHistoryItemModel item) => <String>[
     if (item.date != null) AppDateFormat.format(item.date!, 'dd MMM yyyy'),
     if (item.reference != null && item.reference!.isNotEmpty) item.reference!,
@@ -693,13 +661,10 @@ class TransactionTile extends StatelessWidget {
           '${formatTransactionAmount(item.commissionAmount!)}',
   ].join(' · ');
 
-  /// Settled rows need no status line; only exceptions do.
   bool _isNotable(String? status) =>
       transactionStatusColor(status) != LightColor.secondaryTextColor;
 }
 
-/// Exception states (pending, failed, refunded) as a tinted pill, so they read
-/// as a badge on the row rather than as a third line of prose.
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.label, required this.color});
 
@@ -731,10 +696,6 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-/// Money-in / money-out arrow.
-///
-/// Direction is carried three ways — this arrow, the amount's sign, and its
-/// colour — so it survives both colour-blindness and a greyscale screenshot.
 class _DirectionIcon extends StatelessWidget {
   const _DirectionIcon({required this.isIncoming});
 

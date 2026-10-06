@@ -16,16 +16,8 @@ class InAppWebViewPage extends StatefulWidget {
   final String title;
   final String url;
 
-  /// Ask the site for its embedded (`type=mobile`) rendering.
-  ///
-  /// The pages opened in here — terms, privacy — serve a chrome-free variant
-  /// for that flag, which is what belongs inside the app; the full page brings
-  /// the marketing header, nav and footer with it. Turn it off for a URL that
-  /// does not understand the flag.
   final bool mobileVariant;
 
-  /// [url] with `type=mobile` added, leaving any query it already carries
-  /// (and an explicit `type` of its own) intact.
   static Uri resolveUrl(String url, {bool mobileVariant = true}) {
     final Uri uri = Uri.parse(url);
     if (!mobileVariant || uri.queryParameters.containsKey('type')) return uri;

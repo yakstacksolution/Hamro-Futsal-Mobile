@@ -6,8 +6,6 @@ import 'package:hamro_futsal/features/app_update/domain/entities/install_progres
 import 'package:hamro_futsal/features/app_update/domain/repository/app_update_repository.dart';
 import 'package:hamro_futsal/core/config/app_environment.dart';
 
-/// The single entry point the presentation layer uses for updates: check,
-/// decide whether to prompt, snooze, and drive the platform update flow.
 final class CheckAppUpdateUseCase {
   CheckAppUpdateUseCase(this._repository, {AppUpdatePlatform? updateService})
     : _updateService = updateService ?? InAppUpdateService.instance;
@@ -25,11 +23,6 @@ final class CheckAppUpdateUseCase {
       ? _repository.snooze(check)
       : _repository.snooze(check, duration: duration);
 
-  /// Starts the best available update route for [check].
-  ///
-  /// Android with Play support: the native flow (immediate when the update is
-  /// mandatory, flexible otherwise). Everything else, and any Play failure:
-  /// the store listing.
   Future<PlayFlowOutcome> startUpdate(AppUpdateCheck check) async {
     if (check.canUsePlayFlow) {
       final PlayFlowOutcome outcome = check.isForced

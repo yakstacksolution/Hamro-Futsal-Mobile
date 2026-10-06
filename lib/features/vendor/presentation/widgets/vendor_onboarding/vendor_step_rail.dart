@@ -5,9 +5,6 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 
-/// Desktop step navigation: every section as a row, the active one opened
-/// to show its sub-steps — the vertical counterpart of the phone's chip
-/// rows, with the same statuses and the same jump-to-step taps.
 class VendorStepRail extends StatelessWidget {
   const VendorStepRail({
     super.key,
@@ -27,7 +24,6 @@ class VendorStepRail extends StatelessWidget {
   final int activeSubstepIndex;
   final StepStatus Function(int sectionIndex) statusForSection;
 
-  /// Status of a sub-step of the active section.
   final StepStatus Function(int subsectionIndex) statusForSubstep;
   final ValueChanged<int> onSectionSelected;
   final ValueChanged<int> onSubstepSelected;

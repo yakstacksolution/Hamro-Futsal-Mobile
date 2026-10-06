@@ -40,8 +40,6 @@ List<Map<String, dynamic>> _mapList(dynamic v) => v is List
     ? v.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
     : const <Map<String, dynamic>>[];
 
-/// Full payload of `GET /booking-overview`. The server pre-computes every
-/// aggregate (and most display strings); the UI just renders it.
 class BookingOverviewResponse {
   const BookingOverviewResponse({
     required this.period,
@@ -68,9 +66,6 @@ class BookingOverviewResponse {
   final List<DatePreset> datePresets;
   final OverviewSummary summary;
 
-  /// `overview.snapshot` (falls back to `overview.cards`), keyed by card key:
-  /// `total_bookings`, `cancelled`, `revenue`, `expenses`, `hours_played`,
-  /// `occupancy`.
   final Map<String, OverviewCard> cards;
   final RevenueTrend trend;
   final List<StatusMixEntry> statusMix;
@@ -154,7 +149,6 @@ class BookingOverviewResponse {
     };
   }
 
-  /// Peels the `data`/`result` envelope down to the overview object.
   static Map<String, dynamic> _root(dynamic payload) {
     dynamic current = payload;
     for (int depth = 0; depth < 8; depth++) {
@@ -214,7 +208,6 @@ class OverviewHeader {
   final int totalBookings;
   final int revenue;
 
-  /// e.g. `Sep 21 - Sep 27 · 9 bookings · NPR 8,400`.
   final String summaryLine;
 
   factory OverviewHeader.fromJson(Map<String, dynamic> json) => OverviewHeader(
@@ -226,7 +219,6 @@ class OverviewHeader {
   );
 }
 
-/// A date-window chip from `filters.date_presets`.
 class DatePreset {
   const DatePreset({
     required this.key,
@@ -245,7 +237,6 @@ class DatePreset {
   );
 }
 
-/// One KPI tile from `overview.snapshot` / `overview.cards`.
 class OverviewCard {
   const OverviewCard({
     required this.key,
@@ -272,7 +263,6 @@ class NetProfit {
 
   final int value;
 
-  /// Percentage, e.g. `100` for 100%.
   final double margin;
 
   factory NetProfit.fromJson(Map<String, dynamic> json) =>
@@ -338,17 +328,13 @@ class RevenueTrend {
     required this.buckets,
   });
 
-  /// `hourly` / `daily` / `monthly`.
   final String granularity;
   final int average;
 
-  /// Section heading, e.g. `Revenue trend`.
   final String title;
 
-  /// Card heading, e.g. `Daily revenue`.
   final String chartTitle;
 
-  /// e.g. `Avg NPR 1,200`.
   final String averageLabel;
   final List<TrendBucket> buckets;
 
@@ -368,9 +354,6 @@ class TrendBucket {
   final String label;
   final int value;
 
-  /// The day the bucket starts on, when the server says (`date`,
-  /// `start_date`, `from`) or its label is itself a date — lets the label be
-  /// rewritten in the user's calendar.
   final DateTime? date;
 
   factory TrendBucket.fromJson(Map<String, dynamic> json) {
@@ -429,8 +412,6 @@ class NetEarnings {
   );
 }
 
-/// A venue as it appears in the filter row. `id` is null for the "All venues"
-/// chip.
 class OverviewVenue {
   const OverviewVenue({
     required this.id,
@@ -469,7 +450,6 @@ class VenuePerformanceRow {
   final int revenue;
   final double bookedHours;
 
-  /// 0..1
   final double occupancy;
 
   factory VenuePerformanceRow.fromJson(Map<String, dynamic> json) {
@@ -513,7 +493,6 @@ class CourtPerformanceRow {
   final int bookings;
   final int revenue;
 
-  /// Relative revenue bar, 0..1. Null when the server didn't send one.
   final double? progress;
 
   factory CourtPerformanceRow.fromJson(Map<String, dynamic> json) =>

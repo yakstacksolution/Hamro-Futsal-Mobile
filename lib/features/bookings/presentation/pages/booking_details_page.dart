@@ -214,7 +214,6 @@ class _BookingDetailsView extends StatelessWidget {
     });
   }
 
-  /// The bookings list underneath, if this page was opened over one.
   BookingBloc? _bookingBlocOf(BuildContext context) {
     try {
       return context.read<BookingBloc>();
@@ -269,11 +268,6 @@ class _BookingDetailsView extends StatelessWidget {
     }
   }
 
-  /// The conversations API requires `vendor_id`, and it must be the booking's
-  /// vendor record id. Both booking payloads (list item and details) carry it,
-  /// and the details bloc preserves it across refreshes — so the booking is the
-  /// source of truth. The hosted-by endpoint is only a fallback for older
-  /// payloads that omit the field.
   Future<int?> _resolveVendorId(
     BuildContext context,
     BookingModel booking,
@@ -293,7 +287,6 @@ class _BookingDetailsView extends StatelessWidget {
     return result.fold((_) => null, (hostedBy) => hostedBy.id);
   }
 
-  /// Customer → vendor: the venue owner is the peer, addressed by `vendor_id`.
   Future<void> _chatWithVenue(
     BuildContext context,
     BookingModel booking,
@@ -315,8 +308,6 @@ class _BookingDetailsView extends StatelessWidget {
     );
   }
 
-  /// Vendor → customer: the peer is supplied as `user_id`, while `vendor_id`
-  /// still identifies which vendor the conversation belongs to.
   Future<void> _chatWithCustomer(
     BuildContext context,
     BookingModel booking,
@@ -1014,21 +1005,11 @@ class _RejectBookingSheetState extends State<_RejectBookingSheet> {
   }
 }
 
-/// Fixed vertical rhythm helpers so every section is spaced identically.
-/// Lays the details page out for the screen it is on.
-///
-/// * Phone: one list, [main] then [side] — exactly the original page.
-/// * Tablet: the same single column, centred at a readable width.
-/// * Desktop: two columns — the booking on the left, its payment on the
-///   right — so the money sits beside the booking instead of a long scroll
-///   below it.
 class _DetailsBody extends StatelessWidget {
   const _DetailsBody({required this.main, required this.side});
 
   final List<Widget> main;
 
-  /// Starts with its section header — no leading gap — so it can head the
-  /// right-hand column; the single-column layouts put a gap before it.
   final List<Widget> side;
 
   static const EdgeInsets _phonePadding = EdgeInsets.fromLTRB(
@@ -1139,7 +1120,6 @@ class _BookingDecisionBar extends StatelessWidget {
   final VoidCallback? onReject;
   final bool isLoading;
 
-  /// Accept is only tappable once the payment proof has been verified.
   final bool canAccept;
 
   @override
@@ -1212,7 +1192,6 @@ class _ConfirmedActionsBar extends StatelessWidget {
   final VoidCallback onComplete;
   final bool isLoading;
 
-  /// Shown beside the action so the vendor sees what they are collecting.
   final double amountToCollect;
 
   @override
@@ -1314,17 +1293,9 @@ class _CollectDueActionBar extends StatelessWidget {
   }
 }
 
-/// The page's opening card.
-///
-/// Deliberately the same object as the row the reader tapped in the list: the
-/// shared [DataCardHeader] and the same 2×2 grid of facts, so arriving here
-/// feels like the card opening rather than a different screen describing the
-/// same booking.
 class _BookingSummary extends StatelessWidget {
   const _BookingSummary({required this.booking, required this.isFutsalView});
 
-  /// This page is read rather than scanned, so its facts run a step larger
-  /// than the same facts on a list card.
   static const DataCardDensity _density = DataCardDensity.detail;
 
   final BookingModel booking;
@@ -1467,8 +1438,6 @@ class _CustomerCard extends StatelessWidget {
   final BookingModel booking;
   final VoidCallback? onChat;
 
-  /// A manual (walk-in) booking's customer has no app account, so there is
-  /// no one to message: the card shows who they are and nothing more.
 
   @override
   Widget build(BuildContext context) {
@@ -1771,16 +1740,11 @@ class _PaymentCard extends StatelessWidget {
   }
 }
 
-/// How the booking was paid: the total per payment type (cash, online), then
-/// every payment recorded against it — its type, when, any note, whether it
-/// is verified, and how much.
 class _PaymentsSection extends StatelessWidget {
   const _PaymentsSection({required this.booking});
 
   final BookingModel booking;
 
-  /// Type → amount and count: the server's `payment_breakdown`, else summed
-  /// from the payments themselves.
   List<({String type, double amount, int count})> get _byType {
     if (booking.paymentBreakdown.isNotEmpty) {
       return <({String type, double amount, int count})>[
@@ -1888,7 +1852,6 @@ class _PaymentsSection extends StatelessWidget {
   }
 }
 
-/// A payment type's share of what was paid.
 class _PaymentTypeTile extends StatelessWidget {
   const _PaymentTypeTile({
     required this.type,
@@ -1955,8 +1918,6 @@ class _PaymentTypeTile extends StatelessWidget {
   }
 }
 
-/// One recorded payment: type and amount, when, its note, and its
-/// verification.
 class _PaymentLine extends StatelessWidget {
   const _PaymentLine({required this.payment});
 
@@ -2044,8 +2005,6 @@ class _PaymentLine extends StatelessWidget {
   }
 }
 
-/// Hairline separator between the groups of a card (charges / totals /
-/// settlement), with the vertical rhythm baked in.
 class _CardDivider extends StatelessWidget {
   const _CardDivider();
 
@@ -2068,8 +2027,6 @@ class _PaymentProofCard extends StatelessWidget {
 
   final BookingPaymentModel payment;
 
-  /// When provided (futsal view, decision still pending) compact accept/reject
-  /// actions are rendered on the payment proof itself.
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
   final bool isLoading;
@@ -2241,9 +2198,6 @@ class _PaymentProofCard extends StatelessWidget {
   }
 }
 
-/// A proof submitted as a file rather than an image. There is nothing to
-/// preview, so the tile names it and offers the two things that can be done
-/// with it.
 class _ProofFileTile extends StatelessWidget {
   const _ProofFileTile({required this.url, required this.fileName});
 
@@ -2305,12 +2259,6 @@ class _ProofFileTile extends StatelessWidget {
   }
 }
 
-/// The name a downloaded proof is saved under.
-///
-/// The uploaded file's own name is used when the API reports a path — that is
-/// what the person who sent it will recognise — and a payment-stamped name
-/// stands in when it does not, so two proofs never land on top of each other
-/// in the user's files.
 String _paymentProofFileName(BookingPaymentModel payment, String url) {
   final String stored = payment.paymentProofPath?.trim() ?? '';
   final String candidate = stored.isNotEmpty ? stored : url;

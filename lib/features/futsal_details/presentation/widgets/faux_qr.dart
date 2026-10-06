@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 
-/// A decorative, QR-looking code rendered from [data]. It is NOT a scannable
-/// QR — it stands in for the company's payment QR image until a real QR asset
-/// or URL is wired up. The pattern is deterministic for a given [data] string,
-/// with the three finder squares a real QR has.
 class FauxQr extends StatelessWidget {
   const FauxQr({
     super.key,

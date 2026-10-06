@@ -9,7 +9,6 @@ import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Rounded, drag-handled shell shared by every bottom sheet in the feature.
 class OpponentSheetShell extends StatelessWidget {
   const OpponentSheetShell({
     super.key,
@@ -160,7 +159,6 @@ class VenuePickerSheet extends StatelessWidget {
   }
 }
 
-/// Create or rename a team. Pass [initialName] to switch to edit mode.
 class CreateTeamSheet extends StatefulWidget {
   const CreateTeamSheet({
     super.key,
@@ -226,8 +224,6 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
   }
 }
 
-/// Add a player to the roster, or — when [initialPlayer] is set — edit an
-/// existing member's name/position (`teams/{team}/members/{member}/update`).
 class AddPlayerSheet extends StatefulWidget {
   const AddPlayerSheet({
     super.key,
@@ -239,13 +235,9 @@ class AddPlayerSheet extends StatefulWidget {
 
   final String teamName;
 
-  /// Positions from the `/positions` API (caller falls back to
-  /// [PlayerPositionModel.defaults] when the fetch hasn't landed).
   final List<PlayerPositionModel> positions;
   final ValueChanged<PlayerModel> onAdd;
 
-  /// When set, the sheet opens in edit mode prefilled with this member; the
-  /// model passed to [onAdd] keeps its member id.
   final PlayerModel? initialPlayer;
 
   @override
@@ -289,8 +281,6 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
     super.dispose();
   }
 
-  /// Email is optional, so a blank field is fine — but anything typed has to be
-  /// a valid address before the player can be saved.
   String? get _emailError {
     final String text = _emailCtrl.text.trim();
     if (text.isEmpty) return null;
@@ -426,9 +416,6 @@ class _SheetInput extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextCapitalization textCapitalization;
 
-  /// Shown under the field when set. Validation is driven by the sheet's state
-  /// rather than a Form, so the message is passed in instead of returned by a
-  /// validator.
   final String? errorText;
 
   @override

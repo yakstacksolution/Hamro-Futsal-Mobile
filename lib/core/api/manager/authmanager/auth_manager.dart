@@ -112,8 +112,6 @@ class AuthManager extends ServiceManager {
     return await _apiClient.dismissMobileBanner(bannerId: bannerId);
   }
 
-  /// Authenticated password change (Settings) — distinct from the
-  /// forgot-password reset flow's `changePassword`.
   Future<Result> updatePassword(Map<String, dynamic> data) async {
     return await _apiClient.updatePassword(data: data);
   }
@@ -724,6 +722,10 @@ class AuthManager extends ServiceManager {
 
   Future<Result> getBookingOverview({Map<String, dynamic>? query}) async {
     return await _apiClient.getBookingOverview(query: query);
+  }
+
+  Future<Result> exportBookingsOverView({Map<String, dynamic>? query}) async {
+    return await _apiClient.exportBookingsOverView(query: query);
   }
 
   Future<Result> cancelBooking(int bookingId) async {

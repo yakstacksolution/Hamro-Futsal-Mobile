@@ -14,11 +14,6 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/google_tiles_map.dart';
 import 'package:hamro_futsal/core/widgets/static_google_map.dart';
 
-/// Full-screen, interactive map of a venue's location.
-///
-/// Pushed from [CourtLocationMapSection] when the user taps the preview /
-/// "Open in Maps". Supports pan & zoom, recentre, and handing off to the
-/// device maps app for turn-by-turn directions.
 class CourtLocationMapPage extends StatefulWidget {
   const CourtLocationMapPage({
     super.key,
@@ -45,14 +40,10 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
 
   static const double _defaultZoom = 16;
 
-  /// macOS / desktop: the live Google tiles map, once a tile session is
-  /// granted. Null while it is being requested or when the Map Tiles API is
-  /// unavailable, in which case the static image (and [_staticZoom]) is used.
   String? _tilesUrl;
   bool _tilesResolved = false;
   final MapController _tilesController = MapController();
 
-  /// macOS / desktop fallback: the static map's zoom, stepped by +/-.
   int _staticZoom = _defaultZoom.toInt();
 
   bool get _usingTiles => _tilesUrl != null;
@@ -66,8 +57,6 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
     });
   }
 
-  /// The zoom the +/- buttons are bounded by. The live map clamps its own
-  /// zoom (and is also zoomed by scroll and pinch), so its buttons stay on.
   double get _currentZoom =>
       _usingTiles ? _defaultZoom : _staticZoom.toDouble();
 
@@ -86,7 +75,6 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
   // Web Mercator cannot project the geographic poles.
   static const double _mercatorLatitudeLimit = 85.05112878;
 
-  /// Guards against NaN/Infinity or out-of-range values reaching the map.
   bool get _hasValidPoint =>
       widget.latitude.isFinite &&
       widget.longitude.isFinite &&

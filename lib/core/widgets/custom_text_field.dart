@@ -39,7 +39,6 @@ class CustomTextField extends StatefulWidget {
   final String labelText;
   final IconData? icon;
 
-  /// Overrides the prefix icon tint. Defaults to [LightColor.secondaryTextColor].
   final Color? iconColor;
   final String? hintText;
   final Widget? suffixIcon;
@@ -63,12 +62,8 @@ class CustomTextField extends StatefulWidget {
   final bool? isRequired;
   final List<TextInputFormatter>? inputFormatters;
 
-  /// Lets the platform offer saved values (a phone number, a name) — wrap
-  /// related fields in an [AutofillGroup].
   final Iterable<String>? autofillHints;
 
-  /// When true, the field scrolls itself into view inside the nearest
-  /// [Scrollable] as soon as it gains focus (so it stays above the keyboard).
   final bool ensureVisibleOnFocus;
 
   @override
@@ -78,9 +73,6 @@ class CustomTextField extends StatefulWidget {
 class _CustomTextFieldState extends State<CustomTextField> {
   FocusNode? _internalNode;
 
-  /// The node we attach to the underlying [TextFormField]. We only need a
-  /// concrete node when auto-scroll is requested; otherwise we keep the prior
-  /// behaviour and let the field manage its own (or the caller-provided) node.
   FocusNode? get _effectiveNode {
     if (widget.focusNode != null) return widget.focusNode;
     if (!widget.ensureVisibleOnFocus) return null;

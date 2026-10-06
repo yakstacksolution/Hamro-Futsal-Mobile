@@ -39,7 +39,6 @@ class BookingCheckoutPage extends StatefulWidget {
 
   final BookingDraft draft;
 
-  /// Where the flow lands once the booking has been created.
   final BookingSuccessAction successAction;
 
   @override
@@ -66,8 +65,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   bool _agreedToTerms = false;
   bool _submitted = false;
 
-  /// True from the "Confirm Booking" tap until the overview sheet closes, so a
-  /// double tap cannot open two sheets and submit the booking twice.
   bool _confirming = false;
 
   bool get _isManual => widget.draft.manualBooking != null;
@@ -79,8 +76,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     _requestHold();
   }
 
-  /// Holds the slot(s); the hold's answer carries the server's price. Also
-  /// the price section's Retry after a failed hold.
   void _requestHold() {
     final BookingDraft draft = widget.draft;
     final String startTime = draft.apiTime ?? '';
@@ -747,8 +742,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     );
   }
 
-  /// Desktop window wide enough for the form and the price column side by
-  /// side.
   bool _isTwoColumn(BuildContext context) =>
       context.isDesktop && context.screenWidth >= _twoColumnFrom;
 
@@ -757,11 +750,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   static const double _twoColumnMaxWidth = 1160;
   static const double _sideColumnWidth = 380;
 
-  /// * Phone: the original single list, unchanged.
-  /// * Tablet / narrow desktop: the same list, centred at a readable width.
-  /// * Desktop: the booking and payment steps on the left; the price and the
-  ///   confirm action on the right, so the total stays beside the form
-  ///   instead of in a full-width bar at the foot of the window.
   Widget _layout(
     BuildContext context,
     BoxConstraints constraints, {
@@ -850,8 +838,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     );
   }
 
-  /// Desktop: the bottom bar's figures and button as a card under the price
-  /// details.
   Widget _buildConfirmCard(_Pricing pricing) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final bool submitting = context
@@ -991,9 +977,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   }
 }
 
-/// ─────────────────────────── Reusable bits ───────────────────────────
 
-/// A small, quiet section label above each card.
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);
 
@@ -1088,7 +1072,6 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-/// ─────────────────────────── Summary ───────────────────────────
 
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.draft});
@@ -1358,7 +1341,6 @@ class _CouponField extends StatelessWidget {
   }
 }
 
-/// A tappable suggestion chip for an active coupon.
 class _CouponChip extends StatelessWidget {
   const _CouponChip({
     required this.coupon,
@@ -1420,7 +1402,6 @@ class _CouponChip extends StatelessWidget {
   }
 }
 
-/// ─────────────────────────── Price breakdown ───────────────────────────
 
 class _PriceBreakdown extends StatelessWidget {
   const _PriceBreakdown({
@@ -1433,23 +1414,17 @@ class _PriceBreakdown extends StatelessWidget {
     this.onRetry,
   });
 
-  /// Server display rows (`quote.calculation_list`) — rendered verbatim.
   final List<BookingCalculationLineModel> lines;
   final bool ready;
 
-  /// The hold failed: no price is coming until it is retried.
   final bool failed;
 
-  /// Held, but the server sent no price with it.
   final bool unpriced;
   final String? errorMessage;
 
-  /// The booking's own subtotal, shown when the server sent no price.
   final double estimatedTotal;
   final VoidCallback? onRetry;
 
-  /// Formats a server amount as currency, keeping the server's sign
-  /// (e.g. discount `-120` → `- Rs 120`).
   static String _money(double? amount) {
     final double value = amount ?? 0;
     final String abs = value.abs().toStringAsFixed(0);
@@ -1617,11 +1592,7 @@ class _PriceBreakdown extends StatelessWidget {
   }
 }
 
-/// ─────────────────────────── Price details sheet ───────────────────────────
 
-/// A bottom sheet showing the full server quote: per-session (day-by-day)
-/// amounts and the overall totals. Pure display of `quote.items` and
-/// `quote.calculation_list` — no client-side math.
 class _PriceDetailsSheet extends StatelessWidget {
   const _PriceDetailsSheet({required this.items, required this.lines});
 
@@ -1703,7 +1674,6 @@ class _PriceDetailsSheet extends StatelessWidget {
   }
 }
 
-/// One day's price card inside the breakdown sheet.
 class _SessionPriceRow extends StatelessWidget {
   const _SessionPriceRow({required this.item, required this.index});
 
@@ -1768,7 +1738,6 @@ class _SessionPriceRow extends StatelessWidget {
     );
   }
 
-  /// Formats a `yyyy-MM-dd` string as a friendly label, falling back to raw.
   static String _dayLabel(String? raw) {
     if (raw == null) return '';
     final DateTime? date = DateTime.tryParse(raw);
@@ -1776,7 +1745,6 @@ class _SessionPriceRow extends StatelessWidget {
   }
 }
 
-/// A compact label/value line used inside the per-session card.
 class _MiniRow extends StatelessWidget {
   const _MiniRow({required this.label, required this.value, this.valueColor});
 
@@ -1810,9 +1778,7 @@ class _MiniRow extends StatelessWidget {
   }
 }
 
-/// ─────────────────────────── Company QR ───────────────────────────
 
-/// ─────────────────────────── Upload ───────────────────────────
 
 class _UploadCard extends StatelessWidget {
   const _UploadCard({
@@ -1830,8 +1796,6 @@ class _UploadCard extends StatelessWidget {
   final VoidCallback onPick;
   final VoidCallback onRemove;
 
-  /// Opens the attached receipt full-screen so it can be checked before the
-  /// booking is confirmed.
   final VoidCallback onPreview;
 
   @override
@@ -2002,9 +1966,6 @@ class _UploadCard extends StatelessWidget {
 class _PaymentNoteCard extends StatelessWidget {
   const _PaymentNoteCard();
 
-  /// The payment goes to the venue's own QR, not to a Hamro Futsal account, so
-  /// there is no remark for the player to type — the screenshot is what ties
-  /// the payment to the booking.
   static const List<String> _notes = <String>[
     'Please pay the exact amount shown for your booking.',
     'After completing the payment, upload a clear screenshot of the payment confirmation receipt.',
@@ -2145,11 +2106,7 @@ class _TermsCheckbox extends StatelessWidget {
   }
 }
 
-/// ─────────────────────────── Overview sheet ───────────────────────────
 
-/// Shown when the user taps "Confirm Booking": a final review of the booking
-/// and price. Pops `true` when the user confirms, after which the booking is
-/// actually created.
 class _BookingOverviewSheet extends StatelessWidget {
   const _BookingOverviewSheet({
     required this.draft,
@@ -2489,8 +2446,6 @@ class _ReviewPaymentCard extends StatelessWidget {
   final String paymentMethodLabel;
   final String? paymentProofName;
 
-  /// The transaction ID the payer entered, echoed back so they can catch a
-  /// mistyped one before the booking is created.
   final String? paymentDescription;
   final String? couponCode;
 
@@ -2573,8 +2528,6 @@ class _ReviewPaymentCard extends StatelessWidget {
   }
 }
 
-/// The amount the user is committing to right now, as a pill in the sheet's
-/// header.
 class _DueNowBadge extends StatelessWidget {
   const _DueNowBadge({required this.amount});
 
@@ -2618,8 +2571,6 @@ class _DueNowBadge extends StatelessWidget {
   }
 }
 
-/// The payer's transaction ID — required, because it is what the venue matches
-/// the payment against.
 class _PaymentDescriptionField extends StatelessWidget {
   const _PaymentDescriptionField({
     required this.controller,
@@ -2632,13 +2583,9 @@ class _PaymentDescriptionField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
 
-  /// Set once the user has tried to confirm without filling this in — the same
-  /// treatment the proof upload and the terms checkbox get.
   final bool highlightMissing;
   final ValueChanged<String> onChanged;
 
-  /// Called when the keyboard's done action fires; the page uses it to close
-  /// the keyboard instead of leaving it over the confirm bar.
   final VoidCallback onSubmitted;
 
   @override
@@ -2776,7 +2723,6 @@ class _SessionDateChip extends StatelessWidget {
   }
 }
 
-/// ─────────────────────────── Success sheet ───────────────────────────
 
 class _BookingSuccessSheet extends StatelessWidget {
   const _BookingSuccessSheet({
@@ -2855,8 +2801,6 @@ class _BookingSuccessSheet extends StatelessWidget {
 
 String _dateLabel(DateTime date) => AppDateFormat.format(date, 'EEE, d MMM');
 
-/// The price figures shown across the page — taken verbatim from the server
-/// quote (`price_details` + `calculation_list`). Nothing is computed on device.
 class _Pricing {
   const _Pricing({
     required this.subtotal,
@@ -2876,22 +2820,16 @@ class _Pricing {
   final double total;
   final double advance;
 
-  /// The quote said what the advance is. When it did not, [advance] is 0
-  /// only as a placeholder and must not be shown as "Rs 0".
   final bool advanceKnown;
 
-  /// The advance as shown: `Rs 600`, or [pending] until it is known.
   String advanceText({String pending = '—'}) =>
       ready && advanceKnown ? 'Rs ${advance.toStringAsFixed(0)}' : pending;
   final double balanceDue;
   final bool hasCoupon;
 
-  /// Server-provided display rows (`quote.calculation_list`).
   final List<BookingCalculationLineModel> lines;
 
-  /// Server-provided per-session rows (`quote.items`).
   final List<BookingSessionItemModel> items;
 
-  /// Whether the server quote (price details) has arrived yet.
   final bool ready;
 }

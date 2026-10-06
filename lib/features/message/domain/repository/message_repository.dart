@@ -42,7 +42,6 @@ abstract class MessageRepository {
   );
   Future<Either<AppException, bool>> getUserPresence(int userId);
 
-  /// View-only profile of another user, opened from a conversation.
   Future<Either<AppException, MessageProfileModel>> getMessageProfile(
     int userId,
   );
@@ -66,18 +65,14 @@ abstract class MessageRepository {
   );
   Future<Either<AppException, bool>> setMuted(int conversationId, bool muted);
 
-  /// Edits a group's name, its picture, or both. The updated conversation when
-  /// the server echoes it back, null when it only acknowledges the change.
   Future<Either<AppException, ConversationModel?>> updateConversation(
     int conversationId, {
     String? title,
     int? mediaId,
   });
 
-  /// Leaves a group; true once the server has dropped the caller from it.
   Future<Either<AppException, bool>> leaveConversation(int conversationId);
 
-  /// Answers a group invitation: `accept: true` joins, `false` declines.
   Future<Either<AppException, bool>> respondToConversationInvitation(
     int conversationId,
     bool accept,

@@ -26,14 +26,10 @@ class ChatInputBar extends StatefulWidget {
     this.currentUserId,
   });
 
-  /// Sends the typed body along with whatever it mentions.
   final void Function(String body, ResolvedMentions mentions) onSend;
 
-  /// People who can be mentioned here. Empty in a direct chat, where `@` is
-  /// just a character.
   final List<MentionCandidate> mentionCandidates;
 
-  /// The signed-in user, kept out of their own mention picker.
   final int? currentUserId;
   final ValueChanged<bool>? onTypingChanged;
   final bool sending;
@@ -55,13 +51,10 @@ class _ChatInputBarState extends State<ChatInputBar> {
   Timer? _typingTimer;
   bool _typingSent = false;
 
-  /// The `@…` the caret is currently inside, or null. Drives the suggestion
-  /// list above the composer.
   ({int start, String query})? _mentionQuery;
 
   bool get _supportsMentions => widget.mentionCandidates.isNotEmpty;
 
-  /// `@all` plus every participant, filtered by what has been typed so far.
   List<MentionCandidate> get _mentionSuggestions {
     final String query = _mentionQuery?.query ?? '';
     final List<MentionCandidate> people = widget.mentionCandidates
@@ -380,7 +373,6 @@ class _ChatInputBarState extends State<ChatInputBar> {
   }
 }
 
-/// The list of people an `@` can resolve to, shown while one is being typed.
 class _MentionSuggestions extends StatelessWidget {
   const _MentionSuggestions({
     required this.candidates,
@@ -538,7 +530,6 @@ class _ReplyPreview extends StatelessWidget {
   }
 }
 
-/// Muted inline icon inside the composer pill.
 class _PillIcon extends StatelessWidget {
   const _PillIcon({required this.icon, required this.onTap});
 

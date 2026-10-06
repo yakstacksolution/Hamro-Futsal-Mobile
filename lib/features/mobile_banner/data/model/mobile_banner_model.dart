@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// A promotional banner shown in a full-screen dialog when the app opens.
 class MobileBannerModel extends Equatable {
   const MobileBannerModel({
     required this.id,
@@ -13,7 +12,6 @@ class MobileBannerModel extends Equatable {
   final String imageUrl;
   final String? title;
 
-  /// Where tapping the image leads, if anywhere.
   final String? link;
 
   factory MobileBannerModel.fromJson(Map<String, dynamic> json) {
@@ -39,8 +37,6 @@ class MobileBannerModel extends Equatable {
     );
   }
 
-  /// Parses the list out of the response envelope (`{data: [...]}` or a bare
-  /// list), dropping entries that have nothing to show or dismiss.
   static List<MobileBannerModel> listFromResponse(dynamic payload) {
     dynamic current = payload;
     for (int depth = 0; depth < 4 && current is Map; depth++) {

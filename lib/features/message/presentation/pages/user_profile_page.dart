@@ -11,17 +11,6 @@ import 'package:hamro_futsal/features/message/data/model/message_profile_model.d
 import 'package:hamro_futsal/features/message/presentation/bloc/message_bloc/message_bloc.dart';
 import 'package:hamro_futsal/features/message/presentation/pages/chat_launcher.dart';
 
-/// Pushes the view-only profile of another chat participant.
-///
-/// Reuses the caller's [MessageBloc] (the chat page's, which stays alive below
-/// this route) so the profile request rides the feature's existing bloc rather
-/// than spinning up a second one.
-///
-/// [canMessage] adds a Message button that opens a direct chat with this
-/// person. Off for the profile reached from a direct chat's own header — that
-/// chat is the screen underneath, so the button would lead back where the user
-/// already is. [isOnline] paints the presence pill when the caller knows it;
-/// the profile endpoint itself carries no presence.
 Future<void> openUserProfilePage({
   required BuildContext context,
   required int userId,
@@ -51,9 +40,6 @@ Future<void> openUserProfilePage({
   if (!bloc.isClosed) bloc.add(const ClearMessageProfileEvent());
 }
 
-/// Read-only profile of another user: a photo that fills the top of the screen
-/// with the name written over it, then the details and the way to reach them.
-/// Nothing here is editable.
 class UserProfilePage extends StatelessWidget {
   const UserProfilePage({
     super.key,
@@ -66,21 +52,13 @@ class UserProfilePage extends StatelessWidget {
 
   final int userId;
 
-  /// Shown until the request lands, so the page is never blank.
   final String fallbackName;
   final String fallbackImageUrl;
 
-  /// Whether to offer a chat with this person — see [openUserProfilePage].
   final bool canMessage;
 
-  /// Presence as the caller knows it; null hides the pill entirely rather than
-  /// claiming the person is offline.
   final bool? isOnline;
 
-  /// A direct thread with this user that the inbox already holds, if any.
-  ///
-  /// Opening that one keeps the conversation whole; asking the server to start
-  /// a direct chat again would hand back a second thread beside it.
   ConversationModel? _existingDirect(MessageState state) {
     for (final ConversationModel conversation in state.conversations) {
       if (conversation.isGroup) continue;
@@ -183,9 +161,6 @@ class UserProfilePage extends StatelessWidget {
   }
 }
 
-/// The photo as the top of the screen rather than a card inside it: it
-/// collapses into a plain app bar as the page scrolls, so the name stays
-/// legible the whole way down.
 class _ProfileHero extends StatelessWidget {
   const _ProfileHero({
     required this.name,
@@ -284,7 +259,6 @@ class _ProfileHero extends StatelessWidget {
   }
 }
 
-/// A back button that reads over both a photo and the collapsed bar.
 class _HeroBackButton extends StatelessWidget {
   const _HeroBackButton();
 
@@ -312,8 +286,6 @@ class _HeroBackButton extends StatelessWidget {
   }
 }
 
-/// Stands in for a photo nobody uploaded: the initial over a tinted wash,
-/// rather than an empty grey rectangle.
 class _MonogramBackdrop extends StatelessWidget {
   const _MonogramBackdrop({required this.name});
 
@@ -392,8 +364,6 @@ class _PresencePill extends StatelessWidget {
   }
 }
 
-/// The details the endpoint carries. Loading shows the same rows as skeletons
-/// so the card keeps its shape instead of collapsing to a spinner.
 class _AboutCard extends StatelessWidget {
   const _AboutCard({
     required this.address,
@@ -402,7 +372,6 @@ class _AboutCard extends StatelessWidget {
     required this.loading,
   });
 
-  /// Null for anything this profile does not carry — each row says so itself.
   final String? address;
   final String? email;
   final String? gender;
@@ -463,8 +432,6 @@ class _AboutCard extends StatelessWidget {
   }
 }
 
-/// The hairline between two detail rows — the same spacing on both sides, so
-/// the rows read as one list rather than separate blocks.
 Widget get _rowDivider => Padding(
   padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX14),
   child: Divider(height: 1, color: LightColor.dividerColor),
@@ -481,8 +448,6 @@ class _ProfileRow extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  /// Null or blank renders as "Not provided" rather than an empty line, so a
-  /// half-filled profile still reads as a list of facts.
   final String? value;
   final bool loading;
 
@@ -538,7 +503,6 @@ class _ProfileRow extends StatelessWidget {
   }
 }
 
-/// A single pulsing bar where a value will land.
 class _SkeletonBar extends StatefulWidget {
   const _SkeletonBar();
 

@@ -12,11 +12,6 @@ import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/features/public/data/model/help_video_model.dart';
 import 'package:hamro_futsal/features/public/presentation/widgets/help_videos_tab.dart';
 
-/// Plays a Help & FAQ video guide inside the app with the YouTube iFrame
-/// player, with the rest of the guides listed under it as "Up next".
-///
-/// Picking another guide swaps the video in the same player rather than
-/// pushing a new page, so back always returns to the Videos tab.
 class HelpVideoPlayerPage extends StatefulWidget {
   const HelpVideoPlayerPage({
     super.key,
@@ -24,10 +19,8 @@ class HelpVideoPlayerPage extends StatefulWidget {
     required this.playlist,
   });
 
-  /// The guide to start with.
   final HelpVideo initial;
 
-  /// Every playable guide for the same audience, [initial] included.
   final List<HelpVideo> playlist;
 
   @override
@@ -78,9 +71,6 @@ class _HelpVideoPlayerPageState extends State<HelpVideoPlayerPage> {
     }
   }
 
-  /// The 16:9 player, never taller than [heightShare] of [maxHeight] — a
-  /// full-width player on a wide or short window would otherwise be taller
-  /// than the screen and push everything below it off the bottom.
   Widget _player(
     double maxWidth,
     double maxHeight, {
@@ -211,7 +201,6 @@ class _HelpVideoPlayerPageState extends State<HelpVideoPlayerPage> {
   }
 }
 
-/// Category, duration, title and description of the video that is playing.
 class _VideoDetails extends StatelessWidget {
   const _VideoDetails({required this.video});
 

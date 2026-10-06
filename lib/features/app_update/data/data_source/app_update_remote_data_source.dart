@@ -5,11 +5,8 @@ import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/client.dart';
 
 abstract class AppUpdateRemoteDataSource {
-  /// The app's own release manifest, served by our backend.
   Future<Result> getAppVersion({required Map<String, dynamic> query});
 
-  /// App Store fallback for iOS — the public iTunes Lookup API. Returns the
-  /// raw lookup payload.
   Future<Result> lookupAppStore({required String bundleId, String? country});
 }
 

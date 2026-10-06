@@ -21,13 +21,11 @@ final class RewardsState extends Equatable {
     this.generateErrorMessage,
   });
 
-  /// Wallet.
   final RewardsStatus summaryStatus;
   final RewardsSummaryModel? summary;
   final bool isRefreshing;
   final String? errorMessage;
 
-  /// History.
   final RewardsStatus historyStatus;
   final List<RewardHistoryEntryModel> history;
   final int historyPage;
@@ -36,19 +34,16 @@ final class RewardsState extends Equatable {
   final bool isLoadingMoreHistory;
   final String? historyErrorMessage;
 
-  /// Coupon generation.
   final RewardsStatus generateStatus;
   final bool isGenerating;
   final GeneratedRewardCouponModel? generatedCoupon;
   final String? generateErrorMessage;
 
-  /// True only for the very first wallet load, when there is nothing to show.
   bool get isInitialLoading =>
       summaryStatus == RewardsStatus.loading && summary == null;
 
   bool get hasSummary => summary != null;
 
-  /// Wallet failed and nothing is cached — the page renders a retry state.
   bool get isSummaryFailure =>
       summaryStatus == RewardsStatus.failure && summary == null;
 

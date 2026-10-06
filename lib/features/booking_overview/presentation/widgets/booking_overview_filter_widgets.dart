@@ -8,7 +8,6 @@ import 'package:hamro_futsal/features/booking_overview/data/model/booking_overvi
 import 'package:hamro_futsal/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Compact selectable chip with haptic feedback, shared by all filter rows.
 class BookingChip extends StatelessWidget {
   const BookingChip({
     super.key,

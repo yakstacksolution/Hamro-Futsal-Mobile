@@ -14,8 +14,6 @@ import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/bloc/vendor_ops_bloc.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops_style.dart';
 
-/// Shows a booking over the dashboard — a side drawer on wide screens, a
-/// bottom sheet on phones — so checking a slot never navigates away.
 Future<void> showOpsBookingDetails(
   BuildContext context,
   BookingModel booking, {
@@ -84,8 +82,6 @@ class _BookingDetails extends StatelessWidget {
   final VendorOpsBloc bloc;
   final int? nowMinute;
 
-  /// Demo bookings do not exist on the server, so the full details page
-  /// (which fetches the booking) is not offered.
   final bool demo;
 
   @override

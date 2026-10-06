@@ -1,6 +1,5 @@
 import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
 
-/// Availability of a single session (one date) for the chosen court & slot.
 class AvailabilitySession {
   const AvailabilitySession({
     required this.date,
@@ -11,20 +10,16 @@ class AvailabilitySession {
     this.reason,
   });
 
-  /// Raw / display date string from the server (e.g. `2025-12-01`).
   final String date;
   final DateTime? dateTime;
   final String? startTime;
   final String? endTime;
   final SlotStatus status;
 
-  /// Optional human reason when unavailable (e.g. `booked`).
   final String? reason;
 
   bool get isAvailable => status.canSelect;
 
-  /// `yyyy-MM-dd` for this session, whatever shape the server sent the date
-  /// in (`2025-12-01`, `2025-12-01T00:00:00Z`, …). Empty when unparseable.
   String get dateKey {
     final DateTime? parsed = dateTime ?? _parseDate(date);
     if (parsed != null) return _dateKey(parsed);
@@ -57,12 +52,6 @@ class AvailabilitySession {
     );
   }
 
-  /// Explicit availability flags win over a `status` string, and only a
-  /// status that clearly means "taken" marks the date unavailable.
-  ///
-  /// [SlotStatus.fromApi] treats every unknown word as unavailable, which is
-  /// right for the slot grid but here turned values like `free`, `open` or
-  /// `true` into "0 available".
   static SlotStatus _statusFrom(Map<String, dynamic> json) {
     final bool? available = _asBool(
       json['is_available'] ??
@@ -124,11 +113,8 @@ class RecurringAvailabilityModel {
 
   final List<AvailabilitySession> sessions;
 
-  /// The server's own `all_available` verdict, when it sends one. Preferred
-  /// over counting [sessions], which can be empty on an all-available response.
   final bool? allAvailableFlag;
 
-  /// Slot window echoed back by `booking_summary`, e.g. `06:00:00`.
   final String? startTime;
   final String? endTime;
 
@@ -142,7 +128,6 @@ class RecurringAvailabilityModel {
   List<AvailabilitySession> get unavailableSessions =>
       sessions.where((AvailabilitySession s) => !s.isAvailable).toList();
 
-  /// `yyyy-MM-dd` keys of the dates the server says are still bookable.
   Set<String> get availableDateKeys => availableSessions
       .map((AvailabilitySession s) => s.dateKey)
       .where((String d) => d.isNotEmpty)
@@ -153,18 +138,6 @@ class RecurringAvailabilityModel {
       .where((String d) => d.isNotEmpty)
       .toSet();
 
-  /// Lines the server's answer up with the full schedule that was asked about.
-  ///
-  /// The server often reports only the conflicting dates, so a 4-session
-  /// request can come back with a single (taken) entry. Counting that list as
-  /// the schedule reads "0 available · 1 unavailable". Here every requested
-  /// date gets exactly one session, in schedule order: the server's entry when
-  /// it sent one, otherwise available.
-  ///
-  /// When the server named no dates at all, only an `all_available: true`
-  /// verdict can be spread over the schedule. A bare `false` says *something*
-  /// is taken but not what, so the sessions stay empty and [isUnconfirmed]
-  /// tells the UI to warn without inventing per-date counts.
   RecurringAvailabilityModel reconciledWith(List<DateTime> requested) {
     if (requested.isEmpty) return this;
 
@@ -208,7 +181,6 @@ class RecurringAvailabilityModel {
 
   bool get hasSessions => sessions.isNotEmpty;
 
-  /// The server said not every date is free but did not say which.
   bool get isUnconfirmed => !hasSessions && allAvailableFlag == false;
 
   bool get allAvailable {
@@ -216,8 +188,6 @@ class RecurringAvailabilityModel {
     return allAvailableFlag ?? false;
   }
 
-  /// True only when the server actually reported taken dates — the trigger for
-  /// the "continue without these dates?" prompt.
   bool get hasUnavailableDates => unavailableSessions.isNotEmpty;
 
   factory RecurringAvailabilityModel.fromResponse(dynamic payload) {
@@ -324,8 +294,6 @@ String _dateKey(DateTime date) =>
     '${date.month.toString().padLeft(2, '0')}-'
     '${date.day.toString().padLeft(2, '0')}';
 
-/// Normalised `yyyy-MM-dd` strings from a list of dates, which the server may
-/// send as plain strings or as objects (`{date: …, reason: …}`).
 List<String> _dateList(dynamic value) {
   if (value is! List) return const <String>[];
   return value
@@ -341,8 +309,6 @@ List<String> _dateList(dynamic value) {
       .toList(growable: false);
 }
 
-/// The session date from whichever field the server used, falling back to
-/// the first value that looks like a date.
 String? _dateStringFrom(Map<String, dynamic> json) {
   const List<String> keys = <String>[
     'date',
@@ -368,8 +334,6 @@ String? _dateStringFrom(Map<String, dynamic> json) {
 final RegExp _isoDate = RegExp(r'^(\d{4})[-/](\d{1,2})[-/](\d{1,2})');
 final RegExp _dmyDate = RegExp(r'^(\d{1,2})[-/](\d{1,2})[-/](\d{4})');
 
-/// Date-only parse of `2025-12-01`, `2025/12/01`, `2025-12-01T00:00:00Z` or
-/// `01-12-2025`. Null for anything else (times, names, ids).
 DateTime? _parseDate(String raw) {
   final String text = raw.trim();
   final RegExpMatch? iso = _isoDate.firstMatch(text);
@@ -391,7 +355,6 @@ DateTime? _safeDate(String y, String m, String d) {
   return DateTime(year, month, day);
 }
 
-/// Unwraps the response down to the map that holds `booking_summary`.
 Map<String, dynamic>? _rootMap(dynamic payload) {
   dynamic current = payload;
   for (int depth = 0; depth < 6 && current is Map; depth++) {

@@ -1,15 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// Venue texts returned by `/venue-description/{venue_id}`.
-///
-/// Response shape (all values are HTML):
-/// ```json
-/// {
-///   "description": "<p>...</p>",
-///   "rules": "<p>...</p>",
-///   "policy": "<p>...</p>"
-/// }
-/// ```
 final class VenueDescriptionModel extends Equatable {
   const VenueDescriptionModel({
     this.description = '',
@@ -17,13 +7,10 @@ final class VenueDescriptionModel extends Equatable {
     this.policy = '',
   });
 
-  /// "About this venue" HTML.
   final String description;
 
-  /// Futsal rules HTML.
   final String rules;
 
-  /// Cancellation policy HTML.
   final String policy;
 
   factory VenueDescriptionModel.fromJson(Map<String, dynamic> json) {

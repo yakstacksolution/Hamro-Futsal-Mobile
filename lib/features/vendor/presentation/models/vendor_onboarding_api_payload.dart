@@ -305,9 +305,6 @@ int _matchFormatId(CourtDraft court) {
       kDefaultMatchFormatId;
 }
 
-/// Body for the single-slot create/update endpoint
-/// (`update-court-slot`). Sends `slot_schedule_id` only when the slot already
-/// exists on the backend (a numeric id), so a new slot is created instead.
 Map<String, dynamic> courtSlotBody(
   SlotPricingDraft slot, {
   required int courtId,
@@ -331,8 +328,6 @@ Map<String, dynamic> courtSlotBody(
   };
 }
 
-/// Body for updating only the pricing of an existing slot (sub-step 2). Sends
-/// the slot id plus weekend/holiday/discount prices and any custom date prices.
 Map<String, dynamic> courtSlotPricingBody(
   SlotPricingDraft slot, {
   required int courtId,
@@ -374,16 +369,12 @@ Map<String, dynamic> courtSlotPricingBody(
   };
 }
 
-/// `2026-09-14 06:00:00` — the shape this API uses for date-times elsewhere
-/// (`booking_date`, `created_at`), rather than an ISO `T` separator.
 String _apiDateTime(DateTime value) {
   String two(int n) => n.toString().padLeft(2, '0');
   return '${value.year}-${two(value.month)}-${two(value.day)} '
       '${two(value.hour)}:${two(value.minute)}:${two(value.second)}';
 }
 
-/// Maps the draft discount type (`Flat`/`Percent`) to the backend value
-/// (`flat` / `percentage`).
 String _discountTypeApiValue(String discountType) {
   final String normalized = discountType.trim().toLowerCase();
   return normalized == 'percent' || normalized == 'percentage'
@@ -391,9 +382,6 @@ String _discountTypeApiValue(String discountType) {
       : 'flat';
 }
 
-/// Converts a stored time string (12-hour display, e.g. `06 : 00 AM`) into the
-/// 24-hour `H:i` format the backend expects (e.g. `06:00`). Returns null when
-/// the value is empty or unparseable so the field is omitted/cleared.
 String? _toApiTime(String value) {
   final TimeOfDay? time = timeOfDayFromString(value);
   if (time == null) return null;
@@ -470,8 +458,6 @@ int? _packageIdFromPercent(double? percent) {
   }
 }
 
-/// All QR ids, plus the first as `payment_qr_id` so a backend that still reads
-/// a single QR keeps working.
 Map<String, dynamic> _paymentQrBody(CourtDraft court) {
   final List<int> ids = court.paymentQrs
       .map((UploadRef item) => item.id)

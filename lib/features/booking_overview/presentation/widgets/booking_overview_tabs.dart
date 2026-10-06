@@ -7,7 +7,6 @@ import 'package:hamro_futsal/features/booking_overview/presentation/widgets/book
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_leaderboard_widgets.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_summary_widgets.dart';
 
-/// "How is the business doing?" — net revenue hero, KPI snapshot, profit.
 class BookingOverviewTab extends StatelessWidget {
   const BookingOverviewTab({super.key, required this.analytics});
 
@@ -32,7 +31,6 @@ class BookingOverviewTab extends StatelessWidget {
   }
 }
 
-/// "What's the trend?" — revenue chart + booking status mix.
 class BookingAnalyticsTab extends StatelessWidget {
   const BookingAnalyticsTab({super.key, required this.analytics});
 
@@ -55,7 +53,6 @@ class BookingAnalyticsTab extends StatelessWidget {
   }
 }
 
-/// "Who performs best?" — venue, court and customer leaderboards.
 class BookingRankingsTab extends StatelessWidget {
   const BookingRankingsTab({super.key, required this.analytics});
 
@@ -84,7 +81,6 @@ class BookingRankingsTab extends StatelessWidget {
   }
 }
 
-/// Horizontal inset for every tab body; wider once there is room for it.
 EdgeInsets _tabPadding(BuildContext context) {
   final double horizontal = context.responsive<double>(
     mobile: AppDimens.paddingX20,
@@ -98,11 +94,6 @@ EdgeInsets _tabPadding(BuildContext context) {
   );
 }
 
-/// Places two independent, self-contained cards side by side once the pane is
-/// wide enough, and stacks them (labels above each) otherwise.
-///
-/// Stacking is the phone layout and must stay byte-identical, so the mobile
-/// branch returns exactly the widgets the caller would have listed inline.
 List<Widget> _pairSections(
   BuildContext context, {
   required String firstLabel,

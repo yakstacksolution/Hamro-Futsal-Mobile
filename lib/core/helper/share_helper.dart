@@ -4,40 +4,18 @@ import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// What came back from a share attempt.
 enum ShareOutcome {
-  /// The user picked a target in the share sheet.
   shared,
 
-  /// The sheet opened and the user backed out of it.
   dismissed,
 
-  /// The sheet opened but the platform cannot report what happened
-  /// (Android and macOS only say "an action was picked").
   unknown,
 
-  /// No share sheet on this device, so the text went to the clipboard.
   copiedToClipboard,
 
-  /// Nothing was passed that could be shared.
   nothingToShare,
 }
 
-/// The app's single entry point to the OS share sheet.
-///
-/// Everything that shares goes through here so pages cannot drift into
-/// different behaviours, and so the parts that are easy to get wrong are
-/// handled once:
-///
-/// * share_plus refuses `uri` and `text` together, and refuses empty text, so
-///   the two shapes are chosen deliberately in [buildParams] rather than by
-///   whatever the caller happens to have.
-/// * iPad and macOS anchor the sheet to a source rect. Without one the popover
-///   has nothing to point at, so callers pass the key of the button that was
-///   tapped.
-/// * A device with no share target at all (bare emulators, some Android TV
-///   builds) throws instead of opening anything, so the content is copied to
-///   the clipboard rather than leaving the tap looking broken.
 abstract final class ShareHelper {
   static Future<ShareOutcome> share(
     BuildContext context, {
@@ -85,15 +63,6 @@ abstract final class ShareHelper {
     }
   }
 
-  /// Chooses between the two share shapes share_plus supports.
-  ///
-  /// A bare link is sent as a [Uri], which is what makes iOS and the richer
-  /// Android targets render a link preview card instead of pasting the raw
-  /// characters. As soon as there is a message to go with it the link has to be
-  /// folded into `text`, because share_plus rejects `uri` and `text` together.
-  ///
-  /// Returns null when there is nothing worth opening a sheet for. Kept
-  /// separate from [share] so this decision is testable without a platform.
   @visibleForTesting
   static ShareParams? buildParams({
     String? message,
@@ -134,8 +103,6 @@ abstract final class ShareHelper {
     );
   }
 
-  /// [message] with [link] on its own line, skipping the link when the message
-  /// already quotes it (the backend's `message` sometimes includes it).
   static String _plainText({String? message, String? link}) {
     final String body = (message ?? '').trim();
     final String url = (link ?? '').trim();
@@ -145,8 +112,6 @@ abstract final class ShareHelper {
     return '$body\n$url';
   }
 
-  /// The tapped widget's rect in global coordinates, or null when it is not
-  /// laid out — every platform except iPad/macOS ignores this anyway.
   static Rect? _originRect(GlobalKey? key) {
     final RenderObject? renderObject = key?.currentContext?.findRenderObject();
     if (renderObject is! RenderBox || !renderObject.hasSize) return null;

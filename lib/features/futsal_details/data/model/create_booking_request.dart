@@ -36,18 +36,10 @@ class CreateBookingRequest {
   final String? notes;
   final String? couponCode;
 
-  /// Weeks between the first and last session, sent only when the recurrence
-  /// repeats on a single weekday — the server can derive those dates itself.
-  /// Null once several weekdays are booked, which this field cannot express;
-  /// [bookingDates] is authoritative in that case.
   final int? repeatWeeks;
 
-  /// Every session date (`yyyy-MM-dd`) the booking should create, including
-  /// the first. Empty for a single-session booking.
   final List<String> bookingDates;
 
-  /// Byte-backed proof captured when it was attached. Its optional source path
-  /// is used only by the local receipt validator.
   final UploadAttachment? paymentProof;
 
   final String? paymentNote;
@@ -59,9 +51,6 @@ class CreateBookingRequest {
   final String? paymentStatus;
   final String? bookingStatus;
 
-  /// Manual bookings may carry a price agreed at the counter. Omitted from the
-  /// request entirely when null, so the server prices the slots itself rather
-  /// than reading a blank as zero.
   final double? totalAmount;
 
   Map<String, dynamic> toFields() => <String, dynamic>{

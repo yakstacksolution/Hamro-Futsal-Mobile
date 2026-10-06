@@ -8,20 +8,17 @@ abstract class AccountRepository {
   Future<Either<AppException, SettlementBreakdownModel>>
   getSettlementBreakdown();
 
-  /// Payment QRs the commission may be sent to.
   Future<Either<AppException, List<SettlementQrCodeModel>>> getQrCodes();
 
   Future<Either<AppException, SettlementPreviewModel>> getSettlementPreview({
     int? venueId,
   });
 
-  /// One page of the account ledger.
   Future<Either<AppException, AccountActivityPageModel>> getRecentActivity({
     int perPage,
     int page,
   });
 
-  /// One page of the settlement history, with the server's status summary.
   Future<Either<AppException, SettlementPageModel>> getSettlements({
     int perPage = 20,
     int page = 1,

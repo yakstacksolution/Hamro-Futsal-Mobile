@@ -53,13 +53,8 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     });
   }
 
-  /// Shortest gap between two background `/conversations` fetches. Presence
-  /// polling, app-lifecycle changes and tab switches can all ask for a refresh
-  /// within the same second; without this the endpoint was hit several times
-  /// in a row for the same data. User-driven loads pass `force: true`.
   static const Duration _conversationsRefreshThrottle = Duration(seconds: 20);
 
-  /// Thread page size for `/conversations/{id}/messages`.
   static const int _messagesPerPage = 20;
 
   final MessageUseCase useCase;
@@ -181,13 +176,6 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     );
   }
 
-  /// Keeps only the conversations belonging to the requested scope: the archive
-  /// tab lists archived threads only, the inbox lists everything else. The API
-  /// has been seen to ignore the `archived` query and answer with the full
-  /// list, so the scope is enforced here too.
-  ///
-  /// If the payload carries no archived flag at all, an archived request is
-  /// left untouched — filtering then would wrongly empty the tab.
   List<ConversationModel> _scoped(
     Iterable<ConversationModel> items,
     bool archived,
@@ -199,8 +187,6 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         .toList(growable: false);
   }
 
-  /// True when the same list (same archived scope) was fetched moments ago and
-  /// the caller did not insist on a fresh one.
   bool _isThrottled(bool archived) {
     final DateTime? last = _lastConversationsFetch;
     if (last == null || _lastConversationsArchived != archived) return false;
@@ -219,8 +205,6 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     return byId.values.toList(growable: false);
   }
 
-  /// The chat most recently opened, set before [_onLoadChat]'s first await so
-  /// a [CloseChatEvent] for the chat it replaced can tell it is stale.
   int? _openChatId;
 
   Future<void> _onLoadChat(
@@ -321,9 +305,6 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     );
   }
 
-  /// Older history, one page at a time, triggered by reaching the top of the
-  /// thread. Results are merged into [MessageState.messages] (deduped by id),
-  /// so a message that also arrives over the socket is never doubled.
   Future<void> _onLoadOlderMessages(
     LoadOlderMessagesEvent event,
     Emitter<MessageState> emit,
@@ -486,9 +467,6 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     Emitter<MessageState> emit,
   ) => emit(state.copyWith(clearCreatedGroup: true));
 
-  /// Renaming a group. The title is patched onto the conversation everywhere
-  /// it is held — the open thread and the inbox row — so the header and the
-  /// list both read the new name without a refetch.
   Future<void> _onUpdateGroupConversation(
     UpdateGroupConversationEvent event,
     Emitter<MessageState> emit,
@@ -515,10 +493,6 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         state.copyWith(actionBusy: false, errorMessage: failure.errorMessage),
       ),
       (updated) {
-        /// The server's own copy when it echoed one back; otherwise the
-        /// conversation in hand with what was just accepted applied to it —
-        /// including the picked image's URL, so the picture changes now rather
-        /// than at the next refresh.
         ConversationModel patch(ConversationModel conversation) {
           if (updated != null) return updated;
           return conversation.copyWith(
@@ -552,14 +526,6 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     );
   }
 
-  /// Leaving drops the conversation from this user's inbox, so the row goes
-  /// as well as the membership — a refresh would not bring it back.
-  /// Accept or decline a group invitation straight from the inbox.
-  ///
-  /// Accepting keeps the row and clears its pending flags, so the card turns
-  /// into an ordinary conversation without waiting for a refetch. Declining
-  /// drops the row — the user is no longer part of that conversation — and
-  /// closes it if it happened to be open.
   Future<void> _onRespondToInvitation(
     RespondToConversationInvitationEvent event,
     Emitter<MessageState> emit,
@@ -934,8 +900,6 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     if (isActive && !mine) _scheduleMarkRead(message.conversationId);
   }
 
-  /// Moves [message]'s conversation to the top of the list with the message as
-  /// its latest. Returns the list unchanged when the conversation isn't loaded.
   List<ConversationModel> _bumpToTop(ChatMessageModel message) {
     final int index = state.conversations.indexWhere(
       (c) => c.id == message.conversationId,

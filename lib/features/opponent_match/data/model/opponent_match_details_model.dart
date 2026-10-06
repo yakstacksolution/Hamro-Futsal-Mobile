@@ -1,14 +1,3 @@
-/// The confirmed match behind a settled request, as served by
-/// `GET /auth/opponent-requests/{id}/match-details`.
-///
-/// This endpoint answers in its own shape — sections built for the screen
-/// (`match_summary`, `kickoff`, `linked_venue_booking`, `cost_split`,
-/// `match_chat`) rather than the request row the list endpoints send. It also
-/// carries the copy: headlines, `date_label`, `Your share (60%)`,
-/// `Paid at the venue`, the chat CTA. That copy is used as sent, so the two
-/// sides of a match always read the same wording and a server-side change does
-/// not need an app release. Every label still falls back to something the app
-/// can build itself, so a section that arrives bare still renders.
 library;
 
 int _asInt(dynamic value) {
@@ -35,7 +24,6 @@ String _asText(dynamic value) {
 Map<String, dynamic> _asMap(dynamic value) =>
     value is Map ? Map<String, dynamic>.from(value) : const {};
 
-/// One side of the fixture.
 class MatchTeamRef {
   const MatchTeamRef({
     required this.id,
@@ -46,8 +34,6 @@ class MatchTeamRef {
   final String id;
   final String name;
 
-  /// The server builds these ("Rajendra Teams" → "RT"); derived on-device only
-  /// when it sent none.
   final String initials;
 
   static MatchTeamRef fromJson(Map<String, dynamic> json) {
@@ -75,7 +61,6 @@ class MatchTeamRef {
   bool get isEmpty => name.isEmpty;
 }
 
-/// `match_summary` — the fixture header and its confirmation line.
 class MatchSummary {
   const MatchSummary({
     required this.requestingTeam,
@@ -87,7 +72,6 @@ class MatchSummary {
   final MatchTeamRef requestingTeam;
   final MatchTeamRef opponentTeam;
 
-  /// "Match created" / "chat room opened" — shown as one line.
   final String headline;
   final String subheadline;
 
@@ -98,12 +82,10 @@ class MatchSummary {
     subheadline: _asText(json['subheadline']),
   );
 
-  /// The two halves joined the way the screen shows them.
   String get statusLine =>
       <String>[headline, subheadline].where((s) => s.isNotEmpty).join(' · ');
 }
 
-/// `kickoff` — when the match is played, pre-formatted.
 class MatchKickoff {
   const MatchKickoff({
     required this.date,
@@ -116,18 +98,14 @@ class MatchKickoff {
     required this.playersPerTeam,
   });
 
-  /// Raw `YYYY-MM-DD`, kept for anything that needs a real date rather than a
-  /// label; the screen prefers the labels beside it.
   final String date;
   final String dateLabel;
   final String dayLabel;
   final String time;
   final String timeRange;
 
-  /// "5v5".
   final String formatName;
 
-  /// "Beginner · 5v5" — the level and format the request was opened with.
   final String formatLabel;
   final int playersPerTeam;
 
@@ -148,16 +126,12 @@ class MatchKickoff {
     );
   }
 
-  /// "Sun, Aug 23" — falls back to whichever half the server sent.
   String get whenLabel =>
       <String>[dayLabel, dateLabel].where((s) => s.isNotEmpty).join(', ');
 
-  /// The window if there is one, otherwise the start time alone.
   String get slotLabel => timeRange.isNotEmpty ? timeRange : time;
 }
 
-/// `linked_venue_booking` — the court, and whether it is a booking on this
-/// platform or one arranged elsewhere.
 class MatchVenue {
   const MatchVenue({
     required this.source,
@@ -169,20 +143,14 @@ class MatchVenue {
     required this.label,
   });
 
-  /// `booking` when the court was booked through the app, `external` when the
-  /// teams arranged it themselves.
   final String source;
 
-  /// True only for a court booked on this platform — the one case with a
-  /// booking to link.
   final bool isLinked;
   final String bookingId;
   final String venueName;
   final String venueAddress;
   final String courtName;
 
-  /// The server's own one-liner about the link state, e.g. "External venue
-  /// selected for this match".
   final String label;
 
   static MatchVenue fromJson(Map<String, dynamic> json) {
@@ -199,14 +167,12 @@ class MatchVenue {
     );
   }
 
-  /// "Green Turf Arena · Court 2", or just the venue when it has no court.
   String get displayName =>
       <String>[venueName, courtName].where((s) => s.isNotEmpty).join(' · ');
 
   bool get isEmpty => venueName.isEmpty && courtName.isEmpty;
 }
 
-/// One side's part of the bill.
 class MatchShare {
   const MatchShare({
     required this.team,
@@ -217,11 +183,9 @@ class MatchShare {
 
   final String team;
 
-  /// Null when the split is keyed to the result, so nothing is owed yet.
   final int? amount;
   final int? percent;
 
-  /// "Your share (60%)" / "Opponent share (40%)".
   final String label;
 
   static MatchShare fromJson(Map<String, dynamic> json) => MatchShare(
@@ -234,7 +198,6 @@ class MatchShare {
   bool get isEmpty => label.isEmpty && amount == null && percent == null;
 }
 
-/// `cost_split` — the agreed rule, already resolved into two amounts.
 class MatchCostSplit {
   const MatchCostSplit({
     required this.totalCourtFee,
@@ -247,7 +210,6 @@ class MatchCostSplit {
   final MatchShare requestingTeamShare;
   final MatchShare opponentTeamShare;
 
-  /// "Paid at the venue".
   final String settlementNote;
 
   static MatchCostSplit fromJson(Map<String, dynamic> json) => MatchCostSplit(
@@ -260,7 +222,6 @@ class MatchCostSplit {
   );
 }
 
-/// `match_chat` — the room the server opened when the match was created.
 class MatchChat {
   const MatchChat({
     required this.conversationId,
@@ -270,7 +231,6 @@ class MatchChat {
     required this.ctaLabel,
   });
 
-  /// The thread both teams share. Null until the server has created it.
   final int? conversationId;
   final bool isOpen;
   final String title;
@@ -285,11 +245,9 @@ class MatchChat {
     ctaLabel: _asText(json['cta_label']),
   );
 
-  /// Openable only once the room exists and the server says it is open.
   bool get canOpen => isOpen && (conversationId ?? 0) > 0;
 }
 
-/// `GET /auth/opponent-requests/{id}/match-details`.
 class OpponentMatchDetailsModel {
   const OpponentMatchDetailsModel({
     required this.id,
@@ -304,8 +262,6 @@ class OpponentMatchDetailsModel {
 
   final String id;
 
-  /// The display bucket (`settled`) and the lifecycle (`matched`) — the same
-  /// pair the tabbed list sends.
   final String status;
   final String rawStatus;
 
@@ -328,8 +284,6 @@ class OpponentMatchDetailsModel {
     );
   }
 
-  /// The match is locked in. `matched` is the lifecycle word; `settled` is the
-  /// display bucket for the same thing.
   bool get isConfirmed =>
       rawStatus.toLowerCase() == 'matched' ||
       rawStatus.toLowerCase() == 'accepted' ||

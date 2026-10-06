@@ -9,9 +9,6 @@ import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_futsal/features/public/presentation/bloc/public_venue/public_venue_bloc.dart';
 
-/// Searchable venue picker for the "find an available court slot" path.
-/// Filters the public venue list by name/address as you type; pops with the
-/// tapped venue (or null when dismissed).
 Future<PublicListingVenueModel?> showVenueSearchSheet(
   BuildContext context, {
   required PublicVenueBloc bloc,

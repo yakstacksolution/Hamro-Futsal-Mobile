@@ -3,18 +3,6 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 
-/// A reusable popup-menu entry styled to match the app's UI.
-///
-/// Renders a leading [icon] and a [label] with app typography/colours. Use it
-/// as the `child` of a [PopupMenuItem] so every menu across the app shares the
-/// same look:
-///
-/// ```dart
-/// PopupMenuItem<T>(
-///   value: value,
-///   child: const CustomMenuItem(icon: Icons.done_rounded, label: 'Mark read'),
-/// )
-/// ```
 class CustomMenuItem extends StatelessWidget {
   const CustomMenuItem({
     super.key,
@@ -32,7 +20,6 @@ class CustomMenuItem extends StatelessWidget {
   final Color? labelColor;
   final double fontSize;
 
-  /// Tints the item in the app's error colour for delete/remove style actions.
   final bool isDestructive;
 
   @override

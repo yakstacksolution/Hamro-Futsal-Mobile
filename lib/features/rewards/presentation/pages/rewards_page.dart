@@ -18,11 +18,8 @@ import 'package:hamro_futsal/features/rewards/presentation/widgets/generated_cou
 import 'package:hamro_futsal/features/rewards/presentation/widgets/rewards_loading_widgets.dart';
 import 'package:hamro_futsal/features/rewards/presentation/widgets/rewards_widgets.dart';
 
-/// How many history rows the rewards page previews before "View all activity".
 const int _kRecentHistoryCount = 4;
 
-/// Reward wallet screen: balance, lifetime stats, redemption and a preview of
-/// the latest point movements.
 class RewardsPage extends StatelessWidget {
   const RewardsPage({super.key});
 
@@ -37,8 +34,6 @@ class RewardsPage extends StatelessWidget {
   }
 }
 
-/// The rewards body, split out so it can be rendered against an injected
-/// [RewardsBloc] (the screen itself fetches on create).
 @visibleForTesting
 class RewardsView extends StatelessWidget {
   const RewardsView({super.key});
@@ -243,7 +238,6 @@ class RewardsView extends StatelessWidget {
   }
 }
 
-/// The history preview: skeleton, empty state, error retry or the list itself.
 class _RecentHistory extends StatelessWidget {
   const _RecentHistory({required this.state, required this.entries});
 

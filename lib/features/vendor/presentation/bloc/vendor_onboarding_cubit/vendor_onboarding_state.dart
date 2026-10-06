@@ -63,16 +63,10 @@ class VendorOnboardingState {
   final bool isCompleted;
   final bool isLoadingCourts;
 
-  /// True while a single court's full details are being fetched (and the step
-  /// cursor is being aligned to the API response) when opening the editor.
   final bool isLoadingCourtDetails;
   final String? errorMessage;
   final VendorErrorOrigin? errorOrigin;
 
-  /// Closed dates the API refused on the last save, keyed by `yyyy-MM-dd` with
-  /// the server's reason as the value (typically a pending booking on that
-  /// day). Rebuilt from the `closed_dates.<index>.date` keys of a 422 so the
-  /// slots step can mark the exact chips that blocked the save.
   final Map<String, String> blockedClosedDates;
 
   bool get isInCourtCategory => cursor.category == VendorCategory.court;

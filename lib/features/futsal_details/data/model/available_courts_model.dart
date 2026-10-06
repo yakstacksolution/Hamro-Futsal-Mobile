@@ -17,36 +17,26 @@ final class AvailableCourtsModel {
 
   final List<TimeSlotModel> timeSlots;
 
-  /// Every court the venue has for this window — available or not. The
-  /// response's `courts` list, which is a superset of `available_courts`.
   final List<VenueCourtItemModel> courts;
 
   final int? venueId;
 
-  /// The day the availability was computed for (`2026-09-15`).
   final String? date;
 
-  /// The window asked for, as the server echoes it back.
   final String? startTime;
   final String? endTime;
 
-  /// How many courts the venue has in this window, and how many are free.
   final int? totalCourts;
   final int? availableCount;
 
-  /// Set when the server answered with something other than the exact window
-  /// asked for (e.g. the nearest slot); null on an exact match.
   final String? fallbackType;
 
-  /// Courts that can actually be booked for the window.
   List<VenueCourtItemModel> get availableCourts => courts
       .where((VenueCourtItemModel court) => court.isAvailable)
       .toList(growable: false);
 
-  /// How many are free — the server's own count when it sent one.
   int get freeCourtCount => availableCount ?? availableCourts.length;
 
-  /// How many exist in this window.
   int get courtCount => totalCourts ?? courts.length;
 
   bool get isFallback => (fallbackType ?? '').trim().isNotEmpty;
@@ -226,9 +216,6 @@ TimeSlotModel? _timeSlotFromAny(dynamic value) {
   );
 }
 
-/// Resolves a slot's [SlotStatus]. The server's `status` string is
-/// authoritative (e.g. a slot can be `available` even with zero available
-/// courts); only when it is missing do we fall back to boolean flags and counts.
 SlotStatus _slotStatusFromMap(Map<String, dynamic> map, int? availableCourts) {
   final dynamic rawStatus =
       map['status'] ?? map['slot_status'] ?? map['slotStatus'];

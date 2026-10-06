@@ -1,6 +1,3 @@
-/// Models for the vendor ↔ Hamro Futsal (super admin) financial account:
-/// the running balance the platform owes the vendor, the commission it
-/// retains, ledger entries, and settlement (payout) requests.
 library;
 
 import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
@@ -25,13 +22,6 @@ DateTime? _asDate(dynamic v) =>
 
 String _asString(dynamic v) => (v ?? '').toString().trim();
 
-/// The settlement QR, wherever the endpoint chose to hang it.
-///
-/// [PaymentQrModel.fromResponse] already understands every key shape the API
-/// uses for a QR (media object, flat URL, base64), so the work here is only
-/// picking which sub-map to hand it. A dedicated `payment_qr` block is tried
-/// first, then the recipient, then the payload itself; the first one that
-/// actually yields an image wins, and null means "no QR to show".
 PaymentQrModel? _parsePaymentQr(Map<String, dynamic> data) {
   final List<dynamic> candidates = <dynamic>[
     data['payment_qr'] ?? data['paymentQr'] ?? data['qr'],
@@ -46,8 +36,6 @@ PaymentQrModel? _parsePaymentQr(Map<String, dynamic> data) {
   return null;
 }
 
-/// One entry of `data.sections` — the server tells the UI which sub-sections
-/// exist and how many rows each holds, so shortcut tiles never guess.
 class AccountSectionModel {
   const AccountSectionModel({
     required this.key,
@@ -67,7 +55,6 @@ class AccountSectionModel {
       );
 }
 
-/// Headline numbers of the vendor's platform account.
 class AccountSummaryModel {
   const AccountSummaryModel({
     this.currency = 'NPR',
@@ -94,13 +81,8 @@ class AccountSummaryModel {
 
   final String currency;
 
-  /// Cleared earnings the vendor can request a settlement for. Money is
-  /// carried as `double` throughout — the server reports paisa (e.g.
-  /// 11711.99) and `exact_amount_required` means a rounded figure would be
-  /// rejected.
   final double availableBalance;
 
-  /// Verified-but-not-yet-cleared income (e.g. advances under review).
   final double pendingClearance;
   final double reservedBalance;
 
@@ -109,25 +91,19 @@ class AccountSummaryModel {
   final double totalRefunded;
   final double totalSettled;
 
-  /// Platform commission in percent (e.g. 10 = 10%).
   final double commissionRate;
 
-  /// Server-enforced floor for a settlement request; 0 = no floor.
   final double minSettlementAmount;
   final double? maxSettlementAmount;
 
-  /// `actions.requestable_amount` — what the server will accept right now.
   final double requestableAmount;
   final bool settlementEligible;
   final String settlementBlockingReason;
   final String processingEstimate;
   final List<VenueAccountModel> venues;
 
-  /// `data.sections` — which sub-sections the server exposes, with counts.
   final List<AccountSectionModel> sections;
 
-  /// Row count the server reports for one section key, or null when it does
-  /// not mention that section at all.
   int? sectionCount(String key) {
     for (final section in sections) {
       if (section.key == key) return section.count;
@@ -135,7 +111,6 @@ class AccountSummaryModel {
     return null;
   }
 
-  /// Ledger entries shipped inline with the settlement account.
   final List<AccountEntryModel> recentActivity;
   final PaymentQrModel? settlementQr;
 
@@ -266,7 +241,6 @@ class VenueAccountModel {
   final double totalEarned;
   final double totalCommission;
 
-  /// `can_request_settlement` for this futsal alone.
   final bool settlementEligible;
 
   factory VenueAccountModel.fromJson(Map<String, dynamic> json) {
@@ -313,8 +287,6 @@ PaymentQrModel? _paymentQr(dynamic value) {
   return hasDetails ? qr : null;
 }
 
-/// `/auth/settlement-breakdown`: per-futsal balances plus the ledger entries
-/// the totals are built from.
 class SettlementBreakdownModel {
   const SettlementBreakdownModel({
     this.venues = const <VenueAccountModel>[],
@@ -325,7 +297,6 @@ class SettlementBreakdownModel {
   final List<VenueAccountModel> venues;
   final List<AccountEntryModel> entries;
 
-  /// `data.count` — how many futsals the server counted.
   final int count;
 
   static const SettlementBreakdownModel empty = SettlementBreakdownModel();
@@ -362,7 +333,6 @@ class SettlementBreakdownModel {
   }
 }
 
-/// Who the vendor pays when settling — `data.recipient`.
 class SettlementRecipientModel {
   const SettlementRecipientModel({
     this.name = '',
@@ -384,15 +354,6 @@ class SettlementRecipientModel {
       );
 }
 
-/// One entry of `/auth/qr-codes`:
-///
-/// ```json
-/// { "id": 1, "title": "New", "image": "https://…png",
-///   "status": true, "sort_order": 1 }
-/// ```
-///
-/// The image itself is delegated to [PaymentQrModel], which already handles
-/// every shape the API uses (media object, flat URL, base64).
 class SettlementQrCodeModel {
   const SettlementQrCodeModel({
     this.id = 0,
@@ -403,10 +364,8 @@ class SettlementQrCodeModel {
 
   final int id;
 
-  /// Display name the vendor picks this QR by, e.g. the bank or wallet.
   final String title;
 
-  /// The server's own ordering for the slider.
   final int sortOrder;
 
   final PaymentQrModel qr;
@@ -430,11 +389,6 @@ class SettlementQrCodeModel {
     );
   }
 
-  /// Every usable QR in the payload, in the server's `sort_order`.
-  ///
-  /// Two kinds of entry are dropped: `status: false`, which is the server
-  /// retiring a QR without deleting it, and any entry whose image failed to
-  /// parse — a slide the vendor cannot scan is worse than one slide fewer.
   static List<SettlementQrCodeModel> listFromResponse(dynamic payload) {
     final List<dynamic> raw = _qrNodes(payload);
     final List<SettlementQrCodeModel> parsed = raw
@@ -451,8 +405,6 @@ class SettlementQrCodeModel {
     return List<SettlementQrCodeModel>.unmodifiable(parsed);
   }
 
-  /// The list node, wherever the envelope puts it. `/auth/qr-codes` nests it as
-  /// `data.qr_codes`; the other keys cover the shapes used elsewhere.
   static List<dynamic> _qrNodes(dynamic payload) {
     if (payload is List) return payload;
     if (payload is! Map) return const <dynamic>[];
@@ -471,12 +423,6 @@ class SettlementQrCodeModel {
   }
 }
 
-/// `/auth/settlement-preview[?venue_id=]`: everything the request form needs,
-/// as the server scopes it — the copy to show, who to pay, how much is
-/// payable, and what a proof file may be.
-///
-/// `scope` is `consolidated` (all futsals) or `venue` (one futsal, with
-/// [venue] populated).
 class SettlementPreviewModel {
   const SettlementPreviewModel({
     this.scope = 'consolidated',
@@ -496,39 +442,28 @@ class SettlementPreviewModel {
 
   final String scope;
 
-  /// Page title the server dictates, e.g. "Request Consolidated Settlement".
   final String title;
 
-  /// Scope line under it, e.g. "All futsals" or the futsal's name.
   final String subtitle;
   final SettlementRecipientModel recipient;
 
-  /// Present only on a venue-scoped preview.
   final SettlementPreviewVenue? venue;
 
-  /// Ceiling the server will accept.
   final double maximumPayable;
 
-  /// What the amount field starts on.
   final double defaultAmount;
   final double pendingClearance;
 
-  /// When true the amount must equal [defaultAmount] exactly — a partial
-  /// settlement is rejected, so the field is locked rather than validated.
   final bool exactAmountRequired;
 
-  /// File extensions the proof upload accepts.
   final List<String> acceptedProofTypes;
   final int proofMaxSizeMb;
   final String blockingReason;
 
-  /// QR the vendor scans to pay the commission. Null when the server sends
-  /// none — the form then falls back to the phone number on the recipient card.
   final PaymentQrModel? paymentQr;
 
   bool get isVenueScoped => venue != null || scope == 'venue';
 
-  /// Nothing to settle means nothing to request.
   bool get eligible => maximumPayable > 0;
 
   int get proofMaxBytes => proofMaxSizeMb * 1024 * 1024;
@@ -596,7 +531,6 @@ class SettlementPreviewModel {
   }
 }
 
-/// The futsal a venue-scoped preview belongs to (`data.venue`).
 class SettlementPreviewVenue {
   const SettlementPreviewVenue({
     required this.id,
@@ -616,7 +550,6 @@ class SettlementPreviewVenue {
       );
 }
 
-/// What a ledger entry did to the vendor's balance.
 enum AccountEntryType {
   bookingIncome,
   opponentMatchIncome,
@@ -655,7 +588,6 @@ enum AccountEntryType {
   }
 }
 
-/// One movement on the vendor's platform account.
 class AccountEntryModel {
   const AccountEntryModel({
     required this.id,
@@ -674,48 +606,23 @@ class AccountEntryModel {
   final AccountEntryType type;
   final String title;
 
-  /// Always positive; [isCredit] carries the direction.
   final double amount;
   final bool isCredit;
   final String note;
 
-  /// Futsal the movement belongs to (`venue_name`), when the server says.
   final String venueName;
 
-  /// Booking / settlement code the entry belongs to, when the server sends
-  /// one (e.g. "BK-1042").
   final String reference;
 
-  /// When the movement happened, as the business reckons it — the booked slot
-  /// for a booking payment, not when the row was written.
   final DateTime? date;
 
-  /// When the server recorded the row (`created_at`).
-  ///
-  /// Kept apart from [date] because the two differ: a commission row carries
-  /// the booking's slot time as its `date` while being written at settlement
-  /// time. Null when the endpoint does not send it.
   final DateTime? createdAt;
 
-  /// The moment to show and sort by: the business date when there is one, the
-  /// record's own timestamp otherwise.
   DateTime? get occurredAt => date ?? createdAt;
 
-  /// True when the row was written at a different moment than the business
-  /// date it carries — the usual case here, since a booking's slot is in the
-  /// future while its payment row is written now.
   bool get recordedApartFromDate =>
       date != null && createdAt != null && date != createdAt;
 
-  /// A stable identity for a row, used to key the list and to drop duplicates
-  /// when a page is appended.
-  ///
-  /// `/auth/settlement-recent-activity` sends no `id`: a booking payment and
-  /// its platform commission are two rows sharing one reference, one date and
-  /// one `created_at`, so the identity has to include the type, the direction
-  /// and the amount to tell them apart. Ordered newest-first by `created_at`,
-  /// a row written while the reader pages can shift the page boundary and
-  /// resend a row — without this they stack up in the list.
   String get identity => id.isNotEmpty
       ? id
       : <String>[
@@ -782,7 +689,6 @@ enum SettlementStatus {
   }
 }
 
-/// A payout request from the vendor to the Hamro Futsal super admin.
 class SettlementModel {
   const SettlementModel({
     required this.id,
@@ -807,51 +713,34 @@ class SettlementModel {
 
   final String id;
 
-  /// What the vendor asked for — `requested_amount`. This is the figure the
-  /// row shows at every status: while pending it is the claim under review,
-  /// and once paid it is what was paid out.
   final double amount;
 
   final SettlementStatus status;
   final String note;
   final String rejectedReason;
 
-  /// Human-facing code for the request (`settlement_code`, e.g. `ST-KSZWOSQ9`).
   final String reference;
 
-  /// The vendor's own payment reference sent with the request.
   final String transactionReference;
 
-  /// Set on a venue-scoped settlement; null on a consolidated one.
   final int? venueId;
   final String venueName;
   final String venueAddress;
   final DateTime? requestedAt;
   final DateTime? resolvedAt;
 
-  /// `venue` for a single-futsal request, `all`/`consolidated` otherwise.
   final String scope;
 
-  /// Ceiling the server would have allowed at request time, and the earnings
-  /// still inside the clearance window — both reported per request.
   final double maximumPayable;
   final double pendingClearanceAmount;
 
-  /// How many ledger rows this request settles.
   final int itemCount;
 
-  /// Payment proof the vendor attached. [proofPath] is storage-relative;
-  /// [proofUrl] is the absolute link when the API built one. Read
-  /// [proofImageUrl] instead of either — it normalizes both.
   final String proofPath;
   final String proofUrl;
 
   bool get hasProof => proofImageUrl != null;
 
-  /// Absolute, de-duplicated URL for the proof image, or null when there is
-  /// none. The API's `proof_url` arrives with a doubled slash
-  /// (`https://host//storage/…`), which some caches treat as a different path,
-  /// so the path is always collapsed before it is used.
   String? get proofImageUrl {
     final String direct = proofUrl.trim();
     if (direct.isNotEmpty) {
@@ -922,8 +811,6 @@ class SettlementModel {
   }
 }
 
-/// `data.summary` of `/auth/settlements` — how many requests sit in each
-/// state, straight from the server rather than counted over the loaded page.
 class SettlementStatusCounts {
   const SettlementStatusCounts({
     this.pending = 0,
@@ -939,7 +826,6 @@ class SettlementStatusCounts {
 
   int get total => pending + approved + paid + rejected;
 
-  /// Requests still moving through review — these block a second request.
   int get inProgress => pending + approved;
 
   factory SettlementStatusCounts.fromJson(Map<String, dynamic> json) =>
@@ -951,12 +837,6 @@ class SettlementStatusCounts {
       );
 }
 
-/// One page of `/auth/settlements?page=&per_page=`.
-/// One page of `/auth/settlement-recent-activity`.
-///
-/// The same rows the account summary previews, but walked page by page. The
-/// pagination block is optional: without it a full page is taken to mean
-/// another probably follows, which is how the settlement list reads it too.
 class AccountActivityPageModel {
   const AccountActivityPageModel({
     this.items = const <AccountEntryModel>[],

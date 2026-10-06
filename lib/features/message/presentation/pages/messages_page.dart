@@ -51,9 +51,6 @@ class _MessagesView extends StatefulWidget {
 
 class _MessagesViewState extends State<_MessagesView>
     with WidgetsBindingObserver {
-  /// The inbox is socket-driven, so this poll only keeps the online dots and
-  /// any missed previews fresh. It used to run every 15s, which — together
-  /// with lifecycle and tab-change refreshes — hammered `/conversations`.
   static const Duration _presenceRefreshInterval = Duration(seconds: 45);
   static const Duration _searchDebounceDelay = Duration(milliseconds: 350);
 
@@ -67,17 +64,12 @@ class _MessagesViewState extends State<_MessagesView>
   bool _appActive = true;
   bool? _reportedOnline;
 
-  /// Split view (desktop): the conversation open beside the list.
   ConversationModel? _selected;
 
-  /// Whether the last layout had room for the split view. Read by the tap
-  /// handlers to open a chat in the pane instead of pushing a route.
   bool _split = false;
 
-  /// Content width from which the list and the open chat sit side by side.
   static const double _splitFrom = 820;
 
-  /// Tablet single-column width, so rows do not stretch across the screen.
   static const double _singleColumnMaxWidth = 760;
 
   @override
@@ -251,8 +243,6 @@ class _MessagesViewState extends State<_MessagesView>
           state.showingArchived ? state.conversations.length : 0,
       };
 
-  /// A double tap on "Create group" pushed two pages, each loading the
-  /// registered-users list.
   bool _isOpeningCreateGroup = false;
 
   Future<void> _createGroup() async {
@@ -311,9 +301,6 @@ class _MessagesViewState extends State<_MessagesView>
     );
   }
 
-  /// Answers a group invitation from the inbox. Declining is confirmed first —
-  /// it drops the conversation off this user's list and cannot be undone from
-  /// here.
   Future<void> _respondToInvitation(
     ConversationModel conversation, {
     required bool accept,
@@ -436,7 +423,6 @@ class _MessagesViewState extends State<_MessagesView>
     );
   }
 
-  /// The inbox column: header, search, filters and the conversation list.
   Widget _inbox(MessageState state, List<ConversationModel> items) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,8 +453,6 @@ class _MessagesViewState extends State<_MessagesView>
     );
   }
 
-  /// Filtering runs on the debounced term so a fast typist rebuilds the list
-  /// once, not once per keystroke.
   void _onSearchChanged(String value) {
     _searchDebounce?.cancel();
     if (value.trim() == _query.trim()) return;
@@ -647,7 +631,6 @@ class _MessagesViewState extends State<_MessagesView>
   }
 }
 
-/// The split view's chat pane before a conversation is picked.
 class _NoChatSelected extends StatelessWidget {
   const _NoChatSelected();
 

@@ -16,14 +16,9 @@ import 'package:hamro_futsal/features/rewards/presentation/bloc/rewards_bloc/rew
 import 'package:hamro_futsal/features/rewards/presentation/widgets/rewards_loading_widgets.dart';
 import 'package:hamro_futsal/features/rewards/presentation/widgets/rewards_widgets.dart';
 
-/// Full, infinitely scrolling reward history (`per_page=20`).
-///
-/// Reuses the [RewardsBloc] pushed from the rewards page when one is available;
-/// [RewardHistoryPage.standalone] creates its own for deep links.
 class RewardHistoryPage extends StatefulWidget {
   const RewardHistoryPage({super.key});
 
-  /// Self-contained variant that owns its bloc and fetches the first page.
   static Widget standalone() => BlocProvider<RewardsBloc>(
     create: (_) =>
         RewardsBloc(RewardsUseCase(RewardsRepositoryImpl()))
@@ -38,7 +33,6 @@ class RewardHistoryPage extends StatefulWidget {
 class _RewardHistoryPageState extends State<RewardHistoryPage> {
   final ScrollController _scrollController = ScrollController();
 
-  /// Distance from the bottom at which the next page is requested.
   static const double _loadMoreThreshold = 240;
 
   @override
@@ -185,7 +179,6 @@ class _RewardHistoryPageState extends State<RewardHistoryPage> {
   }
 }
 
-/// Pagination footer: spinner while loading, an error retry, or the end marker.
 class _ListFooter extends StatelessWidget {
   const _ListFooter({required this.state});
 

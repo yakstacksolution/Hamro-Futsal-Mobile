@@ -4,7 +4,6 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:shimmer/shimmer.dart';
 
-/// Skeleton for the rewards page while the wallet loads for the first time.
 class RewardsLoadingView extends StatelessWidget {
   const RewardsLoadingView({super.key});
 
@@ -95,7 +94,6 @@ class RewardsLoadingView extends StatelessWidget {
   }
 }
 
-/// Skeleton rows for the history list.
 class RewardHistoryLoadingList extends StatelessWidget {
   const RewardHistoryLoadingList({
     super.key,
@@ -105,7 +103,6 @@ class RewardHistoryLoadingList extends StatelessWidget {
 
   final int itemCount;
 
-  /// Set when used outside [RewardsLoadingView], which already shimmers.
   final bool wrapWithShimmer;
 
   @override
@@ -159,7 +156,6 @@ class RewardHistoryLoadingList extends StatelessWidget {
   }
 }
 
-/// Shared shimmer wrapper, so every reward skeleton animates identically.
 class RewardShimmer extends StatelessWidget {
   const RewardShimmer({super.key, required this.child});
 

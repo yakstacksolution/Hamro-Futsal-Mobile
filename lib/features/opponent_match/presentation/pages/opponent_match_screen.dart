@@ -22,7 +22,6 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 class OpponentMatchScreen extends StatelessWidget {
   const OpponentMatchScreen({super.key, this.bloc});
 
-  /// Supplied by widget tests; the app always builds its own.
   @visibleForTesting
   final OpponentMatchBloc? bloc;
 
@@ -79,9 +78,6 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
     super.dispose();
   }
 
-  /// Selecting a section is what triggers its own fetch — every section is
-  /// lazy, and the bloc ignores the event once it has that tab's data (unless
-  /// [force]), so re-tapping a chip costs nothing.
   void _setFilter(RequestFilter filter, {bool force = false}) {
     setState(() => _requestFilter = filter);
     context.read<OpponentMatchBloc>().add(
@@ -89,7 +85,6 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
     );
   }
 
-  /// Picks an unpublished draft back up in the same wizard that created it.
   void _openDraft(OpponentRequestModel draft) =>
       _openCreateRequest(draft: draft);
 
@@ -132,7 +127,6 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
     _tabCtrl.animateTo(0);
   }
 
-  /// Same create-team sheet the Teams tab uses (`OpponentTeamsView`).
   void _openCreateTeamSheet(OpponentMatchBloc bloc) {
     showModalBottomSheet(
       context: context,
@@ -187,8 +181,6 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
         '${open > 0 ? ' · $open open' : ''}';
   }
 
-  /// Segmented pill tab bar: a soft rounded track with a sliding filled
-  /// indicator and a live count badge inside each tab.
   Widget _tabBar(OpponentMatchState state) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Padding(
@@ -456,13 +448,6 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
   }
 }
 
-/// The Teams tab's own bottom action: one full-width button that opens the
-/// create-team sheet.
-///
-/// It replaces the "Find an Opponent" FAB while that tab is selected, so the
-/// bottom of the screen always offers the action the visible tab is about.
-/// Nothing is shown while there are no teams — the empty state carries its own
-/// "Create Team" button, and two of them side by side would just compete.
 class _NewTeamBottomBar extends StatelessWidget {
   const _NewTeamBottomBar({required this.onTap});
 
@@ -514,7 +499,6 @@ class _NewTeamBottomBar extends StatelessWidget {
   }
 }
 
-/// Requests tab wrapper: spinner / retry around [OpponentRequestsView].
 class _RequestsTabBody extends StatelessWidget {
   const _RequestsTabBody({
     required this.state,
@@ -552,7 +536,6 @@ class _RequestsTabBody extends StatelessWidget {
   }
 }
 
-/// Teams tab wrapper: spinner / retry around [OpponentTeamsView].
 class _TeamsTabBody extends StatelessWidget {
   const _TeamsTabBody({required this.state});
 

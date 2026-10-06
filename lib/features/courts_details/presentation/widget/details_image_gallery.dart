@@ -25,15 +25,10 @@ class DetailsImageGallery extends StatefulWidget {
   final List<String> images;
   final int? venueId;
 
-  /// Human sentence for the share, without the link appended.
   final String? shareText;
 
-  /// Link for the share, preferably an https URL so it stays clickable for
-  /// people who do not have the app. Passed separately from [shareText] so a
-  /// link-only share can go to the OS as a URL and get a preview card.
   final String? shareLink;
 
-  /// Subject line for targets that have one, usually the venue name.
   final String? shareSubject;
 
   @override
@@ -41,14 +36,10 @@ class DetailsImageGallery extends StatefulWidget {
 }
 
 class _DetailsImageGalleryState extends State<DetailsImageGallery> {
-  /// Anchors the iPad share popover to the share button.
   final GlobalKey _shareButtonKey = GlobalKey();
 
   late final PageController _imagePageController;
 
-  /// The visible slide. A notifier rather than state: a `setState` per swipe
-  /// rebuilt the whole hero — PageView, every slide and the frosted controls —
-  /// when only the dots, the counter and the thumbnail highlight change.
   final ValueNotifier<int> _currentImageIndex = ValueNotifier<int>(0);
   bool _isSaved = false;
 

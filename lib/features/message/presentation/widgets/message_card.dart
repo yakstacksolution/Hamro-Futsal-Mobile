@@ -23,16 +23,11 @@ class MessageCard extends StatelessWidget {
   final int currentUserId;
   final VoidCallback onTap;
 
-  /// Answering a pending group invitation. Both are null on rows that carry
-  /// no invitation, which is what keeps the footer off ordinary threads.
   final VoidCallback? onAcceptInvitation;
   final VoidCallback? onDeclineInvitation;
 
-  /// A response is in flight — the buttons go quiet so one tap cannot be
-  /// filed twice.
   final bool invitationBusy;
 
-  /// The conversation open beside the list in the split view.
   final bool selected;
 
   @override
@@ -224,7 +219,6 @@ class MessageCard extends StatelessWidget {
   }
 }
 
-/// The two answers to a group invitation, shown under the row that carries it.
 class _InvitationActions extends StatelessWidget {
   const _InvitationActions({
     required this.busy,

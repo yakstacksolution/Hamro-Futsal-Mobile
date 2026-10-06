@@ -16,20 +16,12 @@ import 'package:hamro_futsal/features/public/data/model/public_venue_model.dart'
 import 'package:hamro_futsal/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_futsal/features/public/domain/usecase/resolve_venue_link_use_case.dart';
 
-/// Landing screen for a shared venue link.
-///
-/// A link carries a slug (and usually an id), not a venue — and the details
-/// route takes a whole [PublicListingVenueModel] as its `extra`. So the link
-/// gets its own route: it resolves the slug against the API, then replaces
-/// itself with home + the details page, which leaves the user with a back
-/// stack that goes somewhere instead of a dead end.
 class VenueLinkPage extends StatefulWidget {
   const VenueLinkPage({super.key, this.slug, this.venueId, this.resolver});
 
   final String? slug;
   final int? venueId;
 
-  /// Injected in tests so resolution runs without the network.
   final Future<PublicListingVenueModel?> Function({String? slug, int? id})?
   resolver;
 
@@ -94,12 +86,6 @@ class _VenueLinkPageState extends State<VenueLinkPage> {
     });
   }
 
-  /// Opens the details page in this page's place.
-  ///
-  /// A link tapped while the app is running has a stack to come back to, so
-  /// the resolving page is simply replaced. A cold start has nothing behind
-  /// it — home is laid down first, or the details page would have no back
-  /// destination at all.
   void _openDetails(PublicListingVenueModel venue) {
     final GoRouter router = GoRouter.of(context);
 

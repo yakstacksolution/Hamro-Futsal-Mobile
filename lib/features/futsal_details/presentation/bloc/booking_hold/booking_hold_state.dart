@@ -11,18 +11,11 @@ final class BookingHoldState extends Equatable {
 
   final BookingHoldStatus status;
 
-  /// Every hold returned by `POST /booking-holds` (one per session date),
-  /// kept for the lifetime of the checkout page so they can be released on
-  /// exit.
   final List<BookingHoldModel> holds;
 
-  /// The first hold — its token and quote stand for the booking.
   BookingHoldModel? get hold => holds.isEmpty ? null : holds.first;
   final String? errorMessage;
 
-  /// The booking's server price: the quote sent for the whole booking, when
-  /// it carries figures; otherwise the holds' own quotes — one hold's, or
-  /// several added up, each pricing its own slot.
   BookingQuoteModel? get quote {
     for (final BookingHoldModel h in holds) {
       final BookingQuoteModel? booking = h.bookingQuote;
@@ -40,10 +33,8 @@ final class BookingHoldState extends Equatable {
     return BookingQuoteModel.combine(own);
   }
 
-  /// The hold's token, as the server sent it.
   String? get holdToken => hold?.holdToken;
 
-  /// The ids that release the holds (`DELETE /booking-holds`, as a list).
   List<String> get holdIds => <String>[
     for (final BookingHoldModel h in holds)
       if (h.hasId) h.id!,

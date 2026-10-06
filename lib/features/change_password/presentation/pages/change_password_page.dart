@@ -15,11 +15,6 @@ import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:go_router/go_router.dart';
 
-/// Change the signed-in user's password — `PUT /auth/password`.
-///
-/// Mirrors the forgot-password screen's format: gradient icon header, white
-/// form card with [CustomTextField]s and a [CustomButton] that stays disabled
-/// until the form is valid — just without the auth background bubbles.
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
 
@@ -54,7 +49,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     );
   }
 
-  /// Clears the session after a successful change and returns to login.
   Future<void> _signOut(BuildContext context) async {
     await AuthenticationRepositoryImpl().endSession();
     if (!context.mounted) return;
@@ -251,8 +245,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   }
 }
 
-/// Same header format as the auth screens: gradient circle icon beside the
-/// title and helper subtitle.
 class _ChangePasswordHeader extends StatelessWidget {
   const _ChangePasswordHeader();
 

@@ -13,11 +13,6 @@ import 'package:hamro_futsal/features/app_update/presentation/widgets/update_err
 import 'package:hamro_futsal/features/app_update/presentation/widgets/update_release_notes.dart';
 import 'package:hamro_futsal/features/app_update/presentation/widgets/update_version_summary.dart';
 
-/// Shows the dismissible "update available" sheet for an optional update.
-///
-/// [bloc] is passed explicitly rather than read from [context]: the sheet is
-/// opened from the root navigator, which sits above the provider that owns the
-/// bloc.
 Future<void> showUpdateAvailableSheet({
   required BuildContext context,
   required AppUpdateBloc bloc,

@@ -9,12 +9,6 @@ import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/socket/reverb_connection.dart';
 import 'package:hamro_futsal/core/utils/kathmandu_time.dart';
 
-/// Something changed on a watched vendor channel — a booking made, paid,
-/// cancelled, or a slot held or released on the date.
-///
-/// Like the player's slot screen, the board does not patch itself from the
-/// payload: it fetches the day again, so it is right whatever the event's
-/// shape.
 class VendorOpsLiveEvent {
   const VendorOpsLiveEvent({
     required this.channel,
@@ -24,21 +18,14 @@ class VendorOpsLiveEvent {
 
   final String channel;
 
-  /// The broadcast event's name, as sent.
   final String name;
 
-  /// The decoded payload, flattened out of `data` when nested.
   final Map<String, dynamic> data;
 }
 
-/// The vendor operations page's realtime channel names.
 abstract final class VendorOpsChannels {
-  /// Every booking change on [date], across the vendor's venues — the Day
-  /// board: `private-vendor.booking.2026-09-29`.
   static String day(DateTime date) => 'private-vendor.booking.${isoDate(date)}';
 
-  /// Changes to one court's week — the Week table:
-  /// `private-vendor.start_date.2026-09-27.end_date.2026-10-03.venue-id.2.court-id.14`.
   static String week({
     required DateTime start,
     required DateTime end,
@@ -50,21 +37,14 @@ abstract final class VendorOpsChannels {
       '.venue-id.$venueId.court-id.$courtId';
 }
 
-/// Realtime updates for the vendor operations page, on the channels
-/// [VendorOpsChannels] names for what the page shows.
 abstract class VendorOpsSocketService {
-  /// Every event on the watched channels.
   Stream<VendorOpsLiveEvent> get events;
 
-  /// Watches exactly [channels] from now on: leaves the ones no longer named
-  /// and joins the new ones.
   void watch(List<String> channels);
 
-  /// Leaves every watched channel and closes [events].
   void dispose();
 }
 
-/// No realtime (tests, the demo): nothing is ever sent.
 final class NoopVendorOpsSocketService implements VendorOpsSocketService {
   const NoopVendorOpsSocketService();
 
@@ -78,13 +58,6 @@ final class NoopVendorOpsSocketService implements VendorOpsSocketService {
   void dispose() {}
 }
 
-/// Backed by **Laravel Reverb** over the app's one shared [ReverbConnection],
-/// signed against `/broadcasting/auth` with the signed-in user's token — the
-/// same as chat and the slot screen. Silent when realtime is not configured
-/// or nobody is signed in.
-///
-/// One per page: [dispose] leaves this page's channels but keeps the shared
-/// connection open.
 final class ReverbVendorOpsSocketService implements VendorOpsSocketService {
   ReverbVendorOpsSocketService();
 
@@ -136,8 +109,6 @@ final class ReverbVendorOpsSocketService implements VendorOpsSocketService {
     }
   }
 
-  /// The server names channels with their `private-` prefix; accept them
-  /// without it too.
   static String _privateName(String channel) {
     final String name = channel.trim();
     return name.startsWith('private-') ? name : 'private-$name';

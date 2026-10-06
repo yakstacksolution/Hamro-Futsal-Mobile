@@ -6,24 +6,11 @@ import 'package:hamro_futsal/core/config/app_environment.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 
-/// Whether `google_maps_flutter` can draw a native map here.
-///
-/// The plugin ships Android, iOS and web implementations only; on macOS,
-/// Windows and Linux a `GoogleMap` renders "TargetPlatform.x is not yet
-/// supported by the maps plugin". Those platforms use [StaticGoogleMap].
 bool get supportsNativeGoogleMap =>
     kIsWeb ||
     defaultTargetPlatform == TargetPlatform.android ||
     defaultTargetPlatform == TargetPlatform.iOS;
 
-/// A Google map of one point, drawn from the Maps Static API — the desktop
-/// stand-in for `GoogleMap`, using the same `GOOGLE_MAPS_API_KEY` the
-/// Android and iOS builds use.
-///
-/// The image is requested at the box's own size (Static API sizes cap at
-/// 640×640 logical, doubled by `scale=2` for sharp Retina output) with the
-/// venue pinned in the brand colour. It is a picture, not an interactive map:
-/// callers add their own zoom controls by changing [zoom].
 class StaticGoogleMap extends StatelessWidget {
   const StaticGoogleMap({
     super.key,
@@ -36,13 +23,10 @@ class StaticGoogleMap extends StatelessWidget {
   final double latitude;
   final double longitude;
 
-  /// Google zoom level, 0 (world) to 21 (building).
   final int zoom;
 
-  /// Shown while the image loads.
   final Color placeholderColor;
 
-  /// The Static API's largest `size` per side.
   static const int _maxSide = 640;
 
   static String _hex(Color color) {

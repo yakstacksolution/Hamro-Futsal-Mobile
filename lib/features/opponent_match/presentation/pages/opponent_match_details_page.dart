@@ -14,9 +14,6 @@ import 'package:hamro_futsal/features/opponent_match/presentation/bloc/opponent_
 import 'package:hamro_futsal/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 import 'package:hamro_futsal/features/opponent_match/presentation/widgets/opponent_common.dart';
 
-/// The confirmed-match view both teams land on once an opponent is selected:
-/// the fixture, the linked venue booking, the agreed cost split, and the chat
-/// room that was created with the match.
 class OpponentMatchDetailsPage extends StatefulWidget {
   const OpponentMatchDetailsPage({super.key, required this.requestId});
 
@@ -42,9 +39,6 @@ class _OpponentMatchDetailsPageState extends State<OpponentMatchDetailsPage> {
     LoadMatchDetailsEvent(widget.requestId, force: true),
   );
 
-  /// Opens the room the server created with the match. Falls back to a direct
-  /// thread with the other captain only while the room's id is unknown — the
-  /// shared room is where both teams already are.
   Future<void> _openChat(OpponentMatchDetailsModel match) {
     final int id = match.chat.conversationId ?? 0;
     if (id > 0) {
@@ -62,9 +56,6 @@ class _OpponentMatchDetailsPageState extends State<OpponentMatchDetailsPage> {
     return ChatLauncher.startDirectUser(context, userId: peer);
   }
 
-  /// Who this side would chat with without a room: the requester talks to the
-  /// accepting captain, the accepter talks to the requester. Read off the list
-  /// row, which is the only place those user ids exist.
   int _fallbackPeerId() {
     final OpponentRequestModel? r = context
         .read<OpponentMatchBloc>()
@@ -117,9 +108,6 @@ class _OpponentMatchDetailsPageState extends State<OpponentMatchDetailsPage> {
   }
 }
 
-/// The screen once `/match-details` has landed. Every section renders from its
-/// own block of the response, and the server's copy is used as sent so both
-/// teams read the same wording.
 class _MatchDetailsBody extends StatelessWidget {
   const _MatchDetailsBody({
     required this.match,
@@ -337,13 +325,11 @@ class _MatchDetailsError extends StatelessWidget {
   );
 }
 
-/// One side's share of the court fee, using the server's own label.
 class _ShareRow extends StatelessWidget {
   const _ShareRow({required this.share, required this.own});
 
   final MatchShare share;
 
-  /// The signed-in side's row carries the emphasis.
   final bool own;
 
   @override
@@ -365,7 +351,6 @@ class _ShareRow extends StatelessWidget {
   }
 }
 
-/// Team-vs-team header with the confirmation state.
 class _Fixture extends StatelessWidget {
   const _Fixture({
     required this.home,
@@ -378,7 +363,6 @@ class _Fixture extends StatelessWidget {
   final MatchTeamRef away;
   final bool confirmed;
 
-  /// "Match created · chat room opened", built by the server.
   final String statusLine;
 
   @override
@@ -513,8 +497,6 @@ class _ChatCard extends StatelessWidget {
     required this.onOpen,
   });
 
-  /// Both lines come from `match_chat`; the fallbacks only cover a bare
-  /// section.
   final String title;
   final String description;
   final bool enabled;

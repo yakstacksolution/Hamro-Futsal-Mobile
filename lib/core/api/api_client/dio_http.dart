@@ -39,12 +39,23 @@ class DioHttp implements IHttp {
   }
 
   @override
-  get({String? url, String? token, Map? query, dynamic data}) async {
+  get({
+    String? url,
+    String? token,
+    Map? query,
+    dynamic data,
+    ResponseType? responseType,
+  }) async {
     return dio.get(
       url!,
       queryParameters: query as Map<String, dynamic>?,
       data: data,
-      options: _optionsFor(url: url, token: token, data: data),
+      options: _optionsFor(
+        url: url,
+        token: token,
+        data: data,
+        responseType: responseType,
+      ),
     );
   }
 
@@ -76,8 +87,15 @@ class DioHttp implements IHttp {
     );
   }
 
-  Options _optionsFor({String? url, String? token, dynamic data}) {
+  Options _optionsFor({
+    String? url,
+    String? token,
+    dynamic data,
+    ResponseType? responseType,
+  }) {
     final bool isMultipart = data is FormData;
+    // A file response (an export) can take the server a while to build.
+    final bool isFile = responseType == ResponseType.bytes;
     if (data case final FormData form) {
       validateMultipartFormData(form);
     }
@@ -100,7 +118,8 @@ class DioHttp implements IHttp {
       headers: headers,
       contentType: isMultipart ? null : Headers.jsonContentType,
       sendTimeout: isMultipart ? const Duration(minutes: 2) : null,
-      receiveTimeout: isMultipart ? const Duration(minutes: 2) : null,
+      receiveTimeout: isMultipart || isFile ? const Duration(minutes: 2) : null,
+      responseType: responseType,
     );
   }
 

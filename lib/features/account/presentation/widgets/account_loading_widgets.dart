@@ -46,13 +46,6 @@ class AccountLoadingView extends StatelessWidget {
   }
 }
 
-/// Placeholder for the recent-activity list.
-///
-/// Shaped as the cards it stands in for — same panel, same header, same
-/// divider, same field rows — so the list does not visibly re-flow when the
-/// real entries arrive. Only the content shimmers: the card's own surface and
-/// hairline are drawn for real, outside the sweep, because a card that is
-/// already there reads as loading rather than as missing.
 class AccountListLoading extends StatelessWidget {
   const AccountListLoading({
     super.key,
@@ -62,8 +55,6 @@ class AccountListLoading extends StatelessWidget {
 
   final int itemCount;
 
-  /// Includes the day heading the full list groups under. The account
-  /// screen's short preview has none, so it leaves this off.
   final bool showDayHeader;
 
   @override
@@ -102,7 +93,6 @@ class AccountListLoading extends StatelessWidget {
   }
 }
 
-/// The `TODAY · 12 SEP 2026` heading a run of cards sits under.
 class _DayHeaderSkeleton extends StatelessWidget {
   const _DayHeaderSkeleton();
 
@@ -126,12 +116,9 @@ class _DayHeaderSkeleton extends StatelessWidget {
   }
 }
 
-/// One ledger entry card, unfilled.
 class _EntryCardSkeleton extends StatelessWidget {
   const _EntryCardSkeleton({this.shortAmount = false});
 
-  /// Varies the amount's width between rows — a column of identical bars
-  /// reads as a pattern rather than as content on its way.
   final bool shortAmount;
 
   @override
@@ -222,7 +209,6 @@ class _EntryCardSkeleton extends StatelessWidget {
   }
 }
 
-/// A `label  value` line inside a card.
 class _FieldRowSkeleton extends StatelessWidget {
   const _FieldRowSkeleton({required this.valueWidth});
 
@@ -244,14 +230,6 @@ class _FieldRowSkeleton extends StatelessWidget {
   }
 }
 
-/// Placeholder for the settlements list.
-///
-/// Shaped as the cards it stands in for — the same panel, the amount over its
-/// caption, a status pill, the identity and date lines, and the footer rule —
-/// so the list does not visibly re-flow when the real settlements arrive. Only
-/// the content shimmers: the card's own surface and hairline are drawn for
-/// real, because a card that is already there reads as loading rather than as
-/// missing.
 class AccountSettlementListLoading extends StatelessWidget {
   const AccountSettlementListLoading({
     super.key,
@@ -261,7 +239,6 @@ class AccountSettlementListLoading extends StatelessWidget {
 
   final int itemCount;
 
-  /// Includes the four status tiles the loaded list shows above the rows.
   final bool showSummary;
 
   @override
@@ -297,13 +274,6 @@ class AccountSettlementListLoading extends StatelessWidget {
   }
 }
 
-/// Placeholder for the futsal breakdown.
-///
-/// Shaped as the venue cards it stands in for — name over location, the
-/// commission and its caption opposite, the hairline, the figure rows and the
-/// pay button — so the list does not visibly re-flow when the real futsals
-/// arrive. Only the content shimmers; the card's surface and hairlines are
-/// drawn for real.
 class AccountVenueListLoading extends StatelessWidget {
   const AccountVenueListLoading({super.key, this.itemCount = 4});
 
@@ -339,7 +309,6 @@ class AccountVenueListLoading extends StatelessWidget {
   }
 }
 
-/// One futsal card, unfilled.
 class _VenueCardSkeleton extends StatelessWidget {
   const _VenueCardSkeleton({this.withAction = true});
 
@@ -428,7 +397,6 @@ class _VenueCardSkeleton extends StatelessWidget {
   }
 }
 
-/// A `label … amount` line in a venue card.
 class _VenueFigureRowSkeleton extends StatelessWidget {
   const _VenueFigureRowSkeleton({
     required this.labelWidth,
@@ -450,7 +418,6 @@ class _VenueFigureRowSkeleton extends StatelessWidget {
   }
 }
 
-/// The status tiles above the list — Pending, Approved, Rejected.
 class _SummaryRowSkeleton extends StatelessWidget {
   const _SummaryRowSkeleton();
 
@@ -496,12 +463,9 @@ class _SummaryRowSkeleton extends StatelessWidget {
   }
 }
 
-/// One settlement card, unfilled.
 class _SettlementCardSkeleton extends StatelessWidget {
   const _SettlementCardSkeleton({this.withFooter = true});
 
-  /// The real card only shows its footer rule when it has a transaction
-  /// reference or a proof, so not every placeholder carries one either.
   final bool withFooter;
 
   @override

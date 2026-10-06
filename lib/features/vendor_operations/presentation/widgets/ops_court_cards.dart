@@ -11,11 +11,6 @@ import 'package:hamro_futsal/features/vendor_operations/presentation/bloc/vendor
 import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops_style.dart';
 import 'package:shimmer/shimmer.dart';
 
-/// The Day view: one card per court, grouped by venue. Each card leads with
-/// how the court's day stands — occupancy, next free slot, the booking on
-/// court now or next — and then lists every slot of the day with its status.
-///
-/// Free slots add to the manual booking; booked slots open the booking.
 class OpsCourtCardsView extends StatelessWidget {
   const OpsCourtCardsView({super.key, required this.onBookingTap});
 
@@ -94,8 +89,6 @@ class OpsCourtCardsView extends StatelessWidget {
   }
 }
 
-/// Sliver version of [OpsCourtCardsView]. The home page uses this so venue
-/// sections are built lazily instead of laying out the whole board up front.
 class OpsCourtCardsSliver extends StatelessWidget {
   const OpsCourtCardsSliver({super.key, required this.onBookingTap});
 
@@ -194,11 +187,6 @@ class OpsCourtCardsSliver extends StatelessWidget {
   }
 }
 
-/// Tablet / desktop Day board: every venue in one column grid.
-///
-/// Each venue spans as many columns as it has courts (up to a full row), with
-/// its header over just those columns, and venues flow left to right. Court
-/// cards are the same width everywhere, so their edges line up down the page.
 class _PackedVenueBoard extends StatelessWidget {
   const _PackedVenueBoard({
     required this.venues,
@@ -272,8 +260,6 @@ class _VenueSection extends StatelessWidget {
   final bool isPastDate;
   final OpsBookingTap onBookingTap;
 
-  /// Set by [_PackedVenueBoard] so every venue uses the board's columns;
-  /// null works the columns out from this section's own width.
   final double? cardWidth;
   final double? cardGap;
 
@@ -400,7 +386,6 @@ class _CourtCard extends StatefulWidget {
 }
 
 class _CourtCardState extends State<_CourtCard> {
-  /// Elapsed slots are folded away on today so the card opens at "now".
   bool _showPast = false;
 
   void _openWeek() {
@@ -606,7 +591,6 @@ class _CourtCardState extends State<_CourtCard> {
   }
 }
 
-/// Every slot of the court's day as equal-width chips.
 class _SlotGrid extends StatelessWidget {
   const _SlotGrid({
     required this.cells,
@@ -812,7 +796,6 @@ class _OccupancyBar extends StatelessWidget {
   }
 }
 
-/// A small caps label over its value.
 class _Fact extends StatelessWidget {
   const _Fact({
     required this.label,
@@ -860,8 +843,6 @@ class _Fact extends StatelessWidget {
   }
 }
 
-/// Stands in for the court cards while the courts' slots load: a venue
-/// header and card-shaped blocks, in the same columns the cards use.
 class _CardsSkeleton extends StatelessWidget {
   const _CardsSkeleton();
 
@@ -938,5 +919,4 @@ class _Empty extends StatelessWidget {
   }
 }
 
-/// "Rs 1,200".
 String _rs(num amount) => Money.npr(amount).replaceFirst('NPR', 'Rs');

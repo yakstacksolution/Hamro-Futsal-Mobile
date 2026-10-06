@@ -8,14 +8,8 @@ import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 
-/// Who the auth screen is currently addressing.
-///
-/// Sign-in, forgot-password and OTP do not know yet, so they stay
-/// [AuthAudience.general]. Registration switches as soon as an account type is
-/// picked, so the brand panel argues the case for that specific audience.
 enum AuthAudience { general, player, vendor }
 
-/// Copy shown in the desktop brand panel for one [AuthAudience].
 class _AudienceCopy {
   const _AudienceCopy({
     required this.headline,
@@ -32,21 +26,14 @@ class _AudienceCopy {
   final String tagline;
   final List<String> highlights;
 
-  /// One per [highlights] entry.
   final List<IconData> highlightIcons;
 
-  /// A short line under each highlight, when its title is short enough to
-  /// need one (the general copy); empty otherwise.
   final List<String> highlightDetails;
 
-  /// "How it works", three steps.
   final List<(IconData, String)> steps;
 
-  /// "Also inside" chips: features the app really has.
   final List<(IconData, String)> features;
 
-  /// The audience's emblem above the headline; none for the general copy,
-  /// whose brand mark already sits at the top of the panel.
   final IconData? icon;
 
   static const List<(IconData, String)> _playerSteps = <(IconData, String)>[
@@ -183,7 +170,6 @@ class AuthScreenFrame extends StatelessWidget {
   final bool isRotate;
   final bool isLoading;
 
-  /// Drives the desktop brand panel's copy.
   final AuthAudience audience;
 
   @override
@@ -222,8 +208,6 @@ class AuthScreenFrame extends StatelessWidget {
     );
   }
 
-  /// The scrollable, width-capped form column. Shared by every breakpoint so
-  /// the card itself only ever differs by its responsive metrics.
   Widget _buildFormPane(BuildContext context) {
     final bool wide = context.isTabletOrWider;
     return Center(
@@ -368,16 +352,12 @@ class AuthScreenFrame extends StatelessWidget {
   }
 }
 
-/// Marketing pane shown to the left of the form on wide layouts: the brand
-/// on a deep green gradient with a faint futsal pitch drawn behind it, the
-/// audience's pitch in the middle and a quiet footer.
 class _AuthBrandPanel extends StatelessWidget {
   const _AuthBrandPanel({required this.headerIcon, required this.audience});
 
   final IconData headerIcon;
   final AuthAudience audience;
 
-  /// The brand green, darkened for the top of the gradient.
   static final Color _deep = Color.lerp(
     LightColor.secondaryColor,
     const Color(0xFF04140F),
@@ -484,7 +464,6 @@ class _AuthBrandPanel extends StatelessWidget {
   }
 }
 
-/// Logo and wordmark at the top of the brand panel.
 class _BrandMark extends StatelessWidget {
   const _BrandMark({required this.onBrand, required this.theme});
 
@@ -521,7 +500,6 @@ class _BrandMark extends StatelessWidget {
   }
 }
 
-/// Headline, tagline and the audience's three highlights.
 class _BrandPitch extends StatelessWidget {
   const _BrandPitch({
     super.key,
@@ -538,10 +516,8 @@ class _BrandPitch extends StatelessWidget {
   final Color onBrand;
   final bool compact;
 
-  /// "Also inside" chips and "How it works" — left out on short windows.
   final bool showExtras;
 
-  /// Tall windows: a little more air between the sections.
   final bool roomy;
 
   @override
@@ -612,7 +588,6 @@ class _BrandPitch extends StatelessWidget {
   }
 }
 
-/// A small caps heading inside the brand panel.
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text, this.onBrand, this.theme);
 
@@ -634,7 +609,6 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// Three numbered steps joined by a line.
 class _HowItWorks extends StatelessWidget {
   const _HowItWorks({
     required this.steps,
@@ -715,7 +689,6 @@ class _HowItWorks extends StatelessWidget {
   }
 }
 
-/// Features as small frosted pills.
 class _FeatureChips extends StatelessWidget {
   const _FeatureChips({
     required this.features,
@@ -762,8 +735,6 @@ class _FeatureChips extends StatelessWidget {
   }
 }
 
-/// The audience's highlights as one frosted card: a row each, split by
-/// hairlines — icon, title and, for short titles, a line of detail.
 class _HighlightGroup extends StatelessWidget {
   const _HighlightGroup({
     required this.copy,
@@ -860,7 +831,6 @@ class _HighlightGroup extends StatelessWidget {
   }
 }
 
-/// Copyright and maker, quiet at the foot of the panel.
 class _BrandFooter extends StatelessWidget {
   const _BrandFooter({required this.onBrand, required this.theme});
 
@@ -912,7 +882,6 @@ class _BrandFooter extends StatelessWidget {
   }
 }
 
-/// A radial pool of light for the brand panel's background.
 class _Glow extends StatelessWidget {
   const _Glow({required this.size, required this.alpha});
 
@@ -939,9 +908,6 @@ class _Glow extends StatelessWidget {
   }
 }
 
-/// A futsal pitch in faint white lines — touchline, halfway line, centre
-/// circle and both D-shaped penalty areas — tilted and running off the
-/// bottom right of the panel, behind the copy.
 class _PitchPainter extends CustomPainter {
   const _PitchPainter();
 

@@ -15,11 +15,6 @@ import 'package:hamro_futsal/features/app_update/domain/usecase/check_app_update
 part 'app_update_event.dart';
 part 'app_update_state.dart';
 
-/// Owns the update lifecycle: checking, prompting, snoozing, and driving the
-/// platform update flow through to install.
-///
-/// Long-lived — created once above the router so a forced update can block the
-/// whole app and a background download survives navigation.
 class AppUpdateBloc extends Bloc<AppUpdateEvent, AppUpdateState> {
   AppUpdateBloc(this._useCase) : super(const AppUpdateState()) {
     on<CheckAppUpdateEvent>(_onCheck);
@@ -59,11 +54,8 @@ class AppUpdateBloc extends Bloc<AppUpdateEvent, AppUpdateState> {
 
   final CheckAppUpdateUseCase _useCase;
 
-  /// Null when the platform exposes no install-progress stream.
   StreamSubscription<InstallProgress>? _installSubscription;
 
-  /// Automatic checks closer together than this are skipped, so returning to
-  /// the foreground repeatedly does not hammer the endpoint.
   static const Duration _minAutoCheckInterval = Duration(minutes: 30);
 
   @override

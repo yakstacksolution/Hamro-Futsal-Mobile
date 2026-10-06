@@ -15,7 +15,6 @@ class ProductModel {
   final double price;
   final bool isActive;
 
-  /// `NPR 1,200` — the one spelling every screen uses; see [Money].
   String get formattedPrice => Money.npr(price);
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {

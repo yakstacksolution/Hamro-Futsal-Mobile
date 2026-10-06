@@ -9,33 +9,6 @@ import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart
 import 'package:hamro_futsal/features/message/data/service/chat_socket_service.dart';
 import 'package:hamro_futsal/core/config/app_environment.dart';
 
-/// Realtime chat backed by **Laravel Reverb** (Pusher protocol) via
-/// `dart_pusher_channels` — a pure-Dart client that, unlike the native Pusher
-/// SDK, can point at a self-hosted host/port (which Reverb needs).
-///
-/// One connection is shared for the whole app session (singleton); [dispose]
-/// is intentionally a no-op so a closing [MessageBloc] doesn't tear the socket
-/// down for others. Private channels are signed against Laravel's broadcasting
-/// auth endpoint with the signed-in user's bearer token.
-///
-/// ─────────────────────────────────────────────────────────────────────────
-/// BACKEND CONFIG — set in the flavour env file (from the server's Reverb
-/// config). Each value
-/// has a Laravel-default fallback; override per environment:
-///
-///   REVERB_APP_KEY       = your REVERB_APP_KEY              (required)
-///   REVERB_HOST          = ws host, e.g. hamrofutsal.com    (required)
-///   REVERB_PORT          = 443           (wss port in prod; 8080 for local)
-///   REVERB_SCHEME        = https         (https → wss/TLS)
-///   REVERB_AUTH_URL      = https://hamrofutsal.com/broadcasting/auth
-///   REVERB_MESSAGE_EVENT = message.sent  (event name carrying a message)
-///   REVERB_TYPING_EVENT  = typing        (typing-state event)
-///   REVERB_STOP_TYPING_EVENT = stop-typing
-///   REVERB_READ_EVENT    = messages.read (read receipt event)
-///
-/// Channel naming follows Laravel Echo conventions (see [_conversationChannel]
-/// / [_userChannel]); adjust those builders if your backend differs.
-/// ─────────────────────────────────────────────────────────────────────────
 final class ReverbChatSocketService implements ChatSocketService {
   ReverbChatSocketService._();
 
@@ -54,34 +27,23 @@ final class ReverbChatSocketService implements ChatSocketService {
   static String get _readEvent =>
       AppEnvironment.readOr('REVERB_READ_EVENT', 'messages.read');
 
-  /// Laravel Echo private channel for a single conversation.
   static String _conversationChannel(int id) => 'private-conversation.$id';
 
-  /// Per-user "inbox" channel — new messages across all of the signed-in
-  /// user's conversations. Laravel notifications default to
-  /// `private-App.Models.User.{id}`; adjust if your broadcast uses another.
   static String _userChannel(int userId) => 'private-user.$userId';
   // ──────────────────────────────────────────────────────────────────────────
 
-  /// Current Pusher/Reverb connection identifier used by presence heartbeat.
-  /// Delegates to the shared, app-wide [ReverbConnection].
   String? get socketId => ReverbConnection.instance.socketId;
 
-  /// Broadcast controllers keyed by conversation id / "inbox".
   final Map<int, StreamController<ChatMessageModel>> _messageControllers = {};
   final Map<int, StreamController<bool>> _typingControllers = {};
   final Map<int, StreamController<ChatReadReceipt>> _readControllers = {};
   StreamController<ChatMessageModel>? _inboxController;
 
-  /// A message may be broadcast on both the user and conversation channels.
-  /// Keep a bounded set so that fan-out and reconnect replay emit it once.
   final Set<String> _seenMessages = <String>{};
   final List<String> _seenMessageOrder = <String>[];
 
   // ── Connection lifecycle ──────────────────────────────────────────────────
 
-  /// HTTP token auth delegate that signs private-channel subscriptions against
-  /// Laravel's `/broadcasting/auth`, carrying the current bearer token.
   EndpointAuthorizableChannelTokenAuthorizationDelegate<
     PrivateChannelAuthorizationData
   >
@@ -251,8 +213,6 @@ final class ReverbChatSocketService implements ChatSocketService {
     }
   }
 
-  /// Broadcast payloads wrap the message under `message`/`data`, or send the
-  /// MessageResource at the root — tolerate all three.
   ChatMessageModel? _parseMessage(Map<String, dynamic> payload) {
     dynamic raw = payload;
     for (
@@ -336,7 +296,6 @@ final class ReverbChatSocketService implements ChatSocketService {
     }
   }
 
-  /// No-op: the connection is shared app-wide and outlives individual blocs.
   @override
   void dispose() {}
 }

@@ -7,7 +7,6 @@ sealed class ChangePasswordEvent extends Equatable {
   List<Object?> get props => <Object?>[];
 }
 
-/// Submits the form to `PUT /auth/password`.
 final class SubmitChangePasswordEvent extends ChangePasswordEvent {
   const SubmitChangePasswordEvent({
     required this.oldPassword,

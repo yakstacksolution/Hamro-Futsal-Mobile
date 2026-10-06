@@ -201,17 +201,6 @@ final class AccountRepositoryImpl extends AccountRepository {
   }
 }
 
-/// The multipart body for `POST /auth/settlements`.
-///
-/// Two shapes, one builder — the only difference between them is `venue_id`:
-///
-/// * **Consolidated** (all futsals): `amount`, `transaction_reference`,
-///   `note`, `payment_proof`.
-/// * **Per-futsal**: the same, plus `venue_id`.
-///
-/// Sending `venue_id: null` would be a third, wrong shape, so the key is
-/// omitted entirely rather than sent empty. The internal attachment is swapped
-/// for the uploaded `payment_proof` part by the data source.
 @visibleForTesting
 Map<String, dynamic> buildSettlementFields({
   required double amount,

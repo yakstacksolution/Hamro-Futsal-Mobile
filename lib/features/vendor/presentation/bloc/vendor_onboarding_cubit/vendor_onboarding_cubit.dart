@@ -34,12 +34,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         VendorOnboardingUseCase(VendorOnboardingRepositoryImpl());
   }
 
-  /// Every API call here outlives the widget that started it — the onboarding
-  /// stepper is popped, or the user backs out mid-save — and the `fold` that
-  /// comes back then emits into a closed cubit, which throws
-  /// `Bad state: Cannot emit new states after calling close` and is reported as
-  /// a fatal crash. A closed cubit has no listeners left, so dropping the state
-  /// is the correct outcome; guarding here covers every path at once.
   @override
   void emit(VendorOnboardingState state) {
     if (isClosed) return;
@@ -84,12 +78,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
   int get currentSubstepIndex => state.cursor.subsectionIndex;
 
-  /// Whether the Court tab may be opened yet.
-  ///
-  /// A court is created against a saved futsal (`futsal_id`), so the venue has
-  /// to exist on the server and have every futsal substep filled in before the
-  /// court side of the wizard means anything. A venue that already carries
-  /// courts is past this point by definition.
   bool get canAccessCourtCategory {
     if (state.courts.isNotEmpty) return true;
     if (state.remoteFutsalId == null) return false;
@@ -114,7 +102,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     return true;
   }
 
-  /// Why the Court tab is locked, for the message shown when it is tapped.
   String get courtCategoryLockReason => state.remoteFutsalId == null
       ? 'Create your futsal venue first — courts are added to a saved venue.'
       : 'Finish every futsal step before setting up courts.';
@@ -843,8 +830,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  /// The advance a court starts with: [kMinimumAdvancePercent]% of the price,
-  /// which is also the lowest value the vendor may keep.
   double? _defaultAdvancePrice(AdvancePaymentType type, double? basePrice) {
     switch (type) {
       case AdvancePaymentType.flat:
@@ -1655,8 +1640,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  /// Moves an item within a list, applying the index adjustment
-  /// `ReorderableListView` expects when dragging downward.
   List<T> _reorderList<T>(List<T> source, int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= source.length) return source;
     final List<T> list = List<T>.of(source);
@@ -1668,9 +1651,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     return list;
   }
 
-  /// Reorders the futsal gallery (the cover image is the first entry, so the
-  /// order users drag into is the order shown on the listing). Keeps the
-  /// parallel selected-image list in sync.
   void reorderFutsalGalleryImages(int oldIndex, int newIndex) {
     updateFutsal(
       state.futsal.copyWith(
@@ -1696,16 +1676,12 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  /// Adds [file] to the court's payment QRs (ignored if already there, or
-  /// once [kMaxCourtPaymentQrs] is reached).
   void setCourtPaymentQr(UploadRef file) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
     setCourtPaymentQrs(<UploadRef>[...court.paymentQrs, file]);
   }
 
-  /// Replaces the court's payment QRs, dropping duplicates and anything past
-  /// [kMaxCourtPaymentQrs].
   void setCourtPaymentQrs(List<UploadRef> files) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
@@ -1774,8 +1750,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  /// Swaps a rejected company document for a freshly picked one. Only
-  /// rejected documents can be replaced — pending/approved are locked.
   void replaceCompanyDocument(UploadRef oldFile, UploadRef newFile) {
     final UploadRef? stored = state.futsal.companyDocuments
         .where((UploadRef item) => item.storageKey == oldFile.storageKey)
@@ -1795,7 +1769,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  /// Removes one QR, or every QR when [file] is null.
   void removeCourtPaymentQr([UploadRef? file]) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
@@ -1939,11 +1912,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     return null;
   }
 
-  /// "Finish" on the court list. Courts listed there come from the venue's
-  /// court summaries, which leave out most of the fields [submit] validates,
-  /// so a court the server already marks complete is trusted as-is; any other
-  /// court must pass local validation. Returns a message when something still
-  /// needs doing.
   Future<String?> finishFromCourtList() async {
     if (state.isSubmitting) return null;
     _flushActiveEditors();
@@ -2332,11 +2300,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
   }
 
-  /// Resolves a 422's `closed_dates.<index>.date` keys back to the dates that
-  /// were actually sent, so the chips the server rejected can be marked.
-  /// The index refers to the `closed_dates` array of the request body, which is
-  /// built in the order of the draft's list — the body is preferred over the
-  /// draft so a partial (current-substep-only) payload still lines up.
   Map<String, String> _blockedClosedDatesFrom(
     AppException failure,
     Map<String, dynamic> body,

@@ -40,12 +40,8 @@ class ChatPage extends StatefulWidget {
 
   final ConversationModel conversation;
 
-  /// Shown as the right-hand pane of the messages split view (tablet /
-  /// desktop) rather than as its own route: no back button, and leaving a
-  /// group calls [onClose] instead of navigating.
   final bool embedded;
 
-  /// Called when an embedded chat should be dismissed.
   final VoidCallback? onClose;
 
   @override
@@ -55,13 +51,9 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   static const Object _typingEntry = Object();
 
-  /// Trailing entry of the reversed list — i.e. the visual top of the thread —
-  /// showing the older-history spinner or its retry row.
   static const Object _loadOlderEntry = Object();
   final _scrollCtrl = ScrollController();
 
-  /// Newest rendered message. Auto-scroll-to-bottom keys off this so loading
-  /// older history (which also grows `messages`) never yanks the viewport.
   int _newestMessageId = 0;
   late final MessageBloc _bloc;
   final List<UploadAttachment> _attachments = <UploadAttachment>[];
@@ -148,10 +140,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     _bloc.add(SendMessageEvent(widget.conversation.id, request));
   }
 
-  /// Who can be mentioned here: the group's participants. A direct chat gets
-  /// none, so `@` stays an ordinary character there. The signed-in user is
-  /// included so a mention of them highlights in the thread; the composer
-  /// filters themselves out of the picker.
   List<MentionCandidate> _mentionCandidates(MessageState state) {
     final ConversationModel conversation =
         state.activeConversation ?? widget.conversation;
@@ -323,8 +311,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     }
   }
 
-  /// Fetches the authed bytes for an attachment for inline rendering; returns
-  /// null on failure so the bubble can fall back to a file chip.
   Future<Uint8List?> _loadMediaBytes(ChatMediaModel media) async {
     final result = await _bloc.useCase.getMediaBytes(media.id);
     return result.fold((_) => null, (bytes) => bytes);
@@ -430,11 +416,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     }
   }
 
-  /// The group behind this chat: its picture, name and members, plus leaving
-  /// it. Opened by tapping the header — the gesture that opens the other
-  /// person's profile in a direct chat.
-  ///
-  /// Leaving pops this chat too: the thread is no longer the user's to read.
   Future<void> _openGroupProfile(ConversationModel group) async {
     final bool left = await openGroupProfilePage(
       context: context,
@@ -450,8 +431,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     context.goNamed(AppRouterParams.dashboard.name);
   }
 
-  /// The list is reversed, so its max scroll extent is the *top* of the
-  /// thread — that is where the next page of older messages is requested.
   void _onScroll() {
     if (!_scrollCtrl.hasClients || _bloc.isClosed) return;
     final position = _scrollCtrl.position;
@@ -699,8 +678,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 }
 
-/// Top-of-thread strip: the older-history spinner, or a retry row when that
-/// page failed.
 class _OlderMessagesHeader extends StatelessWidget {
   const _OlderMessagesHeader({
     required this.loading,
@@ -712,7 +689,6 @@ class _OlderMessagesHeader extends StatelessWidget {
   final String? error;
   final VoidCallback onRetry;
 
-  /// Height the idle strip holds so the spinner does not shift the thread.
   static const double _stripHeight = 22;
 
   @override
@@ -763,7 +739,6 @@ class _OlderMessagesHeader extends StatelessWidget {
   }
 }
 
-/// Left-aligned "typing…" indicator bubble.
 class _TypingBubble extends StatelessWidget {
   const _TypingBubble();
 
@@ -891,7 +866,6 @@ class _ThreadError extends StatelessWidget {
   }
 }
 
-/// Contact header: avatar, title and live subtitle (typing… / members).
 class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _ChatAppBar({
     this.showBack = true,

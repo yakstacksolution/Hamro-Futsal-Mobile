@@ -11,7 +11,6 @@ typedef DuplicateTransactionChecker =
 class ReceiptValidationResult {
   final bool accepted;
 
-  /// This must remain true unless you verify against the payment provider API.
   final bool manualVerificationRequired;
 
   final int score;
@@ -37,17 +36,14 @@ class ReceiptValidationResult {
 
   final List<String> qrValues;
 
-  /// Be careful storing/logging this in production.
   final String rawText;
 
   final int imageWidth;
   final int imageHeight;
   final int imageBytes;
 
-  /// Heuristic only.
   final double brightnessStdDev;
 
-  /// Heuristic only.
   final double edgeScore;
 
   const ReceiptValidationResult({
@@ -132,27 +128,6 @@ class ReceiptValidationResult {
 class ReceiptValidator {
   ReceiptValidator._();
 
-  /// Main function.
-  ///
-  /// Example:
-  ///
-  /// final result = await ReceiptValidator.validate(
-  ///   image: File(path),
-  ///   expectedAmount: 500,
-  ///   merchantNames: [
-  ///     'Yak Stack Solution',
-  ///     'YAK STACK SOLUTION',
-  ///     'YakStack',
-  ///   ],
-  /// );
-  ///
-  /// IMPORTANT:
-  ///
-  /// result.accepted == true means:
-  /// "proof looks structurally valid and can enter manual review"
-  ///
-  /// It DOES NOT mean:
-  /// "payment has been verified with bank/eSewa/Khalti/etc."
   static Future<ReceiptValidationResult> validate({
     required File image,
     required double expectedAmount,
@@ -164,20 +139,15 @@ class ReceiptValidator {
     bool requireQrCode = false,
     bool requireTransactionId = true,
 
-    /// Minimum total score.
     int minimumScore = 75,
 
-    /// Amount tolerance. For exact payment amount keep around 0.01.
     double amountTolerance = 0.01,
 
-    /// Merchant OCR similarity.
     double merchantSimilarityThreshold = 0.78,
 
-    /// Reject tiny screenshots/images.
     int minimumWidth = 360,
     int minimumHeight = 360,
 
-    /// Very small files are suspicious / unusable.
     int minimumFileBytes = 12 * 1024,
 
     int minimumOcrCharacters = 20,

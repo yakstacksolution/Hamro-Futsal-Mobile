@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/features/booking_overview/data/model/booking_overview_model.dart';
+import 'package:hamro_futsal/features/booking_overview/domain/model/booking_export_file.dart';
 import 'package:hamro_futsal/features/booking_overview/domain/repository/booking_overview_repository.dart';
 
 final class BookingOverviewUseCase {
@@ -14,6 +15,18 @@ final class BookingOverviewUseCase {
     String? dateTo,
     List<String>? venueIds,
   }) async => await repository.getOverview(
+    dateFilter: dateFilter,
+    dateFrom: dateFrom,
+    dateTo: dateTo,
+    venueIds: venueIds,
+  );
+
+  Future<Either<AppException, BookingExportFile>> exportBookingsOverView({
+    String? dateFilter,
+    String? dateFrom,
+    String? dateTo,
+    List<String>? venueIds,
+  }) async => await repository.exportBookingsOverView(
     dateFilter: dateFilter,
     dateFrom: dateFrom,
     dateTo: dateTo,

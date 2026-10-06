@@ -153,9 +153,6 @@ class OpsWeekTableView extends StatelessWidget {
   }
 }
 
-/// How many rows the court's week will have, from its own schedule, so the
-/// skeleton is as tall as the table that replaces it. Courts without a
-/// schedule (their slots come only from the server) get a typical day.
 int _skeletonRows(OpsCourt court, DateTime weekStart) {
   final int rows = buildWeekTable(
     court: court,
@@ -179,7 +176,6 @@ class _CourtPicker extends StatelessWidget {
   final List<OpsCourt> courts;
   final OpsCourt selected;
 
-  /// Court id → free slots this week; empty while the week loads.
   final Map<int, int> freeThisWeek;
 
   @override
@@ -321,7 +317,6 @@ class _CourtChip extends StatelessWidget {
   }
 }
 
-/// `Sep 26 – Oct 2` (`, 2026` with [withYear]) in the user's calendar.
 String _weekRange(DateTime start, {bool withYear = false}) {
   final DateTime end = start.add(const Duration(days: 6));
   final String startMonth = AppDateFormat.monthShort(start);
@@ -661,7 +656,6 @@ class _WeekStartOption extends StatelessWidget {
   }
 }
 
-/// A weekday letter in the week-start preview.
 class _DayDot extends StatelessWidget {
   const _DayDot({
     required this.letter,
@@ -714,18 +708,13 @@ class _Table extends StatefulWidget {
 
   final OpsWeekTable table;
 
-  /// Whether the stuck header's corner shows the week's dates.
   final bool weekInCorner;
 
-  /// See [OpsWeekTableView.stickyTop].
   final double stickyTop;
   final OpsBookingTap onBookingTap;
 
-  /// Day column to bring into view (0 = the week's first day).
   final int focusDay;
 
-  /// Runs to the screen's right edge: no right border or rounded corners
-  /// there.
   final bool edgeToEdge;
 
   @override
@@ -733,14 +722,11 @@ class _Table extends StatefulWidget {
 }
 
 class _TableState extends State<_Table> {
-  /// The rows' and the sticky header's sideways scroll, kept in step.
   final ScrollController _h = ScrollController();
   final ScrollController _hHeader = ScrollController();
   bool _syncing = false;
   double _dayWidth = _minDayWidth;
 
-  /// How far the day header is pushed down to stay in view while the page
-  /// scrolls past the table (0 while the table's top is on screen).
   final ValueNotifier<double> _stick = ValueNotifier<double>(0);
   ScrollPosition? _page;
 
@@ -776,10 +762,6 @@ class _TableState extends State<_Table> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
   }
 
-  /// Where the table starts in the page's content, and its height — read
-  /// after layout. While the page scrolls, layout has not run yet when its
-  /// listeners are told, so on-screen positions read then are a frame old;
-  /// the table's place in the content does not move, though.
   double? _contentTop;
   double _tableHeight = 0;
 
@@ -818,8 +800,6 @@ class _TableState extends State<_Table> {
     _applyStick();
   }
 
-  /// Keeps the header just under whatever is pinned above the table, and no
-  /// further than the table's last row.
   void _applyStick() {
     final double? contentTop = _contentTop;
     final ScrollPosition? page = _page;
@@ -832,8 +812,6 @@ class _TableState extends State<_Table> {
     _stick.value = (widget.stickyTop - top).clamp(0, max);
   }
 
-  /// The focus day and column width last scrolled for. Width is part of it:
-  /// rotating the phone or resizing the window re-lays the columns out.
   (int, double)? _scrolledFor;
 
   OpsWeekTable get table => widget.table;
@@ -848,8 +826,6 @@ class _TableState extends State<_Table> {
     super.dispose();
   }
 
-  /// Scrolls the focused day into view whenever the focus or the column width
-  /// changes, leaving the day before it partly visible for context.
   void _scrollToFocus() {
     final (int, double) key = (widget.focusDay, _dayWidth);
     if (_scrolledFor == key) return;
@@ -864,20 +840,15 @@ class _TableState extends State<_Table> {
     });
   }
 
-  /// Time column: wide enough for "6:00 AM – 7:00 AM" on one line on wide
-  /// screens; narrower on phones, where the range stacks on two lines.
   static const double _timeWidthWide = 160;
   static const double _timeWidthNarrow = 84;
   static const double _oneLineFrom = 900;
   static const double _minDayWidth = 104;
 
-  /// Desktop-width tables get taller rows, a taller header and larger text
-  /// ([_largeTextScale]) so the grid reads comfortably on a big screen.
   static double _headerHeightFor(bool large) => large ? 58 : 48;
   static double _rowHeightFor(bool large) => large ? 66 : 54;
   static const double _largeTextScale = 1.18;
 
-  /// Current sizes, set from the table's width on every layout.
   double _headerHeight = _headerHeightFor(false);
   double _rowHeight = _rowHeightFor(false);
 
@@ -1038,8 +1009,6 @@ class _TableState extends State<_Table> {
     );
   }
 
-  /// "Time slot" — or, once the header is stuck and the week's own dates
-  /// have scrolled away, the week itself.
   Widget _cornerLabel({required bool stuck}) {
     final TextStyle style = TextStyle(
       fontSize: 10,
@@ -1071,8 +1040,6 @@ class _TableState extends State<_Table> {
     child: child,
   );
 
-  /// The slot as a range — "6:00 AM – 7:00 AM" — on one line, or stacked
-  /// start over end where the column is narrow.
   Widget _timeCell(int t, bool oneLine) {
     final String start = formatMinuteOfDay(t);
     final String end = formatMinuteOfDay(table.endOf(t));
@@ -1365,10 +1332,6 @@ class _CellBody extends StatelessWidget {
   }
 }
 
-/// Stands in for the table while the court's week loads. It is laid out
-/// with the table's own measurements — frame, time column, day widths,
-/// header and row heights, grid lines, today's tint — so nothing moves when
-/// the table lands. Only the placeholders shimmer; the grid stays still.
 class _TableSkeleton extends StatelessWidget {
   const _TableSkeleton({
     required this.rowCount,
@@ -1378,8 +1341,6 @@ class _TableSkeleton extends StatelessWidget {
 
   final int rowCount;
 
-  /// Today's column in this week (0 = its first day); outside 0–6 when the
-  /// week is another one.
   final int todayIndex;
   final bool edgeToEdge;
 

@@ -99,8 +99,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  /// Declarative description of the whole page. Adding a row is a one-line
-  /// change here — no widget plumbing required.
   List<_Section> _sections({required bool isCheckingUpdate}) => <_Section>[
     _Section(
       label: StringConstants.account,
@@ -208,9 +206,6 @@ class _SettingsPageState extends State<SettingsPage> {
     ),
   ];
 
-  /// Two-step guard on an irreversible action: a sheet the user has to type
-  /// DELETE into, then the call. On success the session is already cleared by the
-  /// repository, so all that is left is to leave the signed-in shell.
   Future<void> _confirmDeleteAccount() async {
     if (_controller.deletingAccount) return;
 
@@ -604,8 +599,6 @@ class _SettingsRow extends StatelessWidget {
   }
 }
 
-/// Trailing affordance for a row: a switch for toggles, otherwise an optional
-/// current-value label followed by a chevron.
 class _SettingsTrailing extends StatelessWidget {
   const _SettingsTrailing({required this.item});
 
@@ -723,12 +716,8 @@ class _SettingsItem {
   final String? subtitle;
   final String? trailingValue;
 
-  /// Nav rows only: swaps the chevron for a spinner and blocks re-tapping.
   final bool loading;
 
-  /// Renders the row's title in the danger colour — irreversible actions only.
-  /// Icon, chevron and spinner stay on the theme's accent so the row still
-  /// belongs to the list.
   final bool destructive;
   final VoidCallback? onTap;
   final bool? value;

@@ -61,8 +61,6 @@ class VendorMediaLibrarySheet extends StatefulWidget {
 class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
   final Set<String> _selectedPaths = <String>{};
 
-  /// Paths of initially selected files whose verification status is locked
-  /// (pending/approved) — their selection cannot be toggled or removed.
   final Set<String> _lockedPaths = <String>{};
   _LibraryFilter _filter = _LibraryFilter.all;
   bool _isAdding = false;
@@ -680,8 +678,6 @@ class _CompactMediaCard extends StatelessWidget {
   final UploadRef item;
   final bool isSelected;
 
-  /// Attached to a section as pending/approved — selection can't be toggled
-  /// and the file can't be removed from the library.
   final bool isLocked;
   final VoidCallback onTap;
   final VoidCallback onRemove;

@@ -1,4 +1,3 @@
-/// One attachment of a message (`media[]` of MessageResource).
 class ChatMediaModel {
   const ChatMediaModel({
     required this.id,
@@ -17,7 +16,6 @@ class ChatMediaModel {
   final int size;
   final String humanReadableSize;
 
-  /// Relative API path (`/api/chat/media/{id}`) — requires the bearer token.
   final String url;
   final Map<String, dynamic> customProperties;
   final DateTime? createdAt;
@@ -115,11 +113,9 @@ class ChatMessageModel {
   final String senderName;
   final String senderAvatar;
 
-  /// text | image | video | audio | file | mixed | location.
   final String type;
   final String body;
 
-  /// sent | delivered | read.
   final String status;
   final int? replyToMessageId;
   final ChatReplyModel? replyTo;
@@ -130,24 +126,16 @@ class ChatMessageModel {
   final DateTime? deletedAt;
   final DateTime createdAt;
 
-  /// Participants this message names.
   final List<int> mentions;
 
-  /// The message was addressed to everyone (`@all`).
   final bool mentionAll;
 
-  /// The server's own verdict on whether the signed-in user was mentioned —
-  /// true for a direct mention and for `@all`.
   final bool isMentioned;
 
-  /// The thread is a group a superadmin created, so its picture and name are
-  /// managed centrally and cannot be edited from the app.
   final bool isSuperadminCreatedGroup;
 
   bool isMine(int currentUserId) => senderId == currentUserId;
 
-  /// Whether this message calls out [currentUserId], falling back to the id
-  /// lists when the server did not compute the flag.
   bool mentionsUser(int currentUserId) =>
       isMentioned || mentionAll || mentions.contains(currentUserId);
 

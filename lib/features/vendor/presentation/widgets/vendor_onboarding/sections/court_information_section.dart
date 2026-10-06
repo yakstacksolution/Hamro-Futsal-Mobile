@@ -645,9 +645,6 @@ class _CourtDescriptionSubsectionState
     super.dispose();
   }
 
-  /// A court with no description starts from the admin's "Court Description"
-  /// template. Runs once per editor, and only while the field is still empty,
-  /// so it never overwrites what the vendor wrote or what the server holds.
   void _prefillDefaultIfEmpty(String? defaultDescription) {
     if (_hasPrefilledDefault) return;
     if (defaultDescription == null || defaultDescription.trim().isEmpty) {

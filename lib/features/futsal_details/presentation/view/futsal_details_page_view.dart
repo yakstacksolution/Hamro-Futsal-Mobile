@@ -242,7 +242,6 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     );
   }
 
-  /// [inPanel] lays the host out for the desktop booking panel.
   Widget _buildHostedBySection({bool inPanel = false}) {
     final HostedByBloc? bloc = _hostedByBloc;
 
@@ -460,7 +459,6 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     );
   }
 
-  /// Price + "/ hour", shared by the phone bottom bar and the desktop panel.
   Widget _buildPriceBlock({bool large = false}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -496,8 +494,6 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     );
   }
 
-  /// Desktop-only booking card. Sits beside the scrolling content and stays
-  /// put, which is the whole point of the two-column layout.
   Widget _buildBookingSidePanel(BuildContext context) {
     return SizedBox(
       width: AppDimens.venueBookingPanelWidth,
@@ -696,19 +692,8 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     );
   }
 
-  /// The link the share sheet sends for this venue, or null when the page was
-  /// not opened from a public listing.
-  ///
-  /// Only the backend's `share` payload carries a link, so a page reached with
-  /// a [CourtDetailModel] shares the venue's details without one rather than
-  /// inventing a URL that may not resolve.
   String? get _shareLink => widget.publicVenue?.share?.shareUrl;
 
-  /// The sentence that goes with [_shareLink].
-  ///
-  /// The backend's `message` is preferred; a page opened with a
-  /// [CourtDetailModel] falls back to the venue's own details, which is still
-  /// worth sharing.
   String? get _shareMessage {
     final String? fromApi = widget.publicVenue?.share?.shareMessage;
     if (fromApi != null && fromApi.isNotEmpty) return fromApi;

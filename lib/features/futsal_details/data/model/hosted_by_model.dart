@@ -1,24 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// Host information returned by `/hosted-by/{venue_id}`.
-///
-/// Response shape:
-/// ```json
-/// {
-///   "status": "success",
-///   "data": {
-///     "hosted_by": {
-///       "id": 4,
-///       "name": "Dilli Bhandari",
-///       "image": "https://.../scaled_1000066098.jpg",
-///       "created_at": "2026-05-27 12:54:06",
-///       "court_count": 1,
-///       "venue_count": 2,
-///       "rating": 0
-///     }
-///   }
-/// }
-/// ```
 final class HostedByModel extends Equatable {
   const HostedByModel({
     this.id,
@@ -57,8 +38,6 @@ final class HostedByModel extends Equatable {
     return text.isEmpty ? null : text;
   }
 
-  /// Accepts a date string ("2026-05-27 12:54:06") or a plain year ("2026")
-  /// and returns just the year portion for the "Hosting since" label.
   static String? _parseSinceYear(dynamic value) {
     final String? text = _parseString(value);
     if (text == null) return null;

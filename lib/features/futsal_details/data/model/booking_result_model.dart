@@ -1,4 +1,3 @@
-/// Result of `POST /bookings`.
 class BookingResultModel {
   const BookingResultModel({this.id, this.status, this.message});
 

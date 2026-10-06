@@ -7,23 +7,16 @@ import 'package:hamro_futsal/features/app_update/domain/entities/install_progres
 import 'package:in_app_update/in_app_update.dart' as play;
 import 'package:url_launcher/url_launcher.dart';
 
-/// Outcome of a native Play update flow.
 enum PlayFlowOutcome {
-  /// Flexible download started (or immediate update completed) successfully.
   started,
 
-  /// The user dismissed Play's consent dialog.
   userDenied,
 
-  /// Play reported a failure — the caller should fall back to a store redirect.
   failed,
 
-  /// The native flow cannot run here at all (iOS, sideloaded build, no Play
-  /// Services, no update known to Play).
   unavailable,
 }
 
-/// What Google Play knows about an available update for this package.
 @immutable
 final class PlayUpdateAvailability {
   const PlayUpdateAvailability({
@@ -50,13 +43,9 @@ final class PlayUpdateAvailability {
   final int? priority;
   final play.InstallStatus installStatus;
 
-  /// True when a flexible download has already finished and only the install
-  /// (an app restart) is pending.
   bool get isDownloaded => installStatus == play.InstallStatus.downloaded;
 }
 
-/// The platform capabilities the update feature needs. Extracted so the
-/// decision logic can be tested without Play Services or a real store.
 abstract class AppUpdatePlatform {
   bool get isPlaySupported;
 
@@ -77,29 +66,16 @@ abstract class AppUpdatePlatform {
   });
 }
 
-/// Wraps the platform-specific mechanics of shipping an update: the Google Play
-/// In-App Update API on Android, and a store redirect on iOS (Apple exposes no
-/// in-app update mechanism, so the App Store page is the only route).
-///
-/// Every method is safe to call on either platform — the Android-only paths
-/// short-circuit to [PlayFlowOutcome.unavailable] elsewhere, and plugin errors
-/// are swallowed rather than propagated so an update check can never crash the
-/// app.
 class InAppUpdateService implements AppUpdatePlatform {
   InAppUpdateService._();
 
   static final InAppUpdateService instance = InAppUpdateService._();
 
-  /// Cached so [startFlexibleUpdate] can tell whether `checkForUpdate` has run,
-  /// which Play requires before any flow is started.
   PlayUpdateAvailability? _lastPlayCheck;
 
   @override
   bool get isPlaySupported => Platform.isAndroid;
 
-  /// Asks Play whether an update exists. Returns [PlayUpdateAvailability.none]
-  /// on any failure — including the very common debug/sideload case where Play
-  /// has no record of the install.
   @override
   Future<PlayUpdateAvailability> checkPlayAvailability() async {
     if (!isPlaySupported) return PlayUpdateAvailability.none;
@@ -136,8 +112,6 @@ class InAppUpdateService implements AppUpdatePlatform {
     }
   }
 
-  /// Starts a background (flexible) download. The user keeps using the app; the
-  /// install happens on [completeFlexibleUpdate].
   @override
   Future<PlayFlowOutcome> startFlexibleUpdate() async {
     if (!isPlaySupported) return PlayFlowOutcome.unavailable;
@@ -155,8 +129,6 @@ class InAppUpdateService implements AppUpdatePlatform {
     }
   }
 
-  /// Runs Play's blocking, full-screen update flow. Play handles the download,
-  /// install and app restart; control usually never returns to us.
   @override
   Future<PlayFlowOutcome> performImmediateUpdate() async {
     if (!isPlaySupported) return PlayFlowOutcome.unavailable;
@@ -174,7 +146,6 @@ class InAppUpdateService implements AppUpdatePlatform {
     }
   }
 
-  /// Installs an already-downloaded flexible update. Restarts the app.
   @override
   Future<bool> completeFlexibleUpdate() async {
     if (!isPlaySupported) return false;
@@ -187,8 +158,6 @@ class InAppUpdateService implements AppUpdatePlatform {
     }
   }
 
-  /// Download/install progress for a running flexible update. Empty on
-  /// platforms without Play.
   @override
   Stream<InstallProgress> get installProgressStream {
     if (!isPlaySupported) return const Stream<InstallProgress>.empty();
@@ -221,12 +190,6 @@ class InAppUpdateService implements AppUpdatePlatform {
     }
   }
 
-  /// Opens the platform store listing.
-  ///
-  /// [storeUrl] (from the backend manifest) is preferred; otherwise a canonical
-  /// store URL is built from the bundle/package id. Android tries the
-  /// `market://` scheme first so the Play app opens directly rather than a
-  /// browser.
   @override
   Future<bool> openStore({
     String? storeUrl,

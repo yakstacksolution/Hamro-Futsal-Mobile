@@ -8,7 +8,6 @@ import 'package:hamro_futsal/features/booking_overview/presentation/utils/bookin
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_common.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Per-venue revenue + occupancy table.
 class BookingVenuePerformanceCard extends StatelessWidget {
   const BookingVenuePerformanceCard({super.key, required this.analytics});
 
@@ -134,7 +133,6 @@ class _VenueRow extends StatelessWidget {
   }
 }
 
-/// One tile in the venue card's 2×2 metric grid.
 class _VenueMetric extends StatelessWidget {
   const _VenueMetric({
     required this.icon,
@@ -147,7 +145,6 @@ class _VenueMetric extends StatelessWidget {
   final String label;
   final String value;
 
-  /// Tints the tile with the accent color (used for revenue).
   final bool emphasized;
 
   @override
@@ -214,7 +211,6 @@ class _VenueMetric extends StatelessWidget {
   }
 }
 
-/// Top 5 earning courts with relative revenue bars.
 class BookingTopCourtsCard extends StatelessWidget {
   const BookingTopCourtsCard({super.key, required this.analytics});
 
@@ -283,8 +279,6 @@ class BookingTopCourtsCard extends StatelessWidget {
   }
 }
 
-/// Leading badge | title + subtitle | revenue — the shared row header so
-/// every leaderboard card lines up the same way.
 class _LeaderboardHeader extends StatelessWidget {
   const _LeaderboardHeader({
     required this.leading,
@@ -299,7 +293,6 @@ class _LeaderboardHeader extends StatelessWidget {
   final String? subtitle;
   final IconData? subtitleIcon;
 
-  /// Trailing amount; omitted when the row shows revenue elsewhere.
   final int? revenue;
 
   @override
@@ -367,7 +360,6 @@ class _LeaderboardHeader extends StatelessWidget {
   }
 }
 
-/// 36×36 rounded tile holding an icon, rank or initials.
 class _LeadingBadge extends StatelessWidget {
   const _LeadingBadge({required this.child, this.highlighted = true});
 
@@ -394,7 +386,6 @@ class _LeadingBadge extends StatelessWidget {
   }
 }
 
-/// Top 5 spending customers.
 class BookingTopCustomersCard extends StatelessWidget {
   const BookingTopCustomersCard({super.key, required this.analytics});
 

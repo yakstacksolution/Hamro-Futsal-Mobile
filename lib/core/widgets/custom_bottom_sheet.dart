@@ -52,11 +52,6 @@ Future<T?> showAppBottomSheet<T>({
   );
 }
 
-/// Animates a bottom sheet with the system keyboard instead of jumping when
-/// [MediaQueryData.viewInsets] changes.
-///
-/// Keep this widget outside the sheet's size constraint so the complete sheet
-/// moves above the keyboard, rather than only adding padding inside its body.
 class KeyboardAwareBottomSheet extends StatelessWidget {
   const KeyboardAwareBottomSheet({
     super.key,

@@ -7,12 +7,6 @@ import 'package:hamro_futsal/features/opponent_match/domain/usecase/opponent_mat
 part 'accept_request_event.dart';
 part 'accept_request_state.dart';
 
-/// Drives the single-shot acceptance: the accepting team is posted to the
-/// request and the requester receives it as an invitation.
-///
-/// Kept separate from [OpponentMatchBloc] because the accept call has its own
-/// lifecycle (re-entrancy, 409/410 terminal errors) that must not leak into the
-/// list state.
 class AcceptOpponentRequestBloc
     extends Bloc<AcceptRequestEvent, AcceptRequestState> {
   AcceptOpponentRequestBloc(this.useCase) : super(const AcceptRequestState()) {
