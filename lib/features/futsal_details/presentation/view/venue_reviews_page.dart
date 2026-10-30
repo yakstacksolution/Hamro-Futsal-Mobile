@@ -388,7 +388,7 @@ class _ListFooter extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX16),
         child: Center(
           child: Text(
-            'That is every review.',
+            StringConstants.thatIsEveryReview,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.hintTextColor,
               fontWeight: FontWeight.w500,
@@ -428,7 +428,7 @@ class _ReviewsEmpty extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX16),
             Text(
-              'No reviews yet',
+              StringConstants.noReviewsYet,
               style: textTheme.bodyTextMedium?.copyWith(
                 color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w800,
@@ -436,7 +436,7 @@ class _ReviewsEmpty extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX6),
             Text(
-              'Play here and be the first to leave one.',
+              StringConstants.playHereAndBeFirstToReview,
               textAlign: TextAlign.center,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,

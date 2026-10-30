@@ -41,7 +41,9 @@ class VenueRatingSummaryCard extends StatelessWidget {
             _Stars(rating: rating, color: LightColor.onBrandSurface),
             const SizedBox(height: AppDimens.sizeX4),
             Text(
-              reviewCount == 1 ? '1 review' : '$reviewCount reviews',
+              reviewCount == 1
+                  ? StringConstants.oneReview
+                  : StringConstants.reviewsCount(reviewCount),
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.onBrandSurface.withValues(alpha: 0.75),
                 fontWeight: FontWeight.w500,
@@ -135,7 +137,9 @@ class VenueReviewCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      review.name.isEmpty ? 'Anonymous' : review.name,
+                      review.name.isEmpty
+                          ? StringConstants.anonymous
+                          : review.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextSmall?.copyWith(
@@ -213,14 +217,14 @@ class _ReviewCardMenu extends StatelessWidget {
         ),
         onSelected: onSelected,
         itemBuilder: (_) => <PopupMenuEntry<ReviewChangeRequestType>>[
-          const PopupMenuItem<ReviewChangeRequestType>(
+          PopupMenuItem<ReviewChangeRequestType>(
             value: ReviewChangeRequestType.edit,
             child: CustomMenuItem(
               icon: Icons.edit_outlined,
               label: StringConstants.requestEdit,
             ),
           ),
-          const PopupMenuItem<ReviewChangeRequestType>(
+          PopupMenuItem<ReviewChangeRequestType>(
             value: ReviewChangeRequestType.delete,
             child: CustomMenuItem(
               icon: Icons.delete_outline_rounded,

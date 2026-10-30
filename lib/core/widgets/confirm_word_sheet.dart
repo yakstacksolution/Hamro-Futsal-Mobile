@@ -13,8 +13,8 @@ Future<bool> showConfirmWordSheet({
   required String title,
   required String message,
   required String confirmationWord,
-  String confirmText = 'Confirm',
-  String cancelText = 'Cancel',
+  String? confirmText,
+  String? cancelText,
   IconData icon = Icons.warning_amber_rounded,
 
   List<String> consequences = const <String>[],
@@ -49,8 +49,8 @@ Future<String?> showConfirmWordReasonSheet({
   required String title,
   required String message,
   required String confirmationWord,
-  String confirmText = 'Confirm',
-  String cancelText = 'Cancel',
+  String? confirmText,
+  String? cancelText,
   IconData icon = Icons.warning_amber_rounded,
   List<String> consequences = const <String>[],
 }) {
@@ -90,8 +90,8 @@ class _ConfirmWordSheet extends StatefulWidget {
   final String title;
   final String message;
   final String confirmationWord;
-  final String confirmText;
-  final String cancelText;
+  final String? confirmText;
+  final String? cancelText;
   final IconData icon;
   final List<String> consequences;
 
@@ -242,7 +242,7 @@ class _ConfirmWordSheetState extends State<_ConfirmWordSheet> {
                     color: LightColor.secondaryTextColor,
                   ),
                   children: <InlineSpan>[
-                    const TextSpan(text: 'Type '),
+                    TextSpan(text: StringConstants.typePrefix),
                     TextSpan(
                       text: widget.confirmationWord,
                       style: textTheme.bodyTextSmall?.copyWith(
@@ -251,7 +251,7 @@ class _ConfirmWordSheetState extends State<_ConfirmWordSheet> {
                         letterSpacing: 0.6,
                       ),
                     ),
-                    const TextSpan(text: ' below to confirm.'),
+                    TextSpan(text: StringConstants.belowToConfirm),
                   ],
                 ),
               ),
@@ -287,7 +287,7 @@ class _ConfirmWordSheetState extends State<_ConfirmWordSheet> {
                 children: <Widget>[
                   Expanded(
                     child: CustomButton(
-                      text: widget.cancelText,
+                      text: widget.cancelText ?? StringConstants.cancel,
                       isOutlined: true,
                       onPressed: () => Navigator.of(context).pop(false),
                     ),
@@ -295,7 +295,7 @@ class _ConfirmWordSheetState extends State<_ConfirmWordSheet> {
                   const SizedBox(width: AppDimens.paddingX12),
                   Expanded(
                     child: CustomButton(
-                      text: widget.confirmText,
+                      text: widget.confirmText ?? StringConstants.confirm,
                       // CustomButton paints one background for every state, so
                       // the disabled look has to be passed in rather than left
                       // to the null callback.
@@ -332,8 +332,8 @@ class _ConfirmWordReasonSheet extends StatefulWidget {
   final String title;
   final String message;
   final String confirmationWord;
-  final String confirmText;
-  final String cancelText;
+  final String? confirmText;
+  final String? cancelText;
   final IconData icon;
   final List<String> consequences;
 
@@ -487,7 +487,7 @@ class _ConfirmWordReasonSheetState extends State<_ConfirmWordReasonSheet> {
                       color: LightColor.secondaryTextColor,
                     ),
                     children: <InlineSpan>[
-                      const TextSpan(text: 'Type '),
+                      TextSpan(text: StringConstants.typePrefix),
                       TextSpan(
                         text: widget.confirmationWord,
                         style: textTheme.bodyTextSmall?.copyWith(
@@ -496,7 +496,7 @@ class _ConfirmWordReasonSheetState extends State<_ConfirmWordReasonSheet> {
                           letterSpacing: 0.6,
                         ),
                       ),
-                      const TextSpan(text: ' below to continue.'),
+                      TextSpan(text: StringConstants.belowToContinue),
                     ],
                   ),
                 ),
@@ -553,7 +553,7 @@ class _ConfirmWordReasonSheetState extends State<_ConfirmWordReasonSheet> {
                   children: <Widget>[
                     Expanded(
                       child: CustomButton(
-                        text: widget.cancelText,
+                        text: widget.cancelText ?? StringConstants.cancel,
                         isOutlined: true,
                         onPressed: () => Navigator.of(context).pop(),
                       ),
@@ -561,7 +561,7 @@ class _ConfirmWordReasonSheetState extends State<_ConfirmWordReasonSheet> {
                     const SizedBox(width: AppDimens.paddingX12),
                     Expanded(
                       child: CustomButton(
-                        text: widget.confirmText,
+                        text: widget.confirmText ?? StringConstants.confirm,
                         backgroundColor: _canConfirm
                             ? danger
                             : danger.withValues(alpha: 0.30),

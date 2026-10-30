@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' show TimeOfDay;
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_time_field.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_models.dart';
 
@@ -23,16 +24,16 @@ class VendorOnboardingValidator {
     final TimeOfDay? start = timeOfDayFromString(candidate.startTime);
     final TimeOfDay? end = timeOfDayFromString(candidate.endTime);
     if (start == null || end == null) {
-      return 'Select a valid start and end time.';
+      return StringConstants.selectValidStartAndEndTime;
     }
 
     final int startMinutes = minutesFromTimeOfDay(start);
     final int endMinutes = minutesFromTimeOfDay(end);
     if (startMinutes == endMinutes) {
-      return 'Start and end time cannot be the same.';
+      return StringConstants.startAndEndTimeCannotBeSame;
     }
     if (startMinutes > endMinutes) {
-      return 'End time must be later than start time.';
+      return StringConstants.closureEndAfterStart;
     }
 
     final Set<String> candidateDays = candidate.days
@@ -64,11 +65,11 @@ class VendorOnboardingValidator {
           startMinutes == existingStartMinutes &&
           endMinutes == existingEndMinutes;
       final String name = existing.label.trim().isEmpty
-          ? 'another slot'
+          ? StringConstants.anotherSlot
           : '"${existing.label.trim()}"';
       return duplicate
-          ? 'This time slot already exists on the selected day(s).'
-          : 'This time overlaps with $name on the selected day(s).';
+          ? StringConstants.timeSlotAlreadyExistsOnSelectedDays
+          : StringConstants.timeOverlapsWithOnSelectedDays(name);
     }
     return null;
   }
@@ -86,37 +87,37 @@ class VendorOnboardingValidator {
             if (draft.title.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Please provide the name of your futsal.',
+                StringConstants.provideFutsalName,
               );
             }
             if (draft.slug.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'A unique slug is required for your futsal profile.',
+                StringConstants.uniqueSlugRequired,
               );
             }
             if (!_isSlugValid(draft.slug)) {
               return VendorValidationResult.invalid(
                 key,
-                'The slug may only contain lowercase letters, numbers, and hyphens.',
+                StringConstants.slugInvalidCharacters,
               );
             }
             if (draft.phone.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Please enter a valid contact phone number.',
+                StringConstants.enterValidContactPhone,
               );
             }
             if (draft.email.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Please enter a valid contact email address.',
+                StringConstants.enterValidContactEmail,
               );
             }
             if (!_isOptionalUrlValid(draft.websiteOrSocialLink)) {
               return VendorValidationResult.invalid(
                 key,
-                'Please provide a valid website or social media link (including http/https).',
+                StringConstants.provideValidWebsiteOrSocialLink,
               );
             }
             return VendorValidationResult.valid(key);
@@ -124,7 +125,7 @@ class VendorOnboardingValidator {
             if (!_hasMeaningfulRichText(draft.description)) {
               return VendorValidationResult.invalid(
                 key,
-                'Please provide a description for your futsal.',
+                StringConstants.provideFutsalDescription,
               );
             }
             return VendorValidationResult.valid(key);
@@ -132,20 +133,20 @@ class VendorOnboardingValidator {
             if (draft.location.fullAddress.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Please enter the complete address of your futsal.',
+                StringConstants.enterCompleteFutsalAddress,
               );
             }
             if (draft.location.exactLocation.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Please specify the exact location of your futsal.',
+                StringConstants.specifyFutsalExactLocation,
               );
             }
             if (draft.location.longitude == null ||
                 draft.location.latitude == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Please provide both longitude and latitude coordinates.',
+                StringConstants.provideLongitudeAndLatitude,
               );
             }
             return VendorValidationResult.valid(key);
@@ -153,7 +154,7 @@ class VendorOnboardingValidator {
             if (draft.amenities.isEmpty && draft.features.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Please select at least one amenity or feature for your futsal.',
+                StringConstants.selectAtLeastOneFutsalAmenityOrFeature,
               );
             }
             return VendorValidationResult.valid(key);
@@ -164,7 +165,7 @@ class VendorOnboardingValidator {
             if (draft.cancellationPolicy.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Please specify your cancellation policy.',
+                StringConstants.specifyCancellationPolicy,
               );
             }
             return VendorValidationResult.valid(key);
@@ -172,7 +173,7 @@ class VendorOnboardingValidator {
             if (draft.futsalRules.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Please provide the rules for your futsal.',
+                StringConstants.provideFutsalRules,
               );
             }
             return VendorValidationResult.valid(key);
@@ -180,7 +181,7 @@ class VendorOnboardingValidator {
             if (draft.commissionPercent == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Please specify the commission percentage.',
+                StringConstants.specifyCommissionPercentage,
               );
             }
             return VendorValidationResult.valid(key);
@@ -191,7 +192,7 @@ class VendorOnboardingValidator {
             if (draft.coverImage == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Please upload a cover image for your futsal.',
+                StringConstants.uploadFutsalCoverImage,
               );
             }
             return VendorValidationResult.valid(key);
@@ -199,7 +200,7 @@ class VendorOnboardingValidator {
             if (draft.gallery.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Please upload at least one image to the futsal gallery.',
+                StringConstants.uploadAtLeastOneGalleryImage,
               );
             }
             return VendorValidationResult.valid(key);
@@ -207,7 +208,7 @@ class VendorOnboardingValidator {
             if (draft.companyDocuments.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Please upload the required company documents before proceeding.',
+                StringConstants.uploadRequiredCompanyDocuments,
               );
             }
             return VendorValidationResult.valid(key);
@@ -230,19 +231,19 @@ class VendorOnboardingValidator {
             if (draft.name.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the court name.',
+                StringConstants.enterCourtName,
               );
             }
             if (draft.basePrice == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the court base price.',
+                StringConstants.enterCourtBasePrice,
               );
             }
             if ((draft.courtType ?? '').trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Select the court type.',
+                StringConstants.selectCourtType,
               );
             }
             return VendorValidationResult.valid(key);
@@ -250,7 +251,7 @@ class VendorOnboardingValidator {
             if (!_hasMeaningfulRichText(draft.description)) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the court description.',
+                StringConstants.enterCourtDescription,
               );
             }
             return VendorValidationResult.valid(key);
@@ -258,7 +259,7 @@ class VendorOnboardingValidator {
             if (draft.photos.isEmpty && draft.memories.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Upload at least one photo or memory for the court.',
+                StringConstants.uploadAtLeastOneCourtPhoto,
               );
             }
             return VendorValidationResult.valid(key);
@@ -270,28 +271,29 @@ class VendorOnboardingValidator {
             if (draft.advancePaymentType == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Select an advance payment type.',
+                StringConstants.selectAdvancePaymentType,
               );
             }
             final double? price = draft.advancePrice;
             if (price == null || price <= 0) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the advance payment amount.',
+                StringConstants.enterAdvancePaymentAmount,
               );
             }
             if (draft.advancePaymentType == AdvancePaymentType.percentage) {
               if (price < kMinimumAdvancePercent) {
                 return VendorValidationResult.invalid(
                   key,
-                  'The advance must be at least '
-                  '${kMinimumAdvancePercent.toStringAsFixed(0)}%.',
+                  StringConstants.advanceMustBeAtLeastPercent(
+                    kMinimumAdvancePercent.toStringAsFixed(0),
+                  ),
                 );
               }
               if (price > 100) {
                 return VendorValidationResult.invalid(
                   key,
-                  'Percentage cannot exceed 100.',
+                  StringConstants.percentageCannotExceed100,
                 );
               }
             }
@@ -301,16 +303,17 @@ class VendorOnboardingValidator {
                 if (price > basePrice) {
                   return VendorValidationResult.invalid(
                     key,
-                    'Flat amount cannot exceed the base price.',
+                    StringConstants.flatAmountCannotExceedBasePrice,
                   );
                 }
                 final double minimum = basePrice * kMinimumAdvancePercent / 100;
                 if (price < minimum) {
                   return VendorValidationResult.invalid(
                     key,
-                    'The advance must be at least '
-                    '${kMinimumAdvancePercent.toStringAsFixed(0)}% of the base '
-                    'price (${minimum.toStringAsFixed(0)}).',
+                    StringConstants.advanceMustBeAtLeastPercentOfBasePrice(
+                      kMinimumAdvancePercent.toStringAsFixed(0),
+                      minimum.toStringAsFixed(0),
+                    ),
                   );
                 }
               }
@@ -320,7 +323,7 @@ class VendorOnboardingValidator {
             if (draft.advancePaymentRequired && draft.paymentQr == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Upload the QR used for advance payment.',
+                StringConstants.uploadAdvancePaymentQr,
               );
             }
             return VendorValidationResult.valid(key);
@@ -331,7 +334,7 @@ class VendorOnboardingValidator {
             if (draft.amenities.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Select at least one court amenity.',
+                StringConstants.selectAtLeastOneCourtAmenity,
               );
             }
             return VendorValidationResult.valid(key);
@@ -339,7 +342,7 @@ class VendorOnboardingValidator {
             if (draft.facilities.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Select at least one court facility.',
+                StringConstants.selectAtLeastOneCourtFacility,
               );
             }
             return VendorValidationResult.valid(key);
@@ -353,7 +356,7 @@ class VendorOnboardingValidator {
             if (draft.slotConfigs.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Add at least one slot for this court.',
+                StringConstants.addAtLeastOneSlotForCourt,
               );
             }
             if (draft.slotConfigs.any(
@@ -361,13 +364,13 @@ class VendorOnboardingValidator {
             )) {
               return VendorValidationResult.invalid(
                 key,
-                'Complete day and time details for all slots.',
+                StringConstants.completeDayAndTimeForAllSlots,
               );
             }
             if (_hasSlotOverlap(draft.slotConfigs)) {
               return VendorValidationResult.invalid(
                 key,
-                'Resolve overlapping slots before continuing.',
+                StringConstants.resolveOverlappingSlots,
               );
             }
             // Adding a slot only creates it in memory; it reaches the server
@@ -381,11 +384,11 @@ class VendorOnboardingValidator {
                 );
             if (unsaved != null) {
               final String label = unsaved.label.trim().isEmpty
-                  ? 'this slot'
+                  ? StringConstants.thisSlot
                   : unsaved.label.trim();
               return VendorValidationResult.invalid(
                 key,
-                'Save $label before continuing.',
+                StringConstants.saveLabelBeforeContinuing(label),
               );
             }
             return VendorValidationResult.valid(key);

@@ -11,21 +11,32 @@ import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 import 'package:hamro_futsal/features/media/utils/heic_to_png_jpg.dart';
 import 'package:hamro_futsal/features/media/utils/stable_media_file.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 const Set<String> kImageUploadExtensions = <String>{'jpg', 'jpeg', 'png'};
 
 const int kMaxUploadBytes = kUploadMaxFileBytes;
 
 enum MediaPickSource {
-  gallery('Gallery', 'Choose an existing photo', Icons.photo_library_outlined),
-  camera('Camera', 'Take a photo now', Icons.photo_camera_outlined),
-  files('Files', 'Browse your documents', Icons.folder_open_outlined);
+  gallery(Icons.photo_library_outlined),
+  camera(Icons.photo_camera_outlined),
+  files(Icons.folder_open_outlined);
 
-  const MediaPickSource(this.label, this.description, this.icon);
+  const MediaPickSource(this.icon);
 
-  final String label;
-  final String description;
   final IconData icon;
+
+  String get label => switch (this) {
+    MediaPickSource.gallery => StringConstants.gallery,
+    MediaPickSource.camera => StringConstants.camera,
+    MediaPickSource.files => StringConstants.files,
+  };
+
+  String get description => switch (this) {
+    MediaPickSource.gallery => StringConstants.chooseAnExistingPhoto,
+    MediaPickSource.camera => StringConstants.takeAPhotoNow,
+    MediaPickSource.files => StringConstants.browseYourDocuments,
+  };
 }
 
 typedef PickedMediaFile = UploadAttachment;
@@ -35,7 +46,7 @@ Future<PickedMediaFile?> pickMediaFile(
   Set<String> allowedExtensions = kImageUploadExtensions,
   int maxBytes = kMaxUploadBytes,
   bool allowCamera = true,
-  String title = 'Add a file',
+  String? title,
   String subtitle = '',
 }) async {
   // Desktop has no camera through image_picker and no photo "gallery" — both
@@ -46,7 +57,7 @@ Future<PickedMediaFile?> pickMediaFile(
       : await _askSource(
           context,
           allowCamera: allowCamera,
-          title: title,
+          title: title ?? StringConstants.addAFile,
           subtitle: subtitle,
         );
   if (source == null || !context.mounted) return null;
@@ -71,9 +82,8 @@ Future<PickedMediaFile?> pickMediaFile(
         context,
         MsgType.error,
         source == MediaPickSource.camera
-            ? 'The camera did not finish saving the image. '
-                  'Please take the photo again.'
-            : 'That file came through empty. Please select it again.',
+            ? StringConstants.cameraDidNotFinishSavingImage
+            : StringConstants.fileCameThroughEmptySelectAgain,
         key: 'media_unreadable',
       );
       return null;
@@ -95,7 +105,7 @@ Future<PickedMediaFile?> pickMediaFile(
     AppUtils().showSnackBar(
       context,
       MsgType.error,
-      'Could not open that file. Please try again.',
+      StringConstants.couldNotOpenThatFile,
       key: 'media_pick_failed',
     );
     return null;

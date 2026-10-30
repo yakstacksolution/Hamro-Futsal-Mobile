@@ -76,7 +76,7 @@ class _RewardHistoryPageState extends State<RewardHistoryPage> {
 
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.rewardHistory),
+      appBar: CustomAppBar(title: StringConstants.rewardHistory),
       body: SafeArea(
         top: false,
         child: BlocBuilder<RewardsBloc, RewardsState>(
@@ -237,7 +237,7 @@ class _ListFooter extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX16),
         child: Center(
           child: Text(
-            'That’s all your reward activity',
+            StringConstants.thatsAllYourRewardActivity,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.hintTextColor,
             ),

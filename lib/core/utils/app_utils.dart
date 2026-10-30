@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/utils/top_snack_bar.dart';
 
 enum MsgType { error, success, info }
@@ -25,9 +26,9 @@ final class AppUtils {
 
   String greeting({DateTime? now}) {
     final hour = (now ?? DateTime.now()).hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return StringConstants.goodMorning;
+    if (hour < 17) return StringConstants.goodAfternoon;
+    return StringConstants.goodEvening;
   }
 
   bool get _usesDesignScale => width < _tabletWidth;

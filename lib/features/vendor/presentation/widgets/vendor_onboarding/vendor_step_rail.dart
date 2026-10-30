@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 
@@ -50,7 +51,10 @@ class VendorStepRail extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Step ${activeSectionIndex + 1}.${activeSubstepIndex + 1}',
+                  StringConstants.stepNumber(
+                    activeSectionIndex + 1,
+                    activeSubstepIndex + 1,
+                  ),
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: LightColor.hintTextColor,
                     fontWeight: FontWeight.w700,

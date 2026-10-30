@@ -53,7 +53,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
 
   String get _maskedEmail {
     final String email = widget.email.trim();
-    if (email.isEmpty || !email.contains('@')) return 'your email';
+    if (email.isEmpty || !email.contains('@')) return StringConstants.yourEmail;
 
     final List<String> parts = email.split('@');
     final String name = parts.first;
@@ -256,9 +256,11 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
               isLoading: isSubmitting,
               title: StringConstants.createNewPassword,
               subtitle: _hasVerifiedOtp
-                  ? 'Choose a new password for $_maskedEmail'
-                  : 'Enter the $_otpLength-digit code sent to $_maskedEmail '
-                        'and choose a new password',
+                  ? StringConstants.chooseNewPasswordFor(_maskedEmail)
+                  : StringConstants.enterOtpCodeAndChooseNewPassword(
+                      _otpLength,
+                      _maskedEmail,
+                    ),
               headerIcon: Icons.password_rounded,
               primaryButtonLabel: StringConstants.resetPassword,
               primaryButtonEnabled: _otp.length == _otpLength && !isSubmitting,
@@ -266,7 +268,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
               secondaryPrefixText: _hasVerifiedOtp
                   ? StringConstants.rememberPassword
                   : secondsLeft > 0
-                  ? 'Resend code in ${secondsLeft}s'
+                  ? StringConstants.resendCodeIn(secondsLeft)
                   : StringConstants.didntReceiveCode,
               secondaryActionText: _hasVerifiedOtp
                   ? StringConstants.backToSignIn

@@ -1,5 +1,9 @@
 import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 
+/// Wire body sent with a shared-location message. Fixed English so the stored
+/// message is language-independent; the chat bubble shows the localized label.
+const String kSharedLocationBody = 'Shared location';
+
 final class ChatSendRequest {
   const ChatSendRequest({
     this.body = '',

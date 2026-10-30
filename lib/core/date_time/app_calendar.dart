@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:nepali_utils/nepali_utils.dart';
 
 enum AppCalendar {
@@ -8,13 +9,13 @@ enum AppCalendar {
   bs;
 
   String get label => switch (this) {
-    AppCalendar.ad => 'English (AD)',
-    AppCalendar.bs => 'Nepali (BS)',
+    AppCalendar.ad => StringConstants.englishAdCalendar,
+    AppCalendar.bs => StringConstants.nepaliBsCalendar,
   };
 
   String get shortLabel => switch (this) {
-    AppCalendar.ad => 'AD',
-    AppCalendar.bs => 'BS',
+    AppCalendar.ad => StringConstants.adShort,
+    AppCalendar.bs => StringConstants.bsShort,
   };
 }
 
@@ -24,8 +25,8 @@ enum CalendarScript {
   nepali;
 
   String get label => switch (this) {
-    CalendarScript.english => 'English letters',
-    CalendarScript.nepali => 'नेपाली',
+    CalendarScript.english => StringConstants.englishLetters,
+    CalendarScript.nepali => StringConstants.nepaliScript,
   };
 
   Language get language => switch (this) {
@@ -86,9 +87,7 @@ final class AppCalendarController extends ValueNotifier<AppCalendarPreference> {
       _update(value.copyWith(script: script));
 
   void resetToDefault() {
-    final AppCalendarPreference next = value.copyWith(
-      calendar: AppCalendar.ad,
-    );
+    final AppCalendarPreference next = value.copyWith(calendar: AppCalendar.ad);
     if (value == next) return;
     value = next;
     _redrawEverything();

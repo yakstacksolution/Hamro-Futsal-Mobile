@@ -1,4 +1,5 @@
 import 'package:hamro_futsal/core/date_time/app_date_format.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class DateFmt {
   const DateFmt._();
@@ -44,8 +45,10 @@ class DateFmt {
         ? AppDateFormat.format(d, 'd MMMM yyyy').toUpperCase()
         : '${d.day.toString().padLeft(2, '0')} '
               '${_months[d.month - 1].toUpperCase()} ${d.year}';
-    if (days == 0) return 'TODAY  ·  $full';
-    if (days == 1) return 'YESTERDAY  ·  $full';
+    if (days == 0) return '${StringConstants.today.toUpperCase()}  ·  $full';
+    if (days == 1) {
+      return '${StringConstants.yesterday.toUpperCase()}  ·  $full';
+    }
     return full;
   }
 

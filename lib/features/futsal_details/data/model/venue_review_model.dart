@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 int _asInt(dynamic v) {
   if (v is int) return v;
@@ -57,20 +58,28 @@ class VenueReviewModel extends Equatable {
     final Duration age = DateTime.now().difference(at);
     if (age.inDays >= 365) {
       final int years = age.inDays ~/ 365;
-      return years == 1 ? 'a year ago' : '$years years ago';
+      return years == 1
+          ? StringConstants.aYearAgo
+          : StringConstants.yearsAgo(years);
     }
     if (age.inDays >= 30) {
       final int months = age.inDays ~/ 30;
-      return months == 1 ? 'a month ago' : '$months months ago';
+      return months == 1
+          ? StringConstants.aMonthAgo
+          : StringConstants.monthsAgo(months);
     }
     if (age.inDays >= 1) {
-      return age.inDays == 1 ? 'yesterday' : '${age.inDays} days ago';
+      return age.inDays == 1
+          ? StringConstants.relativeYesterday
+          : StringConstants.daysAgo(age.inDays);
     }
     if (age.inHours >= 1) {
-      return age.inHours == 1 ? 'an hour ago' : '${age.inHours} hours ago';
+      return age.inHours == 1
+          ? StringConstants.anHourAgo
+          : StringConstants.hoursAgo(age.inHours);
     }
-    if (age.inMinutes >= 1) return '${age.inMinutes} min ago';
-    return 'just now';
+    if (age.inMinutes >= 1) return StringConstants.minutesAgo(age.inMinutes);
+    return StringConstants.relativeJustNow;
   }
 
   factory VenueReviewModel.fromJson(Map<String, dynamic> json) {

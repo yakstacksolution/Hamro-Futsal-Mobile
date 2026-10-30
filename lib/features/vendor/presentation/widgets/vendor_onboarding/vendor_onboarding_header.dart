@@ -75,7 +75,9 @@ class VendorOnboardingHeader extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            isCourt ? 'Court setup' : 'Futsal setup',
+                            isCourt
+                                ? StringConstants.courtSetupSentenceCase
+                                : StringConstants.futsalSetup,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: textTheme.bodyTextLarge?.copyWith(
@@ -88,8 +90,8 @@ class VendorOnboardingHeader extends StatelessWidget {
                             const SizedBox(height: AppDimens.sizeX3),
                             Text(
                               isCourt
-                                  ? 'Court details and booking setup'
-                                  : 'Business profile and location',
+                                  ? StringConstants.courtDetailsAndBookingSetup
+                                  : StringConstants.businessProfileAndLocation,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.bodyTextSmall?.copyWith(
@@ -132,8 +134,9 @@ class VendorOnboardingHeader extends StatelessWidget {
                   children: <Widget>[
                     _CompactInfoChip(
                       icon: Icons.check_circle_outline_rounded,
-                      label:
-                          'Futsal ${stepStatusLabel(cubit.futsalSectionStatus(0))}',
+                      label: StringConstants.futsalStatusLabel(
+                        stepStatusLabel(cubit.futsalSectionStatus(0)),
+                      ),
                       maxWidth: chipMaxWidth,
                       textTheme: textTheme,
                       foreground: foreground,
@@ -142,8 +145,9 @@ class VendorOnboardingHeader extends StatelessWidget {
                     ),
                     _CompactInfoChip(
                       icon: Icons.stadium_outlined,
-                      label:
-                          '${state.courts.length} ${state.courts.length == 1 ? 'court' : 'courts'}',
+                      label: StringConstants.courtCountLabel(
+                        state.courts.length,
+                      ),
                       maxWidth: chipMaxWidth,
                       textTheme: textTheme,
                       foreground: foreground,

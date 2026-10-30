@@ -18,16 +18,16 @@ Future<List<UploadRef>?> showVendorMediaLibrarySheet({
   required VendorOnboardingCubit cubit,
   required List<String> allowedExtensions,
   required bool allowMultiple,
-  String title = 'Media Library',
-  String subtitle = 'Select saved media or add new files for this section.',
+  String? title,
+  String? subtitle,
   List<UploadRef> initiallySelected = const <UploadRef>[],
 }) {
   return showAppBottomSheet<List<UploadRef>>(
     context: context,
     builder: (_) => VendorMediaLibrarySheet(
       cubit: cubit,
-      title: title,
-      subtitle: subtitle,
+      title: title ?? StringConstants.mediaLibrary,
+      subtitle: subtitle ?? StringConstants.selectSavedMediaOrAddNewFiles,
       allowedExtensions: allowedExtensions,
       allowMultiple: allowMultiple,
       initiallySelected: initiallySelected,
@@ -270,8 +270,7 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
     final bool confirmed = await showConfirmDialog(
       context: context,
       title: StringConstants.removeFromMediaLibrary,
-      message:
-          'Do you want to remove "${item.name}" from your saved collection?',
+      message: StringConstants.removeFromSavedCollectionPrompt(item.name),
       confirmText: StringConstants.remove,
       icon: Icons.delete_outline_rounded,
     );
@@ -362,7 +361,7 @@ class _CompactHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
               Text(
-                '$itemCount items',
+                StringConstants.itemsCount(itemCount),
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -371,7 +370,7 @@ class _CompactHeader extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '$selectedCount selected',
+                StringConstants.selectedCount(selectedCount),
                 style: TextStyle(
                   fontSize: 10,
                   color: LightColor.brandTextColor,
@@ -911,11 +910,11 @@ class _BottomSelectionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String buttonLabel = allowMultiple
-        ? 'Use Selected Items'
-        : 'Use Selected Item';
+        ? StringConstants.useSelectedItems
+        : StringConstants.useSelectedItem;
     final String titleText = selectionCount == 0
-        ? 'No media selected'
-        : '$selectionCount item${selectionCount == 1 ? '' : 's'} selected';
+        ? StringConstants.noMediaSelected
+        : StringConstants.itemsSelected(selectionCount);
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -955,13 +954,15 @@ class _BottomSelectionBar extends StatelessWidget {
 }
 
 enum _LibraryFilter {
-  all('All'),
-  images('Images'),
-  files('Files');
+  all,
+  images,
+  files;
 
-  const _LibraryFilter(this.label);
-
-  final String label;
+  String get label => switch (this) {
+    _LibraryFilter.all => StringConstants.all,
+    _LibraryFilter.images => StringConstants.images,
+    _LibraryFilter.files => StringConstants.files,
+  };
 }
 
 bool _matchesAllowedExtensions(UploadRef item, Set<String> allowedExtensions) {

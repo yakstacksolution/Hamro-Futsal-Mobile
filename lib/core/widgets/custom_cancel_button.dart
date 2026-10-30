@@ -7,14 +7,15 @@ import 'package:hamro_futsal/core/widgets/custom_button.dart';
 class CustomCancelButton extends StatelessWidget {
   const CustomCancelButton({
     super.key,
-    this.text = StringConstants.cancel,
+    this.text,
     this.onPressed,
     this.icon,
     this.isLoading = false,
     this.minHeight = AppDimens.sizeX42,
   });
 
-  final String text;
+  /// Defaults to [StringConstants.cancel] in the current language.
+  final String? text;
 
   final VoidCallback? onPressed;
 
@@ -27,7 +28,7 @@ class CustomCancelButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomButton(
-      text: text,
+      text: text ?? StringConstants.cancel,
       icon: icon,
       isLoading: isLoading,
       isOutlined: true,

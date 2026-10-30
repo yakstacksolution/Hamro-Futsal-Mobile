@@ -13,7 +13,7 @@ Future<void> showAcknowledgeSheet({
   required String title,
   String? message,
   List<AcknowledgeLine> details = const <AcknowledgeLine>[],
-  String confirmText = StringConstants.okay,
+  String? confirmText,
   IconData icon = Icons.check_circle_rounded,
   Color? accent,
 }) {
@@ -56,7 +56,7 @@ class _AcknowledgeSheet extends StatelessWidget {
   final String title;
   final String? message;
   final List<AcknowledgeLine> details;
-  final String confirmText;
+  final String? confirmText;
   final IconData icon;
   final Color accent;
 
@@ -155,7 +155,7 @@ class _AcknowledgeSheet extends StatelessWidget {
             ],
             const SizedBox(height: AppDimens.paddingX20),
             CustomButton(
-              text: confirmText,
+              text: confirmText ?? StringConstants.okay,
               icon: Icons.arrow_forward_rounded,
               backgroundColor: accent,
               minHeight: AppDimens.sizeX50,

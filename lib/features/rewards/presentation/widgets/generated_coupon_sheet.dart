@@ -172,11 +172,11 @@ class _CouponMeta extends StatelessWidget {
 
     final List<(String, String)> rows = <(String, String)>[
       if (coupon.pointsUsed > 0)
-        ('Points used', RewardFmt.points(coupon.pointsUsed)),
+        (StringConstants.pointsUsed, RewardFmt.points(coupon.pointsUsed)),
       if (coupon.remainingPoints != null)
-        ('Points left', RewardFmt.points(coupon.remainingPoints!)),
+        (StringConstants.pointsLeft, RewardFmt.points(coupon.remainingPoints!)),
       if (coupon.expiresAt != null)
-        ('Valid till', RewardFmt.date(coupon.expiresAt!)),
+        (StringConstants.validTill, RewardFmt.date(coupon.expiresAt!)),
     ];
     if (rows.isEmpty) return const SizedBox.shrink();
 

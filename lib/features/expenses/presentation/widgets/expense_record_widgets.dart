@@ -7,6 +7,7 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_utils.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_common.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class ExpenseRecordsSliver extends StatelessWidget {
   const ExpenseRecordsSliver({
@@ -35,11 +36,15 @@ class ExpenseRecordsSliver extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX20),
         sliver: SliverToBoxAdapter(
           child: ExpenseEmptyState(
-            title: hasFilters ? 'No matching records' : 'No records yet',
+            title: hasFilters
+                ? StringConstants.noMatchingRecords
+                : StringConstants.noRecordsYet,
             message: hasFilters
-                ? 'Try a different period, venue or category.'
-                : 'Expenses you add will show up here.',
-            actionLabel: hasFilters ? 'Clear filters' : 'Add expense',
+                ? StringConstants.tryDifferentPeriodVenueOrCategory
+                : StringConstants.expensesYouAddWillShowUpHere,
+            actionLabel: hasFilters
+                ? StringConstants.clearFilters
+                : StringConstants.addExpense,
             onAction: hasFilters ? onClearFilters : onAdd,
           ),
         ),
@@ -133,9 +138,9 @@ class _DayHeader extends StatelessWidget {
     // Day-difference comparison handles month/year boundaries correctly.
     final diff = today.difference(date).inDays;
     final label = diff == 0
-        ? 'TODAY'
+        ? StringConstants.todayUpper
         : diff == 1
-        ? 'YESTERDAY'
+        ? StringConstants.yesterdayUpper
         : AppDateFormat.format(date, 'EEE, d MMM').toUpperCase();
 
     return Padding(
@@ -153,7 +158,7 @@ class _DayHeader extends StatelessWidget {
           ),
           const SizedBox(width: AppDimens.paddingX8),
           Text(
-            '· ${expenses.length} ${expenses.length == 1 ? 'entry' : 'entries'}',
+            StringConstants.dotEntryCount(expenses.length),
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.hintTextColor,
               fontSize: AppDimens.fontBodySubTitle,
@@ -191,7 +196,7 @@ class _ExpenseCard extends StatelessWidget {
     final t = expense.date;
     final h = t.hour % 12 == 0 ? 12 : t.hour % 12;
     final m = t.minute.toString().padLeft(2, '0');
-    return '$h:$m ${t.hour < 12 ? 'AM' : 'PM'}';
+    return '$h:$m ${t.hour < 12 ? StringConstants.am : StringConstants.pm}';
   }
 
   @override

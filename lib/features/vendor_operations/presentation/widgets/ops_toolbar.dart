@@ -11,6 +11,7 @@ import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_date_picker.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/bloc/vendor_ops_bloc.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class OpsToolbar extends StatelessWidget {
   const OpsToolbar({
@@ -43,10 +44,10 @@ class OpsToolbar extends StatelessWidget {
       builder: (BuildContext context, VendorOpsState state) {
         final String name = userName?.trim().isNotEmpty == true
             ? userName!.trim()
-            : 'there';
+            : StringConstants.there;
         // Styled as the futsal home's greeting.
         final Widget greeting = Text(
-          '${AppUtils().greeting()}, $name 👋',
+          StringConstants.greetingWithName(AppUtils().greeting(), name),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
@@ -185,7 +186,7 @@ class OpsDateControls extends StatelessWidget {
     final DateTime today = KathmanduClock.today();
     final DateTime? picked = await showCustomDatePicker(
       context,
-      title: 'Select date',
+      title: StringConstants.selectDate,
       initialDate: state.date,
       minDate: DateTime(today.year - 1, today.month, today.day),
       maxDate: DateTime(today.year + 1, today.month, today.day),
@@ -203,7 +204,7 @@ class OpsDateControls extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         IconButton(
-          tooltip: 'Previous day',
+          tooltip: StringConstants.previousDay,
           visualDensity: VisualDensity.compact,
           icon: const Icon(Icons.chevron_left_rounded),
           onPressed: () => bloc.add(
@@ -213,7 +214,7 @@ class OpsDateControls extends StatelessWidget {
         Flexible(
           child: Semantics(
             button: true,
-            label: 'Selected date ${DateFmt.date(date)}. Change date',
+            label: StringConstants.selectedDateChange(DateFmt.date(date)),
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: () => _pick(context),
@@ -229,7 +230,7 @@ class OpsDateControls extends StatelessWidget {
                         children: <Widget>[
                           if (showDayLabel)
                             Text(
-                              isToday ? 'Today' : _weekday(date),
+                              isToday ? StringConstants.today : _weekday(date),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.bodyMiniSubTitle?.copyWith(
@@ -260,7 +261,7 @@ class OpsDateControls extends StatelessWidget {
           ),
         ),
         IconButton(
-          tooltip: 'Next day',
+          tooltip: StringConstants.nextDay,
           visualDensity: VisualDensity.compact,
           icon: const Icon(Icons.chevron_right_rounded),
           onPressed: () =>
@@ -283,14 +284,14 @@ class OpsDateControls extends StatelessWidget {
         : row;
   }
 
-  static String _weekday(DateTime d) => const <String>[
-    'MONDAY',
-    'TUESDAY',
-    'WEDNESDAY',
-    'THURSDAY',
-    'FRIDAY',
-    'SATURDAY',
-    'SUNDAY',
+  static String _weekday(DateTime d) => <String>[
+    StringConstants.mondayUpper,
+    StringConstants.tuesdayUpper,
+    StringConstants.wednesdayUpper,
+    StringConstants.thursdayUpper,
+    StringConstants.fridayUpper,
+    StringConstants.saturdayUpper,
+    StringConstants.sundayUpper,
   ][d.weekday - 1];
 }
 
@@ -305,7 +306,7 @@ class _TodayButton extends StatelessWidget {
     return Semantics(
       button: true,
       selected: active,
-      label: active ? 'Showing today' : 'Go to today',
+      label: active ? StringConstants.showingToday : StringConstants.goToToday,
       child: ExcludeSemantics(
         // Text only — slim enough for the smallest phones.
         child: OutlinedButton(
@@ -326,9 +327,9 @@ class _TodayButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             minimumSize: const Size(0, 28),
           ),
-          child: const Text(
-            'Today',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          child: Text(
+            StringConstants.today,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -357,7 +358,9 @@ class HomeModeSwitch extends StatelessWidget {
         : LightColor.hintTextColor;
     if (compact) {
       return Tooltip(
-        message: operational ? 'Show normal home' : 'Show operations home',
+        message: operational
+            ? StringConstants.showNormalHome
+            : StringConstants.showOperationsHome,
         child: OutlinedButton(
           onPressed: enabled ? () => onChanged!(!operational) : null,
           style: OutlinedButton.styleFrom(
@@ -386,7 +389,9 @@ class HomeModeSwitch extends StatelessWidget {
     return Semantics(
       button: true,
       selected: operational,
-      label: operational ? 'Operations home selected' : 'Normal home selected',
+      label: operational
+          ? StringConstants.operationsHomeSelected
+          : StringConstants.normalHomeSelected,
       child: Container(
         height: 44,
         padding: const EdgeInsets.all(3),
@@ -400,14 +405,14 @@ class HomeModeSwitch extends StatelessWidget {
           children: <Widget>[
             _ModeOption(
               icon: Icons.dashboard_customize_rounded,
-              label: compact ? null : 'Ops',
+              label: compact ? null : StringConstants.ops,
               selected: operational,
               foreground: operational ? selectedFg : idleFg,
               onTap: enabled && !operational ? () => onChanged!(true) : null,
             ),
             _ModeOption(
               icon: Icons.home_rounded,
-              label: compact ? null : 'Home',
+              label: compact ? null : StringConstants.home,
               selected: !operational,
               foreground: !operational ? selectedFg : idleFg,
               onTap: enabled && operational ? () => onChanged!(false) : null,
@@ -483,26 +488,26 @@ class _Filters extends StatelessWidget {
     final List<OpsCourt> courts = state.filterableCourts;
 
     String venueLabel() {
-      if (state.venueIds.isEmpty) return 'All venues';
+      if (state.venueIds.isEmpty) return StringConstants.allVenues;
       if (state.venueIds.length == 1) {
         return venues
                 .where(((int, String) v) => v.$1 == state.venueIds.first)
                 .firstOrNull
                 ?.$2 ??
-            '1 venue';
+            StringConstants.oneVenue;
       }
-      return '${state.venueIds.length} venues';
+      return StringConstants.venuesCount(state.venueIds.length);
     }
 
     String courtLabel() {
-      if (state.courtIds.isEmpty) return 'All courts';
+      if (state.courtIds.isEmpty) return StringConstants.allCourts;
       if (state.courtIds.length == 1) {
         final OpsCourt? c = courts
             .where((OpsCourt c) => c.id == state.courtIds.first)
             .firstOrNull;
-        return c?.name ?? '1 court';
+        return c?.name ?? StringConstants.oneCourt;
       }
-      return '${state.courtIds.length} courts';
+      return StringConstants.courtsCount(state.courtIds.length);
     }
 
     return Wrap(
@@ -517,7 +522,7 @@ class _Filters extends StatelessWidget {
           onTap: () async {
             final Set<int>? picked = await showOpsMultiSelect<int>(
               context,
-              title: 'Venues',
+              title: StringConstants.venues,
               options: <OpsOption<int>>[
                 for (final (int id, String name) in venues)
                   OpsOption<int>(id, name),
@@ -548,7 +553,7 @@ class _Filters extends StatelessWidget {
           onTap: () async {
             final Set<int>? picked = await showOpsMultiSelect<int>(
               context,
-              title: 'Courts',
+              title: StringConstants.courts,
               options: <OpsOption<int>>[
                 for (final OpsCourt c in courts)
                   OpsOption<int>(c.id, c.name, subtitle: c.venueName),
@@ -559,7 +564,7 @@ class _Filters extends StatelessWidget {
           },
         ),
         PopupMenuButton<OpsFocus>(
-          tooltip: 'Booking status',
+          tooltip: StringConstants.bookingStatus,
           initialValue: state.focus,
           onSelected: (OpsFocus f) => bloc.add(VendorOpsFocusChanged(f)),
           itemBuilder: (_) => <PopupMenuEntry<OpsFocus>>[
@@ -574,7 +579,7 @@ class _Filters extends StatelessWidget {
             child: _FilterButton(
               icon: Icons.tune_rounded,
               label: state.focus == OpsFocus.all
-                  ? 'Any status'
+                  ? StringConstants.anyStatus
                   : state.focus.label,
               active: state.focus != OpsFocus.all,
               onTap: () {},
@@ -595,12 +600,12 @@ class _Filters extends StatelessWidget {
                   style: const TextStyle(fontSize: 13),
                   decoration: InputDecoration(
                     isDense: true,
-                    hintText: 'Name, phone or reference',
+                    hintText: StringConstants.namePhoneOrReference,
                     prefixIcon: const Icon(Icons.search_rounded, size: 18),
                     suffixIcon: search.text.isEmpty
                         ? null
                         : IconButton(
-                            tooltip: 'Clear search',
+                            tooltip: StringConstants.clearSearch,
                             icon: const Icon(Icons.close_rounded, size: 16),
                             onPressed: () {
                               search.clear();
@@ -633,7 +638,7 @@ class _Filters extends StatelessWidget {
                 ..add(const VendorOpsSearchChanged(''));
             },
             icon: const Icon(Icons.restart_alt_rounded, size: 16),
-            label: const Text('Reset filters'),
+            label: Text(StringConstants.resetFilters),
           ),
       ],
     );
@@ -780,7 +785,9 @@ class _MultiSelectSheetState<T> extends State<_MultiSelectSheet<T>> {
                 onChanged: (String v) => setState(() => _query = v),
                 decoration: InputDecoration(
                   isDense: true,
-                  hintText: 'Search ${widget.title.toLowerCase()}',
+                  hintText: StringConstants.searchIn(
+                    widget.title.toLowerCase(),
+                  ),
                   prefixIcon: const Icon(Icons.search_rounded, size: 18),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -792,7 +799,7 @@ class _MultiSelectSheetState<T> extends State<_MultiSelectSheet<T>> {
             value: _selected.isEmpty,
             onChanged: (_) => setState(_selected.clear),
             title: Text(
-              'All ${widget.title.toLowerCase()}',
+              StringConstants.allOf(widget.title.toLowerCase()),
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             controlAffinity: ListTileControlAffinity.leading,
@@ -805,7 +812,7 @@ class _MultiSelectSheetState<T> extends State<_MultiSelectSheet<T>> {
                 ? Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      'No matches',
+                      StringConstants.noMatches,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: LightColor.secondaryTextColor),
                     ),
@@ -847,7 +854,9 @@ class _MultiSelectSheetState<T> extends State<_MultiSelectSheet<T>> {
               ),
             ),
             child: Text(
-              _selected.isEmpty ? 'Show all' : 'Apply (${_selected.length})',
+              _selected.isEmpty
+                  ? StringConstants.showAll
+                  : StringConstants.applyCount(_selected.length),
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),

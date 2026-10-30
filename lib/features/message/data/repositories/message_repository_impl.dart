@@ -5,7 +5,6 @@ import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/core/helper/response_helper.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/message/data/data_source/message_remote_data_source.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_message_page_model.dart';
@@ -16,6 +15,7 @@ import 'package:hamro_futsal/features/message/data/model/message_profile_model.d
 import 'package:hamro_futsal/features/message/data/model/registered_user_page_model.dart';
 import 'package:hamro_futsal/features/message/domain/repository/message_repository.dart';
 import 'package:jwt_decode/jwt_decode.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 final class MessageRepositoryImpl extends MessageRepository {
   MessageRepositoryImpl({MessageRemoteDataSource? remoteDataSource})
@@ -87,7 +87,7 @@ final class MessageRepositoryImpl extends MessageRepository {
         ),
       );
     } catch (_) {
-      return left(_parseError('conversations'));
+      return left(_parseError(StringConstants.parseTargetConversations));
     }
   }
 
@@ -164,7 +164,7 @@ final class MessageRepositoryImpl extends MessageRepository {
         .inSeconds
         .clamp(1, _registeredUsersRateLimitCooldown.inSeconds);
     return DefaultException(
-      errorMessage: 'Too many requests. Please try again in $seconds seconds.',
+      errorMessage: StringConstants.tooManyRequestsTryAgainIn(seconds),
       statusCode: 429,
     );
   }
@@ -205,7 +205,7 @@ final class MessageRepositoryImpl extends MessageRepository {
         ),
       );
     } catch (_) {
-      return left(_parseError('registered users'));
+      return left(_parseError(StringConstants.parseTargetRegisteredUsers));
     }
   }
 
@@ -228,7 +228,7 @@ final class MessageRepositoryImpl extends MessageRepository {
         ConversationModel.fromJson(_findObject(response.getValue())!),
       );
     } catch (_) {
-      return left(_parseError('the conversation'));
+      return left(_parseError(StringConstants.parseTargetConversation));
     }
   }
 
@@ -249,7 +249,7 @@ final class MessageRepositoryImpl extends MessageRepository {
         ConversationModel.fromJson(_findObject(response.getValue())!),
       );
     } catch (_) {
-      return left(_parseError('the group conversation'));
+      return left(_parseError(StringConstants.parseTargetGroupConversation));
     }
   }
 
@@ -286,7 +286,7 @@ final class MessageRepositoryImpl extends MessageRepository {
         ConversationModel.fromJson(_findObject(response.getValue())!),
       );
     } catch (_) {
-      return left(_parseError('the conversation'));
+      return left(_parseError(StringConstants.parseTargetConversation));
     }
   }
 
@@ -315,7 +315,7 @@ final class MessageRepositoryImpl extends MessageRepository {
     if (value is String) {
       return right(value.toLowerCase() == 'online');
     }
-    return left(_parseError('user presence'));
+    return left(_parseError(StringConstants.parseTargetUserPresence));
   }
 
   @override
@@ -343,7 +343,7 @@ final class MessageRepositoryImpl extends MessageRepository {
       }
       return right(MessageProfileModel.fromJson(profile!));
     } catch (_) {
-      return left(_parseError('the profile'));
+      return left(_parseError(StringConstants.parseTargetProfile));
     }
   }
 
@@ -386,7 +386,7 @@ final class MessageRepositoryImpl extends MessageRepository {
         ),
       );
     } catch (_) {
-      return left(_parseError('messages'));
+      return left(_parseError(StringConstants.parseTargetMessages));
     }
   }
 
@@ -407,7 +407,7 @@ final class MessageRepositoryImpl extends MessageRepository {
         ChatMessageModel.fromJson(_findObject(response.getValue())!),
       );
     } catch (_) {
-      return left(_parseError('the sent message'));
+      return left(_parseError(StringConstants.parseTargetSentMessage));
     }
   }
 

@@ -63,22 +63,22 @@ class CourtInformationSection extends StatelessWidget {
 
   _CourtSectionMeta _sectionMeta(int index) {
     return switch (index) {
-      0 => const _CourtSectionMeta(
+      0 => _CourtSectionMeta(
         title: StringConstants.courtInfo,
         subtitle: StringConstants.courtIdentityPricingTypeAndPlayingFormat,
         icon: Icons.stadium_rounded,
       ),
-      1 => const _CourtSectionMeta(
+      1 => _CourtSectionMeta(
         title: StringConstants.description,
         subtitle: StringConstants.tellCustomersAboutThisCourtSubtitle,
         icon: Icons.description_rounded,
       ),
-      2 => const _CourtSectionMeta(
+      2 => _CourtSectionMeta(
         title: StringConstants.photosAndMemories,
         subtitle: StringConstants.courtPhotosAndMemoriesLabel,
         icon: Icons.photo_library_rounded,
       ),
-      _ => const _CourtSectionMeta(
+      _ => _CourtSectionMeta(
         title: StringConstants.courtInformation,
         subtitle: StringConstants.completeCourtDetails,
         icon: Icons.info_rounded,
@@ -245,7 +245,7 @@ class _CourtBasicInfoForm extends StatelessWidget {
                 return VendorDropdownField<int>(
                   label: StringConstants.courtTypeSentenceCase,
                   hintText: state.status == PublicCourtOptionsStatus.loading
-                      ? 'Loading court types...'
+                      ? StringConstants.loadingCourtTypes
                       : null,
                   initialValue: _selectedId(
                     court.courtTypeId ?? kDefaultCourtTypeId,
@@ -273,7 +273,7 @@ class _CourtBasicInfoForm extends StatelessWidget {
                 return VendorDropdownField<int>(
                   label: StringConstants.matchFormat,
                   hintText: state.status == PublicCourtOptionsStatus.loading
-                      ? 'Loading match formats...'
+                      ? StringConstants.loadingMatchFormats
                       : null,
                   initialValue: _selectedId(
                     court.matchFormatId ?? kDefaultMatchFormatId,

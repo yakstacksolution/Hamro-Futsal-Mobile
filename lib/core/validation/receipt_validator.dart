@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 typedef DuplicateTransactionChecker =
     Future<bool> Function(String transactionId);
@@ -157,7 +158,7 @@ class ReceiptValidator {
 
     try {
       if (!await image.exists()) {
-        return _errorResult('Receipt image does not exist.');
+        return _errorResult(StringConstants.receiptImageDoesNotExist);
       }
 
       final imageQuality = await _checkImageQuality(
@@ -356,58 +357,60 @@ class ReceiptValidator {
       if (!imageQualityPassed) {
         if (imageQuality.width < minimumWidth ||
             imageQuality.height < minimumHeight) {
-          errors.add('Receipt image resolution is too low');
+          errors.add(StringConstants.receiptImageResolutionTooLow);
         } else if (imageQuality.fileBytes < minimumFileBytes) {
-          errors.add('Receipt image file is too small');
+          errors.add(StringConstants.receiptImageFileTooSmall);
         } else if (imageQuality.probablyBlank) {
-          errors.add('Receipt image appears blank');
+          errors.add(StringConstants.receiptImageAppearsBlank);
         } else if (severelyBlurry) {
-          errors.add('Receipt image appears blurry or unreadable');
+          errors.add(StringConstants.receiptImageAppearsBlurry);
         } else {
-          errors.add('Receipt image quality is not acceptable');
+          errors.add(StringConstants.receiptImageQualityNotAcceptable);
         }
       }
 
       if (!ocrReadable) {
-        errors.add('Receipt text is not readable');
+        errors.add(StringConstants.receiptTextNotReadable);
       }
 
       if (!merchantResult.matched) {
-        errors.add('Merchant name does not match');
+        errors.add(StringConstants.merchantNameDoesNotMatch);
       }
 
       if (!amountMatched) {
         errors.add(
-          'Expected amount ${expectedAmount.toStringAsFixed(2)} not found',
+          StringConstants.expectedAmountNotFound(
+            expectedAmount.toStringAsFixed(2),
+          ),
         );
       }
 
       if (!paymentStatus.success) {
         if (paymentStatus.negativeStatusFound) {
-          errors.add('Payment is not marked successful');
+          errors.add(StringConstants.paymentNotMarkedSuccessful);
         } else {
-          errors.add('Successful payment status not found');
+          errors.add(StringConstants.successfulPaymentStatusNotFound);
         }
       }
 
       if (requireTransactionId && !transactionIdFound) {
-        errors.add('Transaction/reference ID not found');
+        errors.add(StringConstants.transactionReferenceIdNotFound);
       }
 
       if (requireDate && !dateFound) {
-        errors.add('Transaction date not found');
+        errors.add(StringConstants.transactionDateNotFound);
       }
 
       if (requireQrCode && !qrFound) {
-        errors.add('QR code not found');
+        errors.add(StringConstants.qrCodeNotFound);
       }
 
       if (duplicateTransaction) {
-        errors.add('Transaction ID has already been submitted');
+        errors.add(StringConstants.transactionIdAlreadySubmitted);
       }
 
       if (score < minimumScore) {
-        errors.add('Receipt validation score is below $minimumScore%');
+        errors.add(StringConstants.receiptValidationScoreBelow(minimumScore));
       }
 
       final accepted = errors.isEmpty;
@@ -420,7 +423,7 @@ class ReceiptValidator {
 
         score: score,
         reason: accepted
-            ? 'Proof accepted. Pending manual payment verification.'
+            ? StringConstants.proofAcceptedPendingVerification
             : errors.join('. '),
 
         imageQualityPassed: imageQualityPassed,
@@ -454,7 +457,7 @@ class ReceiptValidator {
         edgeScore: imageQuality.edgeScore,
       );
     } catch (e) {
-      return _errorResult('Unable to process payment receipt: $e');
+      return _errorResult(StringConstants.unableToProcessPaymentReceipt(e));
     } finally {
       textRecognizer?.close();
       barcodeScanner?.close();

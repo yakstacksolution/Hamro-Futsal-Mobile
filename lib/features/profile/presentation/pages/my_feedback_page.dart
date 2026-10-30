@@ -12,6 +12,7 @@ import 'package:hamro_futsal/core/widgets/dashboard_layout.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/features/profile/data/model/feedback_history_model.dart';
 import 'package:hamro_futsal/features/profile/data/repositories/feedback_repository_impl.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class MyFeedbackPage extends StatefulWidget {
   const MyFeedbackPage({super.key, this.initialPage});
@@ -67,7 +68,7 @@ class _MyFeedbackPageState extends State<MyFeedbackPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'My Feedback'),
+      appBar: CustomAppBar(title: StringConstants.myFeedback),
       body: SafeArea(
         top: false,
         child: _isLoading
@@ -152,7 +153,7 @@ class _WideFeedbackList extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'Your feedback',
+                StringConstants.feedbackMessage,
                 style: textTheme.headingSmall?.copyWith(
                   color: LightColor.primaryTextColor,
                   fontWeight: FontWeight.w800,
@@ -160,8 +161,7 @@ class _WideFeedbackList extends StatelessWidget {
               ),
               const SizedBox(height: AppDimens.paddingX4),
               Text(
-                '${items.length} submission${items.length == 1 ? '' : 's'}'
-                ' · tap one to see its details and status',
+                StringConstants.feedbackSubmissionsSummary(items.length),
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                 ),
@@ -245,7 +245,7 @@ class _FeedbackListCard extends StatelessWidget {
                           children: <Widget>[
                             _FeedbackTag(
                               label: item.categoryName.isEmpty
-                                  ? 'Category'
+                                  ? StringConstants.feedbackCategory
                                   : item.categoryName,
                               background: LightColor.secondaryColor.withValues(
                                 alpha: 0.08,
@@ -254,7 +254,7 @@ class _FeedbackListCard extends StatelessWidget {
                             ),
                             _FeedbackTag(
                               label: item.typeName.isEmpty
-                                  ? 'Type'
+                                  ? StringConstants.type
                                   : item.typeName,
                               background: accent.withValues(alpha: 0.10),
                               foreground: accent,
@@ -293,7 +293,7 @@ class _FeedbackListCard extends StatelessWidget {
                       _StarRow(rating: item.rating),
                       const Spacer(),
                       Text(
-                        'View details',
+                        StringConstants.viewDetails,
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.secondaryColor,
                           fontWeight: FontWeight.w700,
@@ -430,7 +430,7 @@ class _FeedbackHistoryError extends StatelessWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: LightColor.secondaryColor,
               ),
-              child: const Text('Retry'),
+              child: Text(StringConstants.retry),
             ),
           ],
         ),
@@ -466,7 +466,7 @@ class _FeedbackHistoryEmpty extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No feedback yet',
+              StringConstants.noFeedbackYet,
               style: textTheme.bodyTextLarge?.copyWith(
                 color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w800,
@@ -474,7 +474,7 @@ class _FeedbackHistoryEmpty extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Your submitted feedback will appear here once you share it with us.',
+              StringConstants.submittedFeedbackWillAppearHere,
               textAlign: TextAlign.center,
               style: textTheme.bodyTextMedium?.copyWith(
                 color: LightColor.secondaryTextColor,

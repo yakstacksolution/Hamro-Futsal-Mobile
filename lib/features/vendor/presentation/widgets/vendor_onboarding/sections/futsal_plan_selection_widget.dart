@@ -254,15 +254,14 @@ class _FutsalPlanSelectionContentState
       return parsed;
     }
 
-    return const <_PackageOption>[
+    return <_PackageOption>[
       _PackageOption(
         id: 1,
         title: StringConstants.basic,
         percentage: 5,
         isPopular: false,
         icon: Icons.rocket_launch_rounded,
-        descriptionHtml:
-            '<ul><li>Basic listing</li><li>Standard visibility</li><li>Email support</li></ul>',
+        descriptionHtml: StringConstants.basicPlanDescriptionHtml,
       ),
       _PackageOption(
         id: 2,
@@ -270,8 +269,7 @@ class _FutsalPlanSelectionContentState
         percentage: 10,
         isPopular: true,
         icon: Icons.star_rounded,
-        descriptionHtml:
-            '<ul><li>Priority support</li><li>Featured listing</li><li>Activity logs</li><li>Detailed reports</li></ul>',
+        descriptionHtml: StringConstants.standardPlanDescriptionHtml,
       ),
     ];
   }
@@ -283,7 +281,7 @@ class _FutsalPlanSelectionContentState
     }
 
     final String title = package.name.trim().isEmpty
-        ? 'Plan ${percentage.toInt()}%'
+        ? StringConstants.planPercentLabel(percentage.toInt())
         : package.name.trim();
 
     return _PackageOption(
@@ -293,7 +291,7 @@ class _FutsalPlanSelectionContentState
       isPopular: _isPopularPackage(package),
       icon: _iconForPackage(package.name),
       descriptionHtml: package.description.trim().isEmpty
-          ? '<p>Platform support based on selected package</p>'
+          ? StringConstants.defaultPackageDescriptionHtml
           : package.description.trim(),
     );
   }

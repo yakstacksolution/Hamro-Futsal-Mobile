@@ -83,16 +83,18 @@ const Map<String, Color> _featureColors = <String, Color>{
   'AC': Color(0xFF0F6E56),
 };
 
-const Map<String, String> _featureCategories = <String, String>{
-  'Indoor': 'Facility',
-  'Outdoor': 'Facility',
-  'Floodlight': 'Lighting',
-  'Parking': 'Access',
-  'Changing Room': 'Comfort',
-  'Cafeteria': 'Food',
-  'First Aid': 'Safety',
-  'WiFi': 'Connectivity',
-  'AC': 'Comfort',
+// Keys are backend feature names (wire values); values are display labels,
+// resolved on every access so they follow the current language.
+Map<String, String> get _featureCategories => <String, String>{
+  'Indoor': StringConstants.amenityCategoryFacility,
+  'Outdoor': StringConstants.amenityCategoryFacility,
+  'Floodlight': StringConstants.amenityCategoryLighting,
+  'Parking': StringConstants.amenityCategoryAccess,
+  'Changing Room': StringConstants.amenityCategoryComfort,
+  'Cafeteria': StringConstants.amenityCategoryFood,
+  'First Aid': StringConstants.amenityCategorySafety,
+  'WiFi': StringConstants.amenityCategoryConnectivity,
+  'AC': StringConstants.amenityCategoryComfort,
 };
 
 class _FeaturesGrid extends StatefulWidget {
@@ -117,23 +119,38 @@ class _FeaturesGrid extends StatefulWidget {
 }
 
 class _FeaturesGridState extends State<_FeaturesGrid> {
-  String _selectedCategory = 'All';
+  /// Selected category label; `null` means "All". Resolved against the current
+  /// labels so a language switch falls back to "All" instead of an empty list.
+  String? _selectedLabel;
+
+  String get _selectedCategory {
+    final String? selected = _selectedLabel;
+    if (selected == null || !_categories.contains(selected)) {
+      return StringConstants.all;
+    }
+    return selected;
+  }
 
   List<String> get _categories {
     final cats =
         widget.features
-            .map((f) => widget.featureCategories[f] ?? 'Other')
+            .map(
+              (f) =>
+                  widget.featureCategories[f] ?? StringConstants.otherCategory,
+            )
             .toSet()
             .toList()
           ..sort();
-    return ['All', ...cats];
+    return [StringConstants.all, ...cats];
   }
 
   List<String> get _visibleFeatures {
-    if (_selectedCategory == 'All') return widget.features;
+    if (_selectedCategory == StringConstants.all) return widget.features;
     return widget.features
         .where(
-          (f) => (widget.featureCategories[f] ?? 'Other') == _selectedCategory,
+          (f) =>
+              (widget.featureCategories[f] ?? StringConstants.otherCategory) ==
+              _selectedCategory,
         )
         .toList();
   }
@@ -238,7 +255,11 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
               return Padding(
                 padding: const EdgeInsets.only(right: AppDimens.paddingX6),
                 child: GestureDetector(
-                  onTap: () => setState(() => _selectedCategory = cat),
+                  onTap: () => setState(
+                    () => _selectedLabel = cat == StringConstants.all
+                        ? null
+                        : cat,
+                  ),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(

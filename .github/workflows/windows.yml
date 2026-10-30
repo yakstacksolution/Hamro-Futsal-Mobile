@@ -1,12 +1,5 @@
 name: Windows build
 
-# `flutter build windows` only runs on Windows hosts, so the desktop build is
-# made here rather than on a developer's Mac. Run it from the Actions tab
-# (choose staging or production), or push to `build/windows` (builds staging)
-# or to staging / production (that branch's flavor). The result is a zip of
-# the Release folder — the .exe plus the DLLs and data/ it needs —
-# downloadable from the run's Artifacts.
-
 on:
   workflow_dispatch:
     inputs:

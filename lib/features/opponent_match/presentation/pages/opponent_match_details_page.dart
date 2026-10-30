@@ -49,7 +49,7 @@ class _OpponentMatchDetailsPageState extends State<OpponentMatchDetailsPage> {
       AppUtils().showSnackBar(
         context,
         MsgType.info,
-        'The match chat is not open yet.',
+        StringConstants.matchChatNotOpenYet,
       );
       return Future<void>.value();
     }
@@ -73,7 +73,7 @@ class _OpponentMatchDetailsPageState extends State<OpponentMatchDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Match details'),
+      appBar: CustomAppBar(title: StringConstants.matchDetails),
       body: SafeArea(
         top: false,
         child: BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
@@ -92,7 +92,7 @@ class _OpponentMatchDetailsPageState extends State<OpponentMatchDetailsPage> {
               return _MatchDetailsError(
                 message:
                     state.matchDetailErrorFor(widget.requestId) ??
-                    'This match is no longer available.',
+                    StringConstants.matchNoLongerAvailable,
                 onRetry: _reload,
               );
             }
@@ -149,21 +149,21 @@ class _MatchDetailsBody extends StatelessWidget {
                   statusLine: match.summary.statusLine,
                 ),
                 const SizedBox(height: AppDimens.paddingX18),
-                const OpponentSectionLabel('Kickoff'),
+                OpponentSectionLabel(StringConstants.kickoff),
                 OpponentCard(
                   child: Column(
                     children: <Widget>[
                       if (kickoff.whenLabel.isNotEmpty)
                         _DetailRow(
                           icon: Icons.event_outlined,
-                          label: 'Date',
+                          label: StringConstants.date,
                           value: kickoff.whenLabel,
                         ),
                       if (kickoff.slotLabel.isNotEmpty) ...<Widget>[
                         const SizedBox(height: AppDimens.paddingX12),
                         _DetailRow(
                           icon: Icons.schedule_outlined,
-                          label: 'Slot',
+                          label: StringConstants.slot,
                           value: kickoff.slotLabel,
                         ),
                       ],
@@ -171,7 +171,7 @@ class _MatchDetailsBody extends StatelessWidget {
                         const SizedBox(height: AppDimens.paddingX12),
                         _DetailRow(
                           icon: Icons.sports_soccer_rounded,
-                          label: 'Format',
+                          label: StringConstants.format,
                           value: kickoff.formatLabel,
                         ),
                       ],
@@ -179,20 +179,22 @@ class _MatchDetailsBody extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppDimens.paddingX18),
-                const OpponentSectionLabel('Linked venue booking'),
+                OpponentSectionLabel(StringConstants.linkedVenueBooking),
                 OpponentCard(
                   child: Column(
                     children: <Widget>[
                       _DetailRow(
                         icon: Icons.location_on_outlined,
-                        label: 'Venue',
-                        value: venue.isEmpty ? 'Not set' : venue.displayName,
+                        label: StringConstants.venue,
+                        value: venue.isEmpty
+                            ? StringConstants.notSet
+                            : venue.displayName,
                       ),
                       if (venue.venueAddress.isNotEmpty) ...<Widget>[
                         const SizedBox(height: AppDimens.paddingX12),
                         _DetailRow(
                           icon: Icons.map_outlined,
-                          label: 'Address',
+                          label: StringConstants.address,
                           value: venue.venueAddress,
                         ),
                       ],
@@ -203,11 +205,11 @@ class _MatchDetailsBody extends StatelessWidget {
                         icon: venue.isLinked
                             ? Icons.link_rounded
                             : Icons.link_off_rounded,
-                        label: 'Status',
+                        label: StringConstants.status,
                         value: venue.label.isEmpty
                             ? (venue.isLinked
-                                  ? 'Venue linked to this match'
-                                  : 'Arranged outside the app')
+                                  ? StringConstants.venueLinkedToThisMatch
+                                  : StringConstants.arrangedOutsideTheApp)
                             : venue.label,
                         accent: venue.isLinked,
                       ),
@@ -215,7 +217,7 @@ class _MatchDetailsBody extends StatelessWidget {
                         const SizedBox(height: AppDimens.paddingX12),
                         _DetailRow(
                           icon: Icons.confirmation_number_outlined,
-                          label: 'Booking reference',
+                          label: StringConstants.bookingReference,
                           value: venue.bookingId,
                         ),
                       ],
@@ -223,12 +225,12 @@ class _MatchDetailsBody extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppDimens.paddingX18),
-                const OpponentSectionLabel('Cost split'),
+                OpponentSectionLabel(StringConstants.costSplit),
                 OpponentCard(
                   child: Column(
                     children: <Widget>[
                       _MoneyRow(
-                        label: 'Total court fee',
+                        label: StringConstants.totalCourtFee,
                         value: OpponentFmt.npr(cost.totalCourtFee),
                       ),
                       // Both sides are named, so each captain can see what the
@@ -244,7 +246,7 @@ class _MatchDetailsBody extends StatelessWidget {
                       if (cost.settlementNote.isNotEmpty) ...<Widget>[
                         const SizedBox(height: AppDimens.paddingX8),
                         _MoneyRow(
-                          label: 'Settlement',
+                          label: StringConstants.settlement,
                           value: cost.settlementNote,
                         ),
                       ],
@@ -252,7 +254,7 @@ class _MatchDetailsBody extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppDimens.paddingX18),
-                const OpponentSectionLabel('Match chat'),
+                OpponentSectionLabel(StringConstants.matchChat),
                 _ChatCard(
                   title: chat.title,
                   description: chat.description,
@@ -283,7 +285,7 @@ class _MatchDetailsBody extends StatelessWidget {
                 width: double.infinity,
                 child: CustomButton(
                   text: chat.ctaLabel.isEmpty
-                      ? 'Open Match Chat'
+                      ? StringConstants.openMatchChat
                       : chat.ctaLabel,
                   icon: Icons.chat_bubble_outline_rounded,
                   onPressed: onOpenChat,
@@ -337,14 +339,15 @@ class _ShareRow extends StatelessWidget {
     final String label = share.label.isNotEmpty
         ? share.label
         : <String>[
-            own ? 'Your share' : 'Opponent share',
-            if (share.percent != null) '(${share.percent}%)',
+            own ? StringConstants.yourShare : StringConstants.opponentShare,
+            if (share.percent != null)
+              StringConstants.percentInParentheses(share.percent!),
           ].join(' ');
     return _MoneyRow(
       label: label,
       // A result-keyed split has no amount until the match is played.
       value: share.amount == null
-          ? 'Decided by result'
+          ? StringConstants.decidedByResult
           : OpponentFmt.npr(share.amount!),
       emphasised: own,
     );
@@ -395,7 +398,7 @@ class _Fixture extends StatelessWidget {
                   symmetricHorizontal: AppDimens.paddingX8,
                 ),
                 child: Text(
-                  'VS',
+                  StringConstants.versusAbbr,
                   style: textTheme.bodyTextMedium?.copyWith(
                     color: LightColor.secondaryColor,
                     fontWeight: FontWeight.w900,
@@ -423,8 +426,8 @@ class _Fixture extends StatelessWidget {
                 statusLine.isNotEmpty
                     ? statusLine
                     : (confirmed
-                          ? 'Match created · chat room opened'
-                          : 'Waiting on final confirmation'),
+                          ? StringConstants.matchCreatedChatRoomOpened
+                          : StringConstants.waitingOnFinalConfirmation),
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: confirmed
                       ? LightColor.successColor
@@ -475,7 +478,7 @@ class _TeamBadge extends StatelessWidget {
         ),
         const SizedBox(height: AppDimens.paddingX8),
         Text(
-          name.isEmpty ? 'Team' : name,
+          name.isEmpty ? StringConstants.team : name,
           maxLines: 2,
           textAlign: TextAlign.center,
           overflow: TextOverflow.ellipsis,
@@ -530,8 +533,8 @@ class _ChatCard extends StatelessWidget {
                   title.isNotEmpty
                       ? title
                       : (enabled
-                            ? 'Chat room created automatically'
-                            : 'Chat opens once the opponent is confirmed'),
+                            ? StringConstants.chatRoomCreatedAutomatically
+                            : StringConstants.chatOpensOnceOpponentConfirmed),
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w700,
@@ -542,10 +545,8 @@ class _ChatCard extends StatelessWidget {
                   description.isNotEmpty
                       ? description
                       : (enabled
-                            ? 'Coordinate kit, arrival time and the court fee '
-                                  'with the other captain.'
-                            : 'Both captains get access as soon as the match '
-                                  'is created.'),
+                            ? StringConstants.matchChatEnabledDescription
+                            : StringConstants.matchChatPendingDescription),
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: LightColor.secondaryTextColor,
                     height: 1.4,

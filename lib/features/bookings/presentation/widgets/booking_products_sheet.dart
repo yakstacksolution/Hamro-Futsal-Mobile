@@ -30,7 +30,9 @@ enum BookingPaymentType {
 
   String get apiValue => name;
 
-  String get label => this == BookingPaymentType.cash ? 'Cash' : 'Online';
+  String get label => this == BookingPaymentType.cash
+      ? StringConstants.cash
+      : StringConstants.online;
 
   IconData get icon => this == BookingPaymentType.cash
       ? Icons.payments_rounded
@@ -353,7 +355,7 @@ class _ExtraItemsCard extends StatelessWidget {
             child: Divider(height: 1, color: LightColor.dividerColor),
           ),
           BookingAmountRow(
-            label: 'Products subtotal',
+            label: StringConstants.productsSubtotal,
             value: _formatMoney(total),
             labelWeight: FontWeight.w600,
             valueWeight: FontWeight.w700,
@@ -380,7 +382,7 @@ class _ExtraItemRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                item.name.trim().isEmpty ? 'Product' : item.name,
+                item.name.trim().isEmpty ? StringConstants.product : item.name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: textTheme.bodyTextMedium?.copyWith(
@@ -392,7 +394,7 @@ class _ExtraItemRow extends StatelessWidget {
               Text(
                 item.unitPrice > 0
                     ? '${item.quantity} × ${_formatMoney(item.unitPrice)}'
-                    : 'Qty ${item.quantity}',
+                    : StringConstants.qtyCount(item.quantity),
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                 ),
@@ -451,7 +453,9 @@ class _AddProductsTile extends StatelessWidget {
               const SizedBox(width: AppDimens.paddingX10),
               Expanded(
                 child: Text(
-                  hasItems ? 'Add more products' : 'Add products',
+                  hasItems
+                      ? StringConstants.addMoreProducts
+                      : StringConstants.addProducts,
                   style: textTheme.bodyTextMedium?.copyWith(
                     color: LightColor.secondaryColor,
                     fontWeight: FontWeight.w600,
@@ -572,7 +576,9 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
         ProductModel(
           id: item.productId,
           venueId: _venueId,
-          name: item.name.isEmpty ? 'Product #${item.productId}' : item.name,
+          name: item.name.isEmpty
+              ? StringConstants.productNumber(item.productId)
+              : item.name,
           price: item.unitPrice,
           isActive: true,
         ),
@@ -635,7 +641,7 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
       AppUtils().showSnackBar(
         context,
         MsgType.success,
-        'Products added to the booking.',
+        StringConstants.productsAddedToBooking,
       );
     } catch (_) {
       if (!mounted) return;
@@ -643,7 +649,7 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'Could not add products. Please try again.',
+        StringConstants.couldNotAddProductsTryAgain,
       );
     }
   }
@@ -671,20 +677,19 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
                     return _CartMessage(
                       icon: Icons.wifi_off_rounded,
                       color: LightColor.redColor,
-                      title: 'Could not load products',
-                      subtitle: 'Check your connection and try again.',
+                      title: StringConstants.couldNotLoadProducts,
+                      subtitle: StringConstants.checkYourConnectionAndTryAgain,
                       onRetry: () => setState(() => _future = _load()),
                     );
                   }
                   final List<ProductModel> products =
                       snapshot.data ?? const <ProductModel>[];
                   if (products.isEmpty) {
-                    return const _CartMessage(
+                    return _CartMessage(
                       icon: Icons.inventory_2_outlined,
                       color: LightColor.secondaryColor,
-                      title: 'No products available',
-                      subtitle:
-                          'This venue has no active products to sell yet.',
+                      title: StringConstants.noProductsAvailable,
+                      subtitle: StringConstants.venueHasNoActiveProducts,
                     );
                   }
                   return ListView.separated(
@@ -728,7 +733,7 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'Add products',
+                StringConstants.addProducts,
                 style: textTheme.bodyTextLarge?.copyWith(
                   color: LightColor.primaryTextColor,
                   fontWeight: FontWeight.w800,
@@ -736,7 +741,7 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
               ),
               const SizedBox(height: AppDimens.paddingX2),
               Text(
-                'Sell water, drinks & add-ons for this booking.',
+                StringConstants.sellAddOnsForBooking,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                 ),
@@ -749,7 +754,7 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
           // The same chip the cards use, so the count reads as a state of the
           // sheet rather than as a second button.
           DataCardChip(
-            label: '$_itemCount item${_itemCount == 1 ? '' : 's'}',
+            label: StringConstants.itemCount(_itemCount),
             color: LightColor.secondaryColor,
           ),
         ],
@@ -768,7 +773,7 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
           Row(
             children: <Widget>[
               Text(
-                'Total',
+                StringConstants.total,
                 style: textTheme.bodyTextMedium?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w600,
@@ -794,8 +799,8 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
           const SizedBox(height: AppDimens.paddingX12),
           CustomButton(
             text: _itemCount == 0
-                ? 'Add products'
-                : 'Add to booking ($_itemCount)',
+                ? StringConstants.addProducts
+                : StringConstants.addToBookingCount(_itemCount),
             icon: Icons.check_rounded,
             isLoading: _submitting,
             onPressed: _itemCount == 0 ? null : _submit,
@@ -825,7 +830,7 @@ class _CollectBookingDueSheetState extends State<_CollectBookingDueSheet> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _amountController;
   final TextEditingController _noteController = TextEditingController(
-    text: 'Collected remaining due amount in person',
+    text: StringConstants.collectedRemainingDueInPerson,
   );
   final FocusNode _amountFocusNode = FocusNode();
   final FocusNode _noteFocusNode = FocusNode();
@@ -860,8 +865,10 @@ class _CollectBookingDueSheetState extends State<_CollectBookingDueSheet> {
     final double? amount = double.tryParse(
       value?.trim().replaceAll(',', '') ?? '',
     );
-    if (amount == null || amount <= 0) return 'Enter a valid amount';
-    if (amount > _due) return 'Amount cannot exceed ${_formatMoney(_due)}';
+    if (amount == null || amount <= 0) return StringConstants.enterValidAmount;
+    if (amount > _due) {
+      return StringConstants.amountCannotExceed(_formatMoney(_due));
+    }
     return null;
   }
 
@@ -909,7 +916,7 @@ class _CollectBookingDueSheetState extends State<_CollectBookingDueSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    'Collect due amount',
+                    StringConstants.collectDueAmount,
                     style: textTheme.bodyTextLarge?.copyWith(
                       color: LightColor.primaryTextColor,
                       fontWeight: FontWeight.w700,
@@ -917,7 +924,9 @@ class _CollectBookingDueSheetState extends State<_CollectBookingDueSheet> {
                   ),
                   const SizedBox(height: AppDimens.paddingX4),
                   Text(
-                    '${_formatMoney(_due)} remains due for this completed booking.',
+                    StringConstants.remainsDueForCompletedBooking(
+                      _formatMoney(_due),
+                    ),
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.secondaryTextColor,
                     ),
@@ -941,8 +950,8 @@ class _CollectBookingDueSheetState extends State<_CollectBookingDueSheet> {
                         key: const Key('collect-due-amount-field'),
                         controller: _amountController,
                         focusNode: _amountFocusNode,
-                        labelText: 'Amount',
-                        hintText: 'Enter collected amount',
+                        labelText: StringConstants.amount,
+                        hintText: StringConstants.enterCollectedAmount,
                         icon: Icons.payments_outlined,
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
@@ -960,7 +969,7 @@ class _CollectBookingDueSheetState extends State<_CollectBookingDueSheet> {
                         validator: _validateAmount,
                       ),
                       const SizedBox(height: AppDimens.paddingX16),
-                      _SectionLabel('Payment method'),
+                      _SectionLabel(StringConstants.paymentMethod),
                       const SizedBox(height: AppDimens.paddingX8),
                       _SegmentedChoice(
                         labels: <String>[
@@ -980,8 +989,8 @@ class _CollectBookingDueSheetState extends State<_CollectBookingDueSheet> {
                       CustomTextField(
                         controller: _noteController,
                         focusNode: _noteFocusNode,
-                        labelText: 'Payment note',
-                        hintText: 'How was the due amount collected?',
+                        labelText: StringConstants.paymentNote,
+                        hintText: StringConstants.howWasDueAmountCollected,
                         isRequired: false,
                         minLines: 2,
                         maxLines: 3,
@@ -1010,7 +1019,9 @@ class _CollectBookingDueSheetState extends State<_CollectBookingDueSheet> {
               ),
               child: CustomButton(
                 key: const Key('submit-collect-due-button'),
-                text: 'Collect ${_formatMoney(_enteredAmount ?? 0)}',
+                text: StringConstants.collectAmount(
+                  _formatMoney(_enteredAmount ?? 0),
+                ),
                 icon: Icons.payments_rounded,
                 onPressed: _canSubmit ? _submit : null,
               ),
@@ -1188,7 +1199,7 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    'Complete booking',
+                    StringConstants.completeBooking,
                     style: textTheme.bodyTextLarge?.copyWith(
                       color: LightColor.primaryTextColor,
                       fontWeight: FontWeight.w700,
@@ -1196,8 +1207,7 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                   ),
                   const SizedBox(height: AppDimens.paddingX4),
                   Text(
-                    'Review the payment and record how it was collected. '
-                    'This can\'t be undone.',
+                    StringConstants.completeBookingDescription,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.secondaryTextColor,
                       height: 1.35,
@@ -1224,12 +1234,12 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                     ),
                     const SizedBox(height: AppDimens.paddingX18),
 
-                    _SectionLabel('Discount'),
+                    _SectionLabel(StringConstants.discount),
                     const SizedBox(height: AppDimens.paddingX8),
                     CustomTextField(
                       controller: _discountController,
-                      labelText: 'Discount amount',
-                      hintText: 'e.g. 100',
+                      labelText: StringConstants.discountAmount,
+                      hintText: StringConstants.discountAmountHint,
                       icon: Icons.local_offer_rounded,
                       isRequired: false,
                       keyboardType: const TextInputType.numberWithOptions(
@@ -1242,7 +1252,7 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                     ),
                     const SizedBox(height: AppDimens.paddingX18),
 
-                    _SectionLabel('Payment'),
+                    _SectionLabel(StringConstants.payment),
                     const SizedBox(height: AppDimens.paddingX8),
                     for (int i = 0; i < _payments.length; i++) ...<Widget>[
                       if (i > 0) const SizedBox(height: AppDimens.paddingX10),
@@ -1253,8 +1263,10 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                         // one online.
                         locked: _payments.length > 1,
                         label: _payments.length == 1
-                            ? 'Amount received now (NPR)'
-                            : '${_payments[i].type.label} received (NPR)',
+                            ? StringConstants.amountReceivedNowNpr
+                            : StringConstants.typeReceivedNpr(
+                                _payments[i].type.label,
+                              ),
                         onTypeChanged: (BookingPaymentType t) =>
                             setState(() => _payments[i].type = t),
                         onAmountChanged: () => setState(() {
@@ -1270,10 +1282,10 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                       children: <Widget>[
                         if (_netPayable > 0)
                           for (final (String label, double share)
-                              in const <(String, double)>[
+                              in <(String, double)>[
                                 ('25%', 0.25),
                                 ('50%', 0.5),
-                                ('Full', 1),
+                                (StringConstants.full, 1),
                               ]) ...<Widget>[
                             Expanded(
                               child: CustomButton(
@@ -1308,7 +1320,11 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                             ),
                             icon: const Icon(Icons.add_rounded, size: 18),
                             label: Text(
-                              'Add ${_other(_payments.first.type).label.toLowerCase()}',
+                              StringConstants.addPaymentType(
+                                _other(
+                                  _payments.first.type,
+                                ).label.toLowerCase(),
+                              ),
                               style: const TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w700,
@@ -1321,10 +1337,10 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                       const SizedBox(height: AppDimens.paddingX8),
                       Text(
                         _overpaid
-                            ? 'More than the amount due '
-                                  '(${_formatMoney(_netPayable)}).'
-                            : 'Enter an amount for each payment, or remove '
-                                  'it.',
+                            ? StringConstants.moreThanAmountDue(
+                                _formatMoney(_netPayable),
+                              )
+                            : StringConstants.enterAmountForEachPayment,
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.redColor,
                         ),
@@ -1340,7 +1356,7 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                     if (_amountPaid > 0) ...<Widget>[
                       const SizedBox(height: AppDimens.paddingX8),
                       Text(
-                        '${_remaining > 0 ? 'Partly paid' : 'Paid in full'}'
+                        '${_remaining > 0 ? StringConstants.partlyPaid : StringConstants.paidInFull}'
                         ' · $_typesLabel',
                         key: const Key('complete-payment-status'),
                         style: textTheme.bodyTextSmall?.copyWith(
@@ -1425,7 +1441,7 @@ class _CompletePaymentRow extends StatelessWidget {
           SizedBox(
             height: _height,
             child: IconButton(
-              tooltip: 'Remove this payment',
+              tooltip: StringConstants.removeThisPayment,
               visualDensity: VisualDensity.compact,
               onPressed: onRemove,
               icon: Icon(
@@ -1449,7 +1465,7 @@ class _CompletePaymentRow extends StatelessWidget {
         child: Semantics(
           button: true,
           selected: selected,
-          label: 'Paid by ${type.label}',
+          label: StringConstants.paidBy(type.label),
           child: ExcludeSemantics(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -1510,7 +1526,7 @@ class _CompletePaymentRow extends StatelessWidget {
 
   Widget _typeChip() {
     return Semantics(
-      label: 'Paid by ${line.type.label}',
+      label: StringConstants.paidBy(line.type.label),
       child: ExcludeSemantics(
         child: Container(
           width: _typeWidth,
@@ -1577,7 +1593,7 @@ class _CompleteSheetFooter extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Text(
-                  'Collecting now',
+                  StringConstants.collectingNow,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryTextColor,
                   ),
@@ -1596,7 +1612,7 @@ class _CompleteSheetFooter extends StatelessWidget {
           SizedBox(
             width: 92,
             child: CustomButton(
-              text: 'Cancel',
+              text: StringConstants.cancel,
               isOutlined: true,
               foregroundColor: LightColor.secondaryTextColor,
               borderColor: LightColor.dividerColor,
@@ -1608,7 +1624,7 @@ class _CompleteSheetFooter extends StatelessWidget {
           SizedBox(
             width: 122,
             child: CustomButton(
-              text: 'Complete',
+              text: StringConstants.completeSetup,
               backgroundColor: LightColor.secondaryColor,
               minHeight: AppDimens.sizeX42,
               onPressed: onComplete,
@@ -1730,15 +1746,18 @@ class _SettlementSummary extends StatelessWidget {
       child: Column(
         children: <Widget>[
           if (discount > 0)
-            _SettlementRow(label: 'Discount', amount: -discount),
-          _SettlementRow(label: 'Payable after discount', amount: netPayable),
+            _SettlementRow(label: StringConstants.discount, amount: -discount),
           _SettlementRow(
-            label: 'Collecting now',
+            label: StringConstants.payableAfterDiscount,
+            amount: netPayable,
+          ),
+          _SettlementRow(
+            label: StringConstants.collectingNow,
             amount: collectingNow,
             emphasize: true,
           ),
           _SettlementRow(
-            label: 'Remaining due',
+            label: StringConstants.remainingDue,
             amount: remaining,
             highlightRemaining: remaining > 0,
           ),
@@ -1812,30 +1831,33 @@ class _ReceiptCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const _ReceiptSectionLabel('Booking payment'),
+          _ReceiptSectionLabel(StringConstants.bookingPayment),
           const SizedBox(height: AppDimens.paddingX10),
           _ReceiptRow(
-            label: 'Subtotal',
+            label: StringConstants.subtotal,
             amount: booking.subtotal > 0
                 ? booking.subtotal
                 : booking.bookingTotal,
           ),
           if (booking.discountAmount > 0)
-            _ReceiptRow(label: 'Discount', amount: -booking.discountAmount),
+            _ReceiptRow(
+              label: StringConstants.discount,
+              amount: -booking.discountAmount,
+            ),
           if (booking.taxAmount > 0)
-            _ReceiptRow(label: 'Tax', amount: booking.taxAmount),
+            _ReceiptRow(label: StringConstants.tax, amount: booking.taxAmount),
           _ReceiptRow(
-            label: 'Booking total',
+            label: StringConstants.bookingTotal,
             amount: booking.bookingTotal,
             emphasize: true,
           ),
           if (booking.effectivePaidAmount > 0)
             _ReceiptRow(
-              label: 'Already paid',
+              label: StringConstants.alreadyPaid,
               amount: booking.effectivePaidAmount,
             ),
           _ReceiptRow(
-            label: 'Balance due',
+            label: StringConstants.balanceDue,
             amount: booking.remainingBookingBalance,
             emphasize: true,
           ),
@@ -1846,11 +1868,10 @@ class _ReceiptCard extends StatelessWidget {
 
           Row(
             children: <Widget>[
-              const Expanded(child: _ReceiptSectionLabel('Extra items')),
+              Expanded(child: _ReceiptSectionLabel(StringConstants.extraItems)),
               if (items.isNotEmpty)
                 Text(
-                  '${booking.extraItemsCount} item'
-                  '${booking.extraItemsCount == 1 ? '' : 's'}',
+                  StringConstants.itemCount(booking.extraItemsCount),
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall
                       ?.copyWith(color: LightColor.secondaryTextColor),
                 ),
@@ -1859,7 +1880,7 @@ class _ReceiptCard extends StatelessWidget {
           const SizedBox(height: AppDimens.paddingX10),
           if (items.isEmpty)
             Text(
-              'No extra items on this booking.',
+              StringConstants.noExtraItemsOnBooking,
               style: FutsalTheme.getTextTheme(
                 context,
               ).bodyTextSmall?.copyWith(color: LightColor.secondaryTextColor),
@@ -1868,13 +1889,13 @@ class _ReceiptCard extends StatelessWidget {
             for (final BookingExtraItemModel item in items)
               _ReceiptRow(
                 label: item.name.isEmpty
-                    ? 'Product #${item.productId}'
+                    ? StringConstants.productNumber(item.productId)
                     : item.name,
                 subLabel: '${item.quantity} × ${_formatMoney(item.unitPrice)}',
                 amount: item.totalAmount,
               ),
             _ReceiptRow(
-              label: 'Extra items total',
+              label: StringConstants.extraItemsTotal,
               amount: booking.extraItemsTotal,
               emphasize: true,
             ),
@@ -1887,7 +1908,7 @@ class _ReceiptCard extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  'Total to collect',
+                  StringConstants.totalToCollect,
                   style: FutsalTheme.getTextTheme(context).bodyTextMedium
                       ?.copyWith(
                         color: LightColor.primaryTextColor,
@@ -2108,7 +2129,7 @@ class _QuantityStepper extends StatelessWidget {
                 ),
                 const SizedBox(width: AppDimens.paddingX4),
                 Text(
-                  'Add',
+                  StringConstants.add,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryColor,
                     fontWeight: FontWeight.w700,
@@ -2258,7 +2279,7 @@ class _CartMessage extends StatelessWidget {
             SizedBox(
               width: AppDimens.sizeX120,
               child: CustomButton(
-                text: 'Retry',
+                text: StringConstants.retry,
                 icon: Icons.refresh_rounded,
                 onPressed: onRetry,
                 minHeight: AppDimens.sizeX40,

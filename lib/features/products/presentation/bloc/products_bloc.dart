@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/features/products/data/model/product_models.dart';
 import 'package:hamro_futsal/features/products/domain/usecase/products_usecase.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 part 'products_event.dart';
 part 'products_state.dart';
@@ -38,7 +39,7 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
               status: ProductsStatus.success,
               venues: venues,
               products: const <ProductModel>[],
-              message: 'No venues found for products.',
+              message: StringConstants.noVenuesFoundForProducts,
             ),
           );
           return;
@@ -135,7 +136,7 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
             status: ProductsStatus.success,
             actionStatus: ProductsActionStatus.success,
             products: products,
-            message: 'Product created successfully.',
+            message: StringConstants.productCreatedSuccessfully,
           ),
         );
         add(LoadProductsEvent(venueId: event.payload.venueId, silent: true));
@@ -167,7 +168,7 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
           state.copyWith(
             actionStatus: ProductsActionStatus.success,
             products: products,
-            message: 'Product updated successfully.',
+            message: StringConstants.productUpdatedSuccessfully,
           ),
         );
         add(LoadProductsEvent(venueId: event.payload.venueId, silent: true));
@@ -196,7 +197,7 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
             products: state.products
                 .where((ProductModel item) => item.id != event.productId)
                 .toList(growable: false),
-            message: 'Product deleted successfully.',
+            message: StringConstants.productDeletedSuccessfully,
           ),
         );
         if (venueId != null) {

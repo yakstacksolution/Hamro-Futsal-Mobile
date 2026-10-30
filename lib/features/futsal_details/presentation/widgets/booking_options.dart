@@ -5,11 +5,11 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_recurrence.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/recurring_availability_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_court_item_model.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class CustomToggleButton extends StatelessWidget {
   const CustomToggleButton({
@@ -143,8 +143,10 @@ class BookingTypeCard extends StatelessWidget {
                     const SizedBox(height: AppDimens.sizeX2),
                     Text(
                       recurring
-                          ? 'Every ${RecurringWeekdays.summary(weekdays)} · same time'
-                          : 'Repeat weekly on the days you choose',
+                          ? StringConstants.everyWeekdaysSameTime(
+                              RecurringWeekdays.summary(weekdays),
+                            )
+                          : StringConstants.repeatWeeklyOnTheDaysYouChoose,
                       style: textTheme.bodyMiniSubTitle?.copyWith(
                         color: LightColor.hintTextColor,
                         fontWeight: FontWeight.w500,
@@ -261,7 +263,11 @@ class BookingTypeCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
                                 Text(
-                                  '${dates.length} sessions · ${_shortDate(dates.first)} → ${_shortDate(dates.last)}',
+                                  StringConstants.sessionsDateRange(
+                                    dates.length,
+                                    _shortDate(dates.first),
+                                    _shortDate(dates.last),
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: textTheme.bodySubTitle?.copyWith(
@@ -275,10 +281,16 @@ class BookingTypeCard extends StatelessWidget {
                                   const SizedBox(height: AppDimens.sizeX2),
                                   Text(
                                     availability!.isUnconfirmed
-                                        ? 'Some dates are unavailable'
+                                        ? StringConstants
+                                              .someDatesAreUnavailable
                                         : availability!.hasUnavailableDates
-                                        ? '${availability!.availableCount} available · ${availability!.unavailableCount} unavailable'
-                                        : 'All ${availability!.totalCount} dates available',
+                                        ? StringConstants.availableUnavailableCount(
+                                            availability!.availableCount,
+                                            availability!.unavailableCount,
+                                          )
+                                        : StringConstants.allDatesAvailable(
+                                            availability!.totalCount,
+                                          ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: textTheme.bodyMiniSubTitle?.copyWith(
@@ -300,7 +312,7 @@ class BookingTypeCard extends StatelessWidget {
                               HapticFeedback.selectionClick();
                               if (selectedTime == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text(
                                       StringConstants
                                           .selectATimeSlotToSeePrices,
@@ -627,7 +639,9 @@ class _RecurringPriceSheet extends StatelessWidget {
                                   ),
                                   const SizedBox(width: AppDimens.sizeX4),
                                   Text(
-                                    ok ? 'Available' : 'Unavailable',
+                                    ok
+                                        ? StringConstants.available
+                                        : StringConstants.unavailable,
                                     style: textTheme.bodyMiniSubTitle?.copyWith(
                                       color: ok
                                           ? LightColor.secondaryColor
@@ -643,7 +657,7 @@ class _RecurringPriceSheet extends StatelessWidget {
                       ),
                       const SizedBox(width: AppDimens.sizeX16),
                       Text(
-                        'Rs ${price.toStringAsFixed(0)}',
+                        StringConstants.rsAmount(price.toStringAsFixed(0)),
                         style: textTheme.bodySubTitle?.copyWith(
                           color: ok
                               ? LightColor.primaryTextColor
@@ -665,7 +679,7 @@ class _RecurringPriceSheet extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  'Total · ${availableDates.length} sessions',
+                  StringConstants.totalSessions(availableDates.length),
                   style: textTheme.bodyTextMedium?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,
@@ -674,7 +688,7 @@ class _RecurringPriceSheet extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.sizeX10),
               Text(
-                'Rs ${total.toStringAsFixed(0)}',
+                StringConstants.rsAmount(total.toStringAsFixed(0)),
                 style: textTheme.bodyTextLarge?.copyWith(
                   color: LightColor.secondaryColor,
                   fontWeight: FontWeight.w900,
@@ -736,8 +750,11 @@ class _AvailabilityBanner extends StatelessWidget {
               children: <Widget>[
                 Text(
                   allOk
-                      ? 'All $availableCount dates available'
-                      : '$availableCount available · $unavailableCount unavailable',
+                      ? StringConstants.allDatesAvailable(availableCount)
+                      : StringConstants.availableUnavailableCount(
+                          availableCount,
+                          unavailableCount,
+                        ),
                   style: textTheme.bodySubTitle?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,
@@ -746,7 +763,7 @@ class _AvailabilityBanner extends StatelessWidget {
                 if (!allOk) ...<Widget>[
                   const SizedBox(height: AppDimens.sizeX2),
                   Text(
-                    'Unavailable dates are not charged and will be skipped.',
+                    StringConstants.unavailableDatesNotChargedSkipped,
                     style: textTheme.bodyMiniSubTitle?.copyWith(
                       color: LightColor.hintTextColor,
                       fontWeight: FontWeight.w600,

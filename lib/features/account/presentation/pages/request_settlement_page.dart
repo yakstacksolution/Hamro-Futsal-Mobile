@@ -51,15 +51,7 @@ class RequestSettlementPage extends StatefulWidget {
   State<RequestSettlementPage> createState() => _RequestSettlementPageState();
 }
 
-enum _LoadPhase {
-  loading,
-
-  ready,
-
-  blocked,
-
-  failed,
-}
+enum _LoadPhase { loading, ready, blocked, failed }
 
 class _RequestSettlementPageState extends State<RequestSettlementPage> {
   final _formKey = GlobalKey<FormState>();
@@ -177,14 +169,14 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
 
   String? _validateAmount(String? value) {
     final amount = double.tryParse(value?.trim() ?? '') ?? 0;
-    if (amount <= 0) return 'Enter a valid amount.';
+    if (amount <= 0) return StringConstants.enterAValidAmount;
     if (amount > _payable) {
-      return "Amount can't exceed ${AccountFmt.npr(_payable)}.";
+      return StringConstants.amountCantExceed(AccountFmt.npr(_payable));
     }
     // Compared in paisa: 11711.99 never equals itself in binary floating point.
     if (_amountLocked &&
         (amount * 100).round() != (_defaultAmount * 100).round()) {
-      return 'Settle the full ${AccountFmt.npr(_defaultAmount)}.';
+      return StringConstants.settleTheFull(AccountFmt.npr(_defaultAmount));
     }
     return null;
   }
@@ -246,8 +238,9 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
     setState(() {
       _proofMissing = !hasProof;
       if (!hasProof) {
-        _proofError =
-            'Upload the payment receipt before submitting (max ${_preview.proofMaxSizeMb} MB).';
+        _proofError = StringConstants.uploadReceiptBeforeSubmittingMax(
+          _preview.proofMaxSizeMb,
+        );
       }
     });
     if (!valid || !hasProof) return;
@@ -275,7 +268,7 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   String get _scopeLabel {
     if (_preview.subtitle.isNotEmpty) return _preview.subtitle;
     if (widget.venueName.isNotEmpty) return widget.venueName;
-    return 'All futsals';
+    return StringConstants.allFutsals;
   }
 
   String get _proofHint {
@@ -283,7 +276,7 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
         .map((e) => e.toUpperCase())
         .toSet()
         .join(', ');
-    return '$types · Max ${_preview.proofMaxSizeMb} MB';
+    return StringConstants.proofTypesMaxSize(types, _preview.proofMaxSizeMb);
   }
 
   @override
@@ -392,10 +385,10 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
                 totalEarned: widget.totalEarned,
               ),
               const SizedBox(height: AppDimens.paddingX20),
-              const _StepHeader(
+              _StepHeader(
                 step: 1,
-                title: 'Scan and pay',
-                subtitle: 'Send the commission to Hamro Futsal using this QR.',
+                title: StringConstants.scanAndPay,
+                subtitle: StringConstants.sendCommissionUsingQr,
               ),
               const SizedBox(height: AppDimens.paddingX12),
               SettlementQrCarouselCard(
@@ -403,19 +396,18 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
                 fallbackQr: _preview.paymentQr,
                 fallbackPayeeName: _preview.recipient.name,
                 payeePhone: _preview.recipient.phone,
-                amountLabel: 'Commission to pay',
+                amountLabel: StringConstants.commissionToPay,
                 amountValue: AccountFmt.npr(_payable),
               ),
               const SizedBox(height: AppDimens.paddingX20),
-              const _StepHeader(
+              _StepHeader(
                 step: 2,
-                title: 'Confirm the payment',
-                subtitle:
-                    'Enter what you sent and attach the receipt as proof.',
+                title: StringConstants.confirmThePayment,
+                subtitle: StringConstants.enterWhatYouSentAndAttachReceipt,
               ),
               const SizedBox(height: AppDimens.paddingX12),
               CustomTextField(
-                labelText: 'Commission amount (NPR)',
+                labelText: StringConstants.commissionAmountNpr,
                 controller: _amountCtrl,
                 readOnly: _amountLocked,
                 keyboardType: const TextInputType.numberWithOptions(
@@ -433,7 +425,7 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
               if (_amountLocked) ...[
                 const SizedBox(height: AppDimens.paddingX6),
                 Text(
-                  'The full commission must be paid in one request.',
+                  StringConstants.fullCommissionInOneRequest,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.hintTextColor,
                     fontSize: AppDimens.fontBodySubTitle,
@@ -443,12 +435,12 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
               ],
               const SizedBox(height: AppDimens.paddingX16),
               CustomTextField(
-                labelText: 'Transaction reference',
-                hintText: 'Bank / eSewa / Khalti transaction ID',
+                labelText: StringConstants.transactionReference,
+                hintText: StringConstants.transactionReferenceHint,
                 controller: _refCtrl,
                 icon: Icons.tag_rounded,
                 validator: (value) => (value?.trim().isEmpty ?? true)
-                    ? 'Enter the payment transaction reference.'
+                    ? StringConstants.enterPaymentTransactionReference
                     : null,
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 ensureVisibleOnFocus: true,
@@ -464,8 +456,8 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
               ),
               const SizedBox(height: AppDimens.paddingX16),
               CustomTextField(
-                labelText: 'Note (optional)',
-                hintText: 'Payment remark',
+                labelText: StringConstants.noteOptional,
+                hintText: StringConstants.paymentRemark,
                 controller: _noteCtrl,
                 maxLines: 2,
                 isRequired: false,
@@ -483,8 +475,8 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
                   // account refresh that follows it.
                   final Widget button = CustomButton(
                     text: submitting
-                        ? 'Submitting…'
-                        : 'Submit Commission Payment',
+                        ? StringConstants.submitting
+                        : StringConstants.submitCommissionPayment,
                     icon: Icons.lock_outline_rounded,
                     isLoading: submitting,
                     onPressed: submitting ? () {} : _submit,
@@ -573,7 +565,7 @@ class _StepHeader extends StatelessWidget {
           width: AppDimens.sizeX24,
           height: AppDimens.sizeX24,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: LightColor.secondaryColor,
             shape: BoxShape.circle,
           ),
@@ -616,9 +608,11 @@ class _StepHeader extends StatelessWidget {
 }
 
 String _formatSize(int bytes) {
-  if (bytes < 1024) return '$bytes B';
-  if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} KB';
-  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  if (bytes < 1024) return StringConstants.fileSizeBytes(bytes);
+  if (bytes < 1024 * 1024) {
+    return StringConstants.fileSizeKb((bytes / 1024).round());
+  }
+  return StringConstants.fileSizeMb((bytes / (1024 * 1024)).toStringAsFixed(1));
 }
 
 class _ProofPicker extends StatelessWidget {
@@ -677,7 +671,7 @@ class _ProofPicker extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        proof?.name ?? 'Upload payment proof',
+                        proof?.name ?? StringConstants.uploadPaymentProof,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyTextSmall?.copyWith(
@@ -714,7 +708,7 @@ class _ProofPicker extends StatelessWidget {
         if (showError) ...[
           const SizedBox(height: AppDimens.paddingX6),
           Text(
-            errorText ?? 'Upload the payment receipt before submitting.',
+            errorText ?? StringConstants.uploadReceiptBeforeSubmitting,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.redColor,
               fontSize: AppDimens.fontBodySubTitle,

@@ -367,26 +367,26 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
   _PolicySectionMeta _sectionMeta(int index) {
     switch (index) {
       case 0:
-        return const _PolicySectionMeta(
+        return _PolicySectionMeta(
           title: StringConstants.refundCancellationPolicyCompact,
           subtitle:
               StringConstants.refundCancellationAndCustomerBookingGuidelines,
           icon: Icons.policy_rounded,
         );
       case 1:
-        return const _PolicySectionMeta(
+        return _PolicySectionMeta(
           title: StringConstants.futsalRules,
           subtitle: StringConstants.venueRulesAndPlayerConductDetails,
           icon: Icons.rule_rounded,
         );
       case 2:
-        return const _PolicySectionMeta(
+        return _PolicySectionMeta(
           title: StringConstants.chooseYourPlan,
           subtitle: StringConstants.commissionPackageAndPlatformSupportDetails,
           icon: Icons.workspace_premium_rounded,
         );
       default:
-        return const _PolicySectionMeta(
+        return _PolicySectionMeta(
           title: StringConstants.policyAndRules,
           subtitle: StringConstants.completeTheRequiredDetails,
           icon: Icons.info_rounded,

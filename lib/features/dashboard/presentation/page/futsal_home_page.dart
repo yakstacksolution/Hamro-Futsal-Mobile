@@ -268,8 +268,8 @@ class _CourtsListScreenState extends State<CourtsListScreen>
                 title: StringConstants.unableToLoadVenues,
                 message:
                     state.errorMessage ??
-                    'Please check your connection and try again.',
-                actionLabel: 'Retry',
+                    StringConstants.checkConnectionAndTryAgain,
+                actionLabel: StringConstants.retry,
                 onAction: _reloadHomeData,
               ),
             ),
@@ -286,7 +286,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
             alignment: Alignment.topCenter,
             child: Padding(
               padding: const EdgeInsets.only(top: AppDimens.sizeX80),
-              child: const _VenueMessageView(
+              child: _VenueMessageView(
                 icon: Icons.stadium_outlined,
                 title: StringConstants.noVenuesFound,
                 message: StringConstants.thereAreNoFutsalVenuesToShowRightNow,
@@ -313,7 +313,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
             alignment: Alignment.topCenter,
             child: Padding(
               padding: const EdgeInsets.only(top: AppDimens.sizeX80),
-              child: const _VenueMessageView(
+              child: _VenueMessageView(
                 icon: Icons.filter_alt_off_rounded,
                 title: StringConstants.noMatchingVenues,
                 message: StringConstants.tryAdjustingOrClearingYourFilters,
@@ -732,8 +732,11 @@ class _CourtCardState extends State<CourtCard> {
                               TextSpan(
                                 text:
                                     widget.publicListingVenueModel.price == null
-                                    ? 'Rs. --'
-                                    : 'Rs. ${widget.publicListingVenueModel.price!.toStringAsFixed(0)}',
+                                    ? StringConstants.rsPriceUnavailable
+                                    : StringConstants.rsDotAmount(
+                                        widget.publicListingVenueModel.price!
+                                            .toStringAsFixed(0),
+                                      ),
                                 style: textTheme.headingSubTitle?.copyWith(
                                   color: LightColor.secondaryColor,
                                   fontWeight: FontWeight.w700,
@@ -883,6 +886,6 @@ class _DistanceLabel extends StatelessWidget {
     final String value = distanceKm
         .toStringAsFixed(2)
         .replaceFirst(RegExp(r'\.?0+$'), '');
-    return '$value km';
+    return StringConstants.distanceKm(value);
   }
 }

@@ -3,9 +3,8 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
-
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 const int kMaxGroupMembers = 50;
 
@@ -332,7 +331,9 @@ class GroupMemberTile extends StatelessWidget {
                                     child: Text(
                                       email.isNotEmpty
                                           ? email
-                                          : 'User #${participant.userId}',
+                                          : StringConstants.userNumber(
+                                              participant.userId,
+                                            ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: textTheme.bodyTextSmall?.copyWith(
@@ -657,7 +658,7 @@ class GroupMembersErrorCard extends StatelessWidget {
           TextButton.icon(
             onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Retry'),
+            label: Text(StringConstants.retry),
           ),
         ],
       ),
@@ -702,7 +703,7 @@ class GroupMembersFooter extends StatelessWidget {
       child: TextButton.icon(
         onPressed: onRetry,
         icon: const Icon(Icons.refresh_rounded),
-        label: const Text('Could not load more. Retry'),
+        label: Text(StringConstants.couldNotLoadMoreRetry),
       ),
     );
   }

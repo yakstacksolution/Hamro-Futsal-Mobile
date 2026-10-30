@@ -6,6 +6,7 @@ import 'package:hamro_futsal/features/booking_overview/presentation/widgets/book
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_common.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_leaderboard_widgets.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_summary_widgets.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BookingOverviewTab extends StatelessWidget {
   const BookingOverviewTab({super.key, required this.analytics});
@@ -19,10 +20,10 @@ class BookingOverviewTab extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       padding: _tabPadding(context),
       children: [
-        BookingSectionLabel('Net earnings'),
+        BookingSectionLabel(StringConstants.netEarnings),
         BookingHeroCard(analytics: analytics),
         const SizedBox(height: AppDimens.paddingX18),
-        BookingSectionLabel('Snapshot'),
+        BookingSectionLabel(StringConstants.snapshot),
         BookingKpiGrid(analytics: analytics),
         const SizedBox(height: AppDimens.paddingX12),
         BookingProfitCard(analytics: analytics),
@@ -65,15 +66,15 @@ class BookingRankingsTab extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       padding: _tabPadding(context),
       children: <Widget>[
-        BookingSectionLabel('Performance by venue'),
+        BookingSectionLabel(StringConstants.performanceByVenue),
         BookingVenuePerformanceCard(analytics: analytics),
         const SizedBox(height: AppDimens.paddingX18),
         // The two leaderboards are independent lists, so they pair well.
         ..._pairSections(
           context,
-          firstLabel: 'Top courts',
+          firstLabel: StringConstants.topCourts,
           first: BookingTopCourtsCard(analytics: analytics),
-          secondLabel: 'Top customers',
+          secondLabel: StringConstants.topCustomers,
           second: BookingTopCustomersCard(analytics: analytics),
         ),
       ],

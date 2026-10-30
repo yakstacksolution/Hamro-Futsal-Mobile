@@ -4,6 +4,7 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_futsal/features/dashboard/presentation/widgets/venue_status_widget.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class CourtIntroWidget extends StatelessWidget {
   final CourtDetailModel court;
@@ -49,7 +50,7 @@ class CourtIntroWidget extends StatelessWidget {
         Expanded(
           flex: 2,
           child: _chipTag(
-            '${court.maxPlayers} Players',
+            StringConstants.playersCountTitle(court.maxPlayers),
             Icons.groups_rounded,
             LightColor.purpleColor,
             LightColor.purpleLightColor,
@@ -61,7 +62,7 @@ class CourtIntroWidget extends StatelessWidget {
           flex: 2,
           child: _chipTag(
             court.openTime.isEmpty || court.closeTime.isEmpty
-                ? 'Contact for hours'
+                ? StringConstants.contactForHours
                 : '${court.openTime} - ${court.closeTime}',
             Icons.access_time_rounded,
             LightColor.secondaryColor,

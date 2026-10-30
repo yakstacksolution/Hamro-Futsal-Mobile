@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class VenueStatusWidget extends StatelessWidget {
   final bool isOpen;
@@ -45,7 +46,7 @@ class VenueStatusWidget extends StatelessWidget {
           ),
           const SizedBox(width: AppDimens.sizeX4),
           Text(
-            isOpen ? 'Open Now' : 'Closed Now',
+            isOpen ? StringConstants.openNow : StringConstants.closedNow,
             style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               fontSize: AppDimens.sizeX10,
               color: _statusColor,

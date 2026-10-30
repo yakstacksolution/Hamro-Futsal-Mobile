@@ -10,6 +10,7 @@ import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/api_client/session_gate.dart';
 import 'package:hamro_futsal/core/api/client.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 import 'package:hamro_futsal/features/auth/data/model/token_model.dart';
 
@@ -46,7 +47,7 @@ class ApiCallWrapper {
     ResponseType? responseType,
   }) async {
     if (SessionGate.blocks(url)) {
-      return Result.error(DataError('Session ended', 401, null));
+      return Result.error(DataError(StringConstants.sessionEnded, 401, null));
     }
     printTokenDetails(token);
     try {
@@ -110,7 +111,7 @@ class ApiCallWrapper {
                 newTokenModel.accessToken!.trim().isEmpty) {
               await revokeAuthFromApp();
               return Result.error(
-                DataError('Session expired. Please log in again.', 401, null),
+                DataError(StringConstants.sessionExpiredLogInAgain, 401, null),
               );
             }
 
@@ -183,7 +184,7 @@ class ApiCallWrapper {
             numberOfRetry = 0;
             await revokeAuthFromApp();
             return Result.error(
-              DataError('Session expired. Please log in again.', 401, null),
+              DataError(StringConstants.sessionExpiredLogInAgain, 401, null),
             );
           }
         }
@@ -284,20 +285,16 @@ class ApiCallWrapper {
       responseData = _decodeBytesBody(dioError.response?.data);
       final bool isUpload = dioError.requestOptions.data is FormData;
       if (isUpload && dioError.type == DioExceptionType.sendTimeout) {
-        errorDescription =
-            'The upload timed out while sending the attachment. '
-            'Check your connection and try again.';
+        errorDescription = StringConstants.uploadSendTimedOut;
       } else if (isUpload && dioError.type == DioExceptionType.receiveTimeout) {
-        errorDescription =
-            'The upload timed out while the server was processing it. '
-            'Check whether your change was saved before trying again.';
+        errorDescription = StringConstants.uploadProcessingTimedOut;
       } else {
         errorDescription = dioError.message ?? "";
       }
     } else if (error is UploadValidationException) {
       errorDescription = error.message;
     } else {
-      errorDescription = 'Unexpected error';
+      errorDescription = StringConstants.unexpectedError;
     }
     return DataError(errorDescription, statusCode, responseData);
   }

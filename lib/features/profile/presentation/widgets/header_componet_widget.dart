@@ -213,9 +213,9 @@ class HeaderComponetWidget extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     StringConstants.changeImage,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: LightColor.onBrandSurface,
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -260,16 +260,16 @@ class HeaderComponetWidget extends StatelessWidget {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(
+          children: [
+            const Icon(
               Icons.arrow_back_ios_new_rounded,
               color: LightColor.onBrandSurface,
               size: 13,
             ),
-            SizedBox(width: 4),
+            const SizedBox(width: 4),
             Text(
               StringConstants.back,
-              style: TextStyle(
+              style: const TextStyle(
                 color: LightColor.onBrandSurface,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,

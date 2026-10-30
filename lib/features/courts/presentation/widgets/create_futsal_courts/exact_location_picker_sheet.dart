@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_map/flutter_map.dart' show MapController;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/google_tiles_map.dart';
 import 'package:hamro_futsal/core/widgets/static_google_map.dart'
     show supportsNativeGoogleMap;
@@ -21,7 +22,6 @@ import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/core/widgets/loading_widget.dart';
 import 'package:hamro_futsal/features/courts/data/model/picked_location.dart';
 import 'package:http/http.dart' as http;
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class ExactLocationPickerSheet extends StatefulWidget {
   const ExactLocationPickerSheet({
@@ -187,7 +187,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
         AppUtils().showSnackBar(
           context,
           MsgType.error,
-          'No locations found for that search.',
+          StringConstants.noLocationsFoundForThatSearch,
         );
       }
     } catch (_) {
@@ -196,7 +196,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'Unable to search locations right now.',
+        StringConstants.unableToSearchLocationsRightNow,
       );
     }
   }
@@ -206,7 +206,10 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
       _selectedPoint = point;
       _selectedLabel =
           label ??
-          'Searching exact location for ${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}';
+          StringConstants.searchingExactLocationFor(
+            point.latitude.toStringAsFixed(6),
+            point.longitude.toStringAsFixed(6),
+          );
       _isResolving = label == null;
       _results = <_LocationSearchResult>[];
     });
@@ -241,7 +244,10 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
       final String resolved =
           (json['display_name'] as String?)?.trim().isNotEmpty == true
           ? (json['display_name'] as String).trim()
-          : 'Pinned location (${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)})';
+          : StringConstants.pinnedLocation(
+              point.latitude.toStringAsFixed(6),
+              point.longitude.toStringAsFixed(6),
+            );
 
       if (!mounted) return;
       setState(() {
@@ -250,8 +256,10 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _selectedLabel =
-            'Pinned location (${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)})';
+        _selectedLabel = StringConstants.pinnedLocation(
+          point.latitude.toStringAsFixed(6),
+          point.longitude.toStringAsFixed(6),
+        );
       });
     } finally {
       if (mounted) {
@@ -564,7 +572,8 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                           const SizedBox(height: AppDimens.sizeX8),
                           Text(
                             _selectedLabel ??
-                                'Search a place or tap on the map to capture the exact location.',
+                                StringConstants
+                                    .searchPlaceOrTapMapForExactLocation,
                             style: FutsalTheme.getTextTheme(context)
                                 .bodyTextSmall
                                 ?.copyWith(
@@ -596,7 +605,9 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                 const SizedBox(width: AppDimens.sizeX22),
                 Expanded(
                   child: CustomButton(
-                    text: _isResolving ? 'Locating...' : 'Use Location',
+                    text: _isResolving
+                        ? StringConstants.locatingEllipsis
+                        : StringConstants.useLocation,
                     minHeight: AppDimens.sizeX46,
                     onPressed: _selectedPoint == null || _selectedLabel == null
                         ? null

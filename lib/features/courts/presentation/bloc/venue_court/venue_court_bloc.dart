@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_page_model.dart';
 import 'package:hamro_futsal/features/courts/domain/model/venue_court_purpose.dart';
@@ -46,7 +47,7 @@ class VenueCourtBloc extends Bloc<VenueCourtEvent, VenueCourtState> {
     } catch (_) {
       response = left(
         DefaultException(
-          errorMessage: 'Could not load venue courts. Please try again.',
+          errorMessage: StringConstants.couldNotLoadVenueCourts,
           statusCode: 0,
         ),
       );

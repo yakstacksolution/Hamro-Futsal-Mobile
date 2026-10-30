@@ -6,6 +6,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/bloc/vendor_ops_bloc.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class OpsDayOverview extends StatelessWidget {
   const OpsDayOverview({super.key});
@@ -33,27 +34,33 @@ class OpsDayOverview extends StatelessWidget {
         List<Widget> metricsFor({required bool large}) => <Widget>[
           _Metric(
             value: '${s.bookingCount}',
-            label: s.bookingCount == 1 ? 'booking' : 'bookings',
+            label: s.bookingCount == 1
+                ? StringConstants.bookingLower
+                : StringConstants.bookingsLower,
             active: state.focus == OpsFocus.upcoming,
             onTap: () => focus(OpsFocus.upcoming),
             large: large,
           ),
           _Metric(
-            value: '${formatHours(s.bookedMinutes)} h',
-            label: 'booked',
+            value: StringConstants.hoursShort(formatHours(s.bookedMinutes)),
+            label: StringConstants.bookedLower,
             large: large,
           ),
           _Metric(
-            value: '${formatHours(s.availableMinutes)} h',
-            label: 'free',
+            value: StringConstants.hoursShort(formatHours(s.availableMinutes)),
+            label: StringConstants.freeLower,
             active: state.focus == OpsFocus.available,
             onTap: () => focus(OpsFocus.available),
             large: large,
           ),
-          _Metric(value: _rs(s.bookingValue), label: 'value', large: large),
+          _Metric(
+            value: _rs(s.bookingValue),
+            label: StringConstants.valueLower,
+            large: large,
+          ),
           _Metric(
             value: _rs(s.outstanding),
-            label: 'due',
+            label: StringConstants.dueLower,
             tone: s.outstanding > 0 ? colors.owed : null,
             active: state.focus == OpsFocus.outstanding,
             onTap: s.outstanding > 0 ? () => focus(OpsFocus.outstanding) : null,
@@ -61,7 +68,7 @@ class OpsDayOverview extends StatelessWidget {
           ),
           _Metric(
             value: _rs(s.paidValue.clamp(0, s.bookingValue)),
-            label: 'paid',
+            label: StringConstants.paidLower,
             large: large,
           ),
         ];
@@ -154,14 +161,21 @@ class _OccupancyRing extends StatelessWidget {
     final int percent = (s.occupancy * 100).round();
     return Tooltip(
       message:
-          '${formatHours(s.bookedMinutes)} of ${formatHours(s.sellableMinutes)} '
-          'open court-hours booked'
-          '${s.pastUnbookedMinutes > 0 ? ' · ${formatHours(s.pastUnbookedMinutes)} h passed unbooked' : ''}',
+          StringConstants.openCourtHoursBooked(
+            formatHours(s.bookedMinutes),
+            formatHours(s.sellableMinutes),
+          ) +
+          (s.pastUnbookedMinutes > 0
+              ? StringConstants.hoursPassedUnbooked(
+                  formatHours(s.pastUnbookedMinutes),
+                )
+              : ''),
       child: Semantics(
-        label:
-            '$percent percent of open court time booked. '
-            '${formatHours(s.bookedMinutes)} of '
-            '${formatHours(s.sellableMinutes)} hours.',
+        label: StringConstants.occupancySemantics(
+          percent,
+          formatHours(s.bookedMinutes),
+          formatHours(s.sellableMinutes),
+        ),
         child: ExcludeSemantics(
           child: SizedBox.square(
             dimension: size,
@@ -192,7 +206,7 @@ class _OccupancyRing extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'booked',
+                      StringConstants.bookedLower,
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w600,
@@ -293,7 +307,8 @@ class _Metric extends StatelessWidget {
     return Semantics(
       button: onTap != null,
       selected: active,
-      label: '$value $label${onTap == null ? '' : '. Tap to show on board'}',
+      label:
+          '$value $label${onTap == null ? '' : StringConstants.tapToShowOnBoard}',
       child: ExcludeSemantics(
         child: InkWell(
           onTap: onTap,

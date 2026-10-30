@@ -1,3 +1,5 @@
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+
 enum ExpenseCategory {
   rent,
   maintenance,
@@ -12,15 +14,15 @@ enum ExpenseCategory {
 
 extension ExpenseCategoryLabel on ExpenseCategory {
   String get label => switch (this) {
-    ExpenseCategory.rent => 'Rent',
-    ExpenseCategory.maintenance => 'Maintenance',
-    ExpenseCategory.salaries => 'Salaries',
-    ExpenseCategory.supplies => 'Supplies',
-    ExpenseCategory.marketing => 'Marketing',
-    ExpenseCategory.refreshments => 'Refreshments',
-    ExpenseCategory.insurance => 'Insurance',
-    ExpenseCategory.utilities => 'Utilities',
-    ExpenseCategory.other => 'Other',
+    ExpenseCategory.rent => StringConstants.expenseCategoryRent,
+    ExpenseCategory.maintenance => StringConstants.expenseCategoryMaintenance,
+    ExpenseCategory.salaries => StringConstants.expenseCategorySalaries,
+    ExpenseCategory.supplies => StringConstants.expenseCategorySupplies,
+    ExpenseCategory.marketing => StringConstants.expenseCategoryMarketing,
+    ExpenseCategory.refreshments => StringConstants.expenseCategoryRefreshments,
+    ExpenseCategory.insurance => StringConstants.expenseCategoryInsurance,
+    ExpenseCategory.utilities => StringConstants.expenseCategoryUtilities,
+    ExpenseCategory.other => StringConstants.expenseCategoryOther,
   };
 }
 
@@ -62,7 +64,8 @@ class ExpenseCategoryModel {
   ExpenseCategory get asEnum => ExpenseCategory.values.firstWhere(
     (c) =>
         c.name == slug.toLowerCase() ||
-        c.label.toLowerCase() == name.toLowerCase(),
+        // Match on the fixed English enum name, never the localized label.
+        c.name == name.toLowerCase(),
     orElse: () => ExpenseCategory.other,
   );
 }
@@ -71,8 +74,8 @@ enum PaymentMethod { cash, online }
 
 extension PaymentMethodLabel on PaymentMethod {
   String get label => switch (this) {
-    PaymentMethod.cash => 'Cash',
-    PaymentMethod.online => 'Online',
+    PaymentMethod.cash => StringConstants.paymentMethodCash,
+    PaymentMethod.online => StringConstants.online,
   };
 }
 

@@ -399,7 +399,7 @@ class _PresenceLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-    isOnline ? 'Online' : 'Offline',
+    isOnline ? StringConstants.online : StringConstants.offline,
     style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
       color: isOnline ? LightColor.successColor : LightColor.hintTextColor,
       fontSize: AppDimens.fontBodySubTitle,

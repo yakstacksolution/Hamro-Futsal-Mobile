@@ -26,6 +26,7 @@ import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops
 import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops_toolbar.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops_week_table.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 const double _kGutter = 16;
 
@@ -337,9 +338,10 @@ class _Content extends StatelessWidget {
           case VendorOpsStatus.failure:
             return AppMessageView(
               icon: Icons.cloud_off_rounded,
-              title: 'Could not load your venues',
-              message: state.errorMessage ?? 'Check your connection and retry.',
-              actionLabel: 'Retry',
+              title: StringConstants.couldNotLoadYourVenues,
+              message:
+                  state.errorMessage ?? StringConstants.checkConnectionAndRetry,
+              actionLabel: StringConstants.retry,
               onAction: () => bloc.add(const VendorOpsStarted()),
             );
           case VendorOpsStatus.success:
@@ -348,11 +350,9 @@ class _Content extends StatelessWidget {
         if (state.courts.isEmpty) {
           return AppMessageView(
             icon: Icons.stadium_outlined,
-            title: 'No venues to manage yet',
-            message:
-                'Once a venue with courts is approved, today\'s bookings and '
-                'availability appear here.',
-            actionLabel: 'Refresh',
+            title: StringConstants.noVenuesToManageYet,
+            message: StringConstants.noVenuesToManageMessage,
+            actionLabel: StringConstants.refresh,
             onAction: () => bloc.add(const VendorOpsStarted()),
           );
         }
@@ -394,7 +394,7 @@ class _Content extends StatelessWidget {
                           child: _InlineError(
                             message:
                                 state.errorMessage ??
-                                'Bookings for this date could not be loaded.',
+                                StringConstants.bookingsForDateCouldNotLoad,
                             onRetry: () => bloc.add(const VendorOpsRefreshed()),
                           ),
                         ),
@@ -437,7 +437,7 @@ class _ActiveContext extends StatelessWidget {
           liveRegion: true,
           child: Text(
             state.isToday
-                ? 'Today · ${DateFmt.date(state.date)}'
+                ? StringConstants.todayWithDate(DateFmt.date(state.date))
                 : DateFmt.date(state.date),
             style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
               fontSize: 15,
@@ -506,16 +506,19 @@ class _SelectionBar extends StatelessWidget {
       (double sum, double? p) => sum + (p ?? 0),
     );
 
-    final String headline =
-        '$slots ${slots == 1 ? 'slot' : 'slots'} · '
-        '${formatHours(state.selectedMinutes)} court-h';
+    final String headline = StringConstants.selectionHeadline(
+      slots,
+      formatHours(state.selectedMinutes),
+    );
     // Unpriced slots are priced by the server on confirmation, so a partial
     // total is a floor, not the estimate.
     final String price = !anyPriced
-        ? 'Price on confirmation'
-        : 'Est. ${allPriced ? '' : 'from '}${Money.npr(estimate)}';
-    final String detail =
-        '$courts ${courts == 1 ? 'court' : 'courts'} · $price';
+        ? StringConstants.priceOnConfirmation
+        : StringConstants.estimatedPrice(
+            Money.npr(estimate),
+            allPriced: allPriced,
+          );
+    final String detail = StringConstants.courtsPriceDetail(courts, price);
 
     const Color fg = LightColor.onBrandSurface;
     const List<FontFeature> figures = <FontFeature>[
@@ -523,7 +526,7 @@ class _SelectionBar extends StatelessWidget {
     ];
     return Semantics(
       container: true,
-      label: 'Selected: $headline, $detail',
+      label: StringConstants.selectedSummarySemantics(headline, detail),
       child: Material(
         color: LightColor.secondaryColor,
         elevation: 6,
@@ -539,7 +542,7 @@ class _SelectionBar extends StatelessWidget {
               child: Row(
                 children: <Widget>[
                   IconButton(
-                    tooltip: 'Clear selection',
+                    tooltip: StringConstants.clearSelection,
                     visualDensity: VisualDensity.compact,
                     color: fg,
                     icon: const Icon(Icons.close_rounded, size: 20),
@@ -591,9 +594,9 @@ class _SelectionBar extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       minimumSize: const Size(0, 40),
                     ),
-                    child: const Text(
-                      'Review',
-                      style: TextStyle(fontWeight: FontWeight.w800),
+                    child: Text(
+                      StringConstants.review,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
                 ],
@@ -637,7 +640,7 @@ class _InlineError extends StatelessWidget {
               ),
             ),
           ),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
+          TextButton(onPressed: onRetry, child: Text(StringConstants.retry)),
         ],
       ),
     );
@@ -658,7 +661,7 @@ class _LoadingSkeleton extends StatelessWidget {
       ),
     );
     return Semantics(
-      label: 'Loading today\'s operations',
+      label: StringConstants.loadingTodaysOperations,
       child: ExcludeSemantics(
         child: Shimmer.fromColors(
           baseColor: LightColor.skeletonBaseColor,
@@ -830,7 +833,7 @@ class _AvailabilityHeaderDelegate extends SliverPersistentHeaderDelegate {
             Expanded(
               flex: weekControls || dayControls ? 0 : 1,
               child: Text(
-                'Availability',
+                StringConstants.availability,
                 style: FutsalTheme.getTextTheme(context).bodyTextMedium
                     ?.copyWith(
                       fontSize: 15,
@@ -1002,7 +1005,7 @@ class _DayBarControls extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    'STATUS KEY',
+                    StringConstants.statusKey,
                     style: TextStyle(
                       fontSize: 10,
                       letterSpacing: 0.8,
@@ -1046,7 +1049,7 @@ class _StatusToggle extends StatelessWidget {
     return Semantics(
       button: true,
       expanded: open,
-      label: open ? 'Hide statuses' : 'View statuses',
+      label: open ? StringConstants.hideStatuses : StringConstants.viewStatuses,
       child: ExcludeSemantics(
         child: InkWell(
           onTap: onPressed,
@@ -1060,7 +1063,7 @@ class _StatusToggle extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Text(
-                    'Status',
+                    StringConstants.status,
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
@@ -1142,9 +1145,17 @@ class _ViewTabs extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          tab(OpsAvailabilityView.day, 'Day', 'Every court today'),
+          tab(
+            OpsAvailabilityView.day,
+            StringConstants.day,
+            StringConstants.everyCourtToday,
+          ),
           const SizedBox(width: 3),
-          tab(OpsAvailabilityView.week, 'Week', 'One court, whole week'),
+          tab(
+            OpsAvailabilityView.week,
+            StringConstants.week,
+            StringConstants.oneCourtWholeWeek,
+          ),
         ],
       ),
     );

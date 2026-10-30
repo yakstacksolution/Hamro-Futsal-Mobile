@@ -1,5 +1,6 @@
 import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class ResponseHelper {
   static AppException error(dynamic source) {
@@ -11,8 +12,7 @@ class ResponseHelper {
 
     switch (statusCode) {
       case 1517:
-        errorMessage =
-            'The server responded with malformed data, please retry again.';
+        errorMessage = StringConstants.serverMalformedData;
         return ServerException(
           errorMessage: errorMessage,
           statusCode: statusCode,
@@ -23,9 +23,15 @@ class ResponseHelper {
       case 522:
       case 504:
       case 552:
-        errorMessage = error.message.toLowerCase().contains('upload timed out')
+        // ApiCallWrapper sets the localized upload-timeout copy itself, so
+        // match it by value as well as by the English server wording.
+        final bool uploadTimedOut =
+            error.message == StringConstants.uploadSendTimedOut ||
+            error.message == StringConstants.uploadProcessingTimedOut ||
+            error.message.toLowerCase().contains('upload timed out');
+        errorMessage = uploadTimedOut
             ? error.message
-            : 'The server encountered an error and could not complete your request, please retry again.';
+            : StringConstants.serverErrorRetry;
         return ServerException(
           errorMessage: errorMessage,
           statusCode: statusCode,
@@ -33,8 +39,7 @@ class ResponseHelper {
           data: errorData,
         );
       case 1503:
-        errorMessage =
-            'No Internet Connection, please check your network settings and try again.';
+        errorMessage = StringConstants.noInternetConnectionCheckSettings;
         return NetworkException(
           errorMessage: errorMessage,
           statusCode: statusCode,
@@ -43,8 +48,7 @@ class ResponseHelper {
         );
       case 1599:
       case 1525:
-        errorMessage =
-            'Network unreachable, please check your network settings and try again.';
+        errorMessage = StringConstants.networkUnreachable;
         return NetworkException(
           errorMessage: errorMessage,
           statusCode: statusCode,
@@ -61,7 +65,7 @@ class ResponseHelper {
           data: errorData,
         );
       case 204:
-        errorMessage = 'No content found.';
+        errorMessage = StringConstants.noContentFound;
         return NoContentException(
           errorMessage: errorMessage,
           statusCode: statusCode,
@@ -82,8 +86,7 @@ class ResponseHelper {
         );
       case 413:
         return ValidationException(
-          errorMessage:
-              'The selected file is too large for the server. Choose a smaller file and try again.',
+          errorMessage: StringConstants.fileTooLargeForServer,
           statusCode: statusCode,
           icon: icon,
           data: errorData,
@@ -187,7 +190,7 @@ class ResponseHelper {
         lower.contains('zero byte') ||
         lower.contains('empty');
     if (mentionsUpload && unreadable) {
-      return 'The server could not read the attachment. Reattach a smaller file and try again.';
+      return StringConstants.serverCouldNotReadAttachment;
     }
     return message;
   }
@@ -212,7 +215,7 @@ class ResponseHelper {
       return error.message;
     }
 
-    return 'Something went wrong. Please try again.';
+    return StringConstants.somethingWentWrongTryAgain;
   }
 
   static dynamic _extractData(DataError error) {

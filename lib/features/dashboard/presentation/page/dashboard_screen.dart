@@ -30,6 +30,7 @@ import 'package:hamro_futsal/features/profile/presentation/pages/profile_page.da
 import 'package:hamro_futsal/core/helper/device_location_helper.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/pages/vendor_operations_home.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops_toolbar.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -290,7 +291,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     final ProfileState profileState = context.watch<ProfileBloc>().state;
     return profileState.profile?.data.fullName.trim().isNotEmpty == true
         ? profileState.profile!.data.fullName.trim().split(' ').first
-        : 'there';
+        : StringConstants.greetingFallbackName;
   }
 
   Widget _appBar() {
@@ -307,7 +308,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         vertical: AppDimens.paddingX10,
       ),
       child: HomeGreeting(
-        text: "${appUtils.greeting()}, $firstName 👋",
+        text: StringConstants.greetingWithName(appUtils.greeting(), firstName),
         trailing: Stack(
           clipBehavior: Clip.none,
           children: <Widget>[

@@ -4,6 +4,7 @@ import 'package:hamro_futsal/core/helper/response_helper.dart';
 import 'package:hamro_futsal/features/products/data/data_source/products_remote_data_source.dart';
 import 'package:hamro_futsal/features/products/data/model/product_models.dart';
 import 'package:hamro_futsal/features/products/domain/repository/products_repository.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 final class ProductsRepositoryImpl extends ProductsRepository {
   ProductsRepositoryImpl({ProductsRemoteDataSource? remoteDataSource})
@@ -38,7 +39,9 @@ final class ProductsRepositoryImpl extends ProductsRepository {
               .toList(growable: false);
       return right(venues);
     } catch (_) {
-      return left(_parseException('Could not read venues from the server.'));
+      return left(
+        _parseException(StringConstants.couldNotReadVenuesFromServer),
+      );
     }
   }
 
@@ -68,7 +71,9 @@ final class ProductsRepositoryImpl extends ProductsRepository {
               .toList(growable: false);
       return right(products);
     } catch (_) {
-      return left(_parseException('Could not read products from the server.'));
+      return left(
+        _parseException(StringConstants.couldNotReadProductsFromServer),
+      );
     }
   }
 

@@ -7,6 +7,7 @@ import 'package:hamro_futsal/features/booking_overview/presentation/models/booki
 import 'package:hamro_futsal/features/booking_overview/presentation/utils/booking_ui_utils.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_common.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BookingTrendCard extends StatelessWidget {
   const BookingTrendCard({super.key, required this.analytics});
@@ -100,7 +101,7 @@ class BookingTrendCard extends StatelessWidget {
                 labels.isNotEmpty
                     ? labels.first
                     : analytics.period == BookingPeriod.today
-                    ? '12 AM'
+                    ? StringConstants.twelveAm
                     : BookingFmt.shortDate(analytics.range.start),
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.hintTextColor,
@@ -112,7 +113,7 @@ class BookingTrendCard extends StatelessWidget {
                 labels.isNotEmpty
                     ? labels.last
                     : analytics.period == BookingPeriod.today
-                    ? '11 PM'
+                    ? StringConstants.elevenPm
                     : BookingFmt.shortDate(
                         analytics.range.end.subtract(const Duration(days: 1)),
                       ),
@@ -162,7 +163,7 @@ class BookingStatusCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '$total total bookings',
+                StringConstants.totalBookingsCount(total),
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w600,

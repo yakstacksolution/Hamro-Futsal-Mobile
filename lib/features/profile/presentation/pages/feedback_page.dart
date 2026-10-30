@@ -112,7 +112,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'Please choose a feedback type and category first.',
+        StringConstants.chooseFeedbackTypeAndCategoryFirst,
         key: 'feedback_option_required',
       );
       return;
@@ -121,7 +121,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'Please rate your experience before submitting.',
+        StringConstants.rateYourExperienceBeforeSubmitting,
         key: 'rating_required',
       );
       return;
@@ -167,115 +167,115 @@ class _FeedbackPageState extends State<FeedbackPage> {
     );
   }
 
-  Widget _buildFormCard({
-    List<Widget> trailing = const <Widget>[],
-  }) => _FormCard(
-    children: <Widget>[
-      const _SectionLabel(
-        icon: Icons.category_outlined,
-        label: StringConstants.feedbackCategory,
-      ),
-      const SizedBox(height: AppDimens.paddingX10),
-      _FeedbackOptionsBlock(
-        isLoading: _isLoadingOptions,
-        errorText: _optionsError,
-        onRetry: () => _loadFeedbackOptions(forceRefresh: true),
-        child: _AudienceSegments(
-          options: _catalog?.categories ?? const <FeedbackOptionModel>[],
-          value: _selectedCategory,
-          onChanged: (FeedbackOptionModel value) =>
-              setState(() => _selectedCategory = value),
-        ),
-      ),
-      const _SectionDivider(),
-      const _SectionLabel(
-        icon: Icons.sell_outlined,
-        label: StringConstants.feedbackType,
-      ),
-      const SizedBox(height: AppDimens.paddingX10),
-      _FeedbackOptionsBlock(
-        isLoading: _isLoadingOptions,
-        errorText: _optionsError,
-        onRetry: () => _loadFeedbackOptions(forceRefresh: true),
-        child: _MoodChips(
-          options: _catalog?.types ?? const <FeedbackOptionModel>[],
-          value: _selectedType,
-          onChanged: (FeedbackOptionModel value) => setState(() {
-            _selectedType = value;
-            _selectedCategory = _resolveCategorySelection(
-              _catalog ??
-                  const FeedbackCatalog(
-                    types: <FeedbackOptionModel>[],
-                    categories: <FeedbackOptionModel>[],
-                  ),
-              value,
-            );
-          }),
-        ),
-      ),
-      const _SectionDivider(),
-      const _SectionLabel(
-        icon: Icons.star_outline_rounded,
-        label: 'How was your experience?',
-      ),
-      const SizedBox(height: AppDimens.paddingX10),
-      _RatingBlock(
-        rating: _rating,
-        onChanged: (rating) {
-          HapticFeedback.selectionClick();
-          setState(() => _rating = rating);
-        },
-      ),
-      const _SectionDivider(),
-      const _SectionLabel(
-        icon: Icons.chat_bubble_outline_rounded,
-        label: StringConstants.feedbackMessage,
-      ),
-      const SizedBox(height: AppDimens.paddingX10),
-      CustomTextField(
-        labelText: StringConstants.feedbackMessage,
-        hintText:
-            'What worked well? What should we improve? The more detail, the better.',
-        maxLines: 6,
-        minLines: 4,
-        controller: _messageController,
-        textCapitalization: TextCapitalization.sentences,
-        ensureVisibleOnFocus: true,
-        onChanged: (value) =>
-            setState(() => _messageLength = value.trim().length),
-        inputFormatters: [LengthLimitingTextInputFormatter(_kMaxMessageLength)],
-        validator: (value) {
-          final text = (value ?? '').trim();
-          if (text.isEmpty) return 'Please add a short message.';
-          if (text.length < _kMinMessageLength) {
-            return 'Please provide a little more detail.';
-          }
-          return null;
-        },
-      ),
-      const SizedBox(height: AppDimens.paddingX6),
-      _MessageCounter(length: _messageLength),
-      const SizedBox(height: AppDimens.paddingX14),
-      CustomTextField(
-        labelText: StringConstants.feedbackContact,
-        hintText: 'Phone number or email',
-        icon: Icons.alternate_email_rounded,
-        controller: _contactController,
-        isRequired: false,
-        keyboardType: TextInputType.emailAddress,
-        ensureVisibleOnFocus: true,
-        validator: (value) {
-          final text = (value ?? '').trim();
-          if (text.isEmpty) return null;
-          if (text.length < 5) {
-            return 'Please enter a valid contact.';
-          }
-          return null;
-        },
-      ),
-      ...trailing,
-    ],
-  );
+  Widget _buildFormCard({List<Widget> trailing = const <Widget>[]}) =>
+      _FormCard(
+        children: <Widget>[
+          _SectionLabel(
+            icon: Icons.category_outlined,
+            label: StringConstants.feedbackCategory,
+          ),
+          const SizedBox(height: AppDimens.paddingX10),
+          _FeedbackOptionsBlock(
+            isLoading: _isLoadingOptions,
+            errorText: _optionsError,
+            onRetry: () => _loadFeedbackOptions(forceRefresh: true),
+            child: _AudienceSegments(
+              options: _catalog?.categories ?? const <FeedbackOptionModel>[],
+              value: _selectedCategory,
+              onChanged: (FeedbackOptionModel value) =>
+                  setState(() => _selectedCategory = value),
+            ),
+          ),
+          const _SectionDivider(),
+          _SectionLabel(
+            icon: Icons.sell_outlined,
+            label: StringConstants.feedbackType,
+          ),
+          const SizedBox(height: AppDimens.paddingX10),
+          _FeedbackOptionsBlock(
+            isLoading: _isLoadingOptions,
+            errorText: _optionsError,
+            onRetry: () => _loadFeedbackOptions(forceRefresh: true),
+            child: _MoodChips(
+              options: _catalog?.types ?? const <FeedbackOptionModel>[],
+              value: _selectedType,
+              onChanged: (FeedbackOptionModel value) => setState(() {
+                _selectedType = value;
+                _selectedCategory = _resolveCategorySelection(
+                  _catalog ??
+                      const FeedbackCatalog(
+                        types: <FeedbackOptionModel>[],
+                        categories: <FeedbackOptionModel>[],
+                      ),
+                  value,
+                );
+              }),
+            ),
+          ),
+          const _SectionDivider(),
+          _SectionLabel(
+            icon: Icons.star_outline_rounded,
+            label: StringConstants.howWasYourExperience,
+          ),
+          const SizedBox(height: AppDimens.paddingX10),
+          _RatingBlock(
+            rating: _rating,
+            onChanged: (rating) {
+              HapticFeedback.selectionClick();
+              setState(() => _rating = rating);
+            },
+          ),
+          const _SectionDivider(),
+          _SectionLabel(
+            icon: Icons.chat_bubble_outline_rounded,
+            label: StringConstants.feedbackMessage,
+          ),
+          const SizedBox(height: AppDimens.paddingX10),
+          CustomTextField(
+            labelText: StringConstants.feedbackMessage,
+            hintText: StringConstants.feedbackMessageHint,
+            maxLines: 6,
+            minLines: 4,
+            controller: _messageController,
+            textCapitalization: TextCapitalization.sentences,
+            ensureVisibleOnFocus: true,
+            onChanged: (value) =>
+                setState(() => _messageLength = value.trim().length),
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(_kMaxMessageLength),
+            ],
+            validator: (value) {
+              final text = (value ?? '').trim();
+              if (text.isEmpty) return StringConstants.addAShortMessage;
+              if (text.length < _kMinMessageLength) {
+                return StringConstants.provideALittleMoreDetail;
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: AppDimens.paddingX6),
+          _MessageCounter(length: _messageLength),
+          const SizedBox(height: AppDimens.paddingX14),
+          CustomTextField(
+            labelText: StringConstants.feedbackContact,
+            hintText: StringConstants.phoneNumberOrEmail,
+            icon: Icons.alternate_email_rounded,
+            controller: _contactController,
+            isRequired: false,
+            keyboardType: TextInputType.emailAddress,
+            ensureVisibleOnFocus: true,
+            validator: (value) {
+              final text = (value ?? '').trim();
+              if (text.isEmpty) return null;
+              if (text.length < 5) {
+                return StringConstants.enterAValidContact;
+              }
+              return null;
+            },
+          ),
+          ...trailing,
+        ],
+      );
 
   Widget _submitButton() => CustomButton(
     text: StringConstants.submitFeedback,
@@ -295,7 +295,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
           TextButton(
             onPressed: () => context.pushNamed(AppRouterParams.myFeedback.name),
             child: Text(
-              'My Feedback',
+              StringConstants.myFeedback,
               style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
                 color: LightColor.secondaryColor,
                 fontWeight: FontWeight.w700,
@@ -372,7 +372,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
           TextButton(
             onPressed: () => context.pushNamed(AppRouterParams.myFeedback.name),
             child: Text(
-              'My Feedback',
+              StringConstants.myFeedback,
               style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
                 color: LightColor.secondaryColor,
                 fontWeight: FontWeight.w700,
@@ -598,8 +598,8 @@ class _FeedbackOptionsBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const _FeedbackStatusRow(
-        leading: SizedBox(
+      return _FeedbackStatusRow(
+        leading: const SizedBox(
           width: 18,
           height: 18,
           child: CircularProgressIndicator(
@@ -607,7 +607,7 @@ class _FeedbackOptionsBlock extends StatelessWidget {
             color: LightColor.secondaryColor,
           ),
         ),
-        message: 'Loading options...',
+        message: StringConstants.loadingOptions,
       );
     }
 
@@ -649,7 +649,7 @@ class _AudienceSegments extends StatelessWidget {
           size: 18,
           color: LightColor.hintTextColor,
         ),
-        message: 'No feedback categories available.',
+        message: StringConstants.noFeedbackCategoriesAvailable,
       );
     }
 
@@ -720,7 +720,7 @@ class _MoodChips extends StatelessWidget {
           size: 18,
           color: LightColor.hintTextColor,
         ),
-        message: 'No feedback types available.',
+        message: StringConstants.noFeedbackTypesAvailable,
       );
     }
 
@@ -854,12 +854,12 @@ class _RatingBlock extends StatelessWidget {
   final int rating;
   final ValueChanged<int> onChanged;
 
-  static const List<String> _labels = <String>[
-    'Terrible',
-    'Poor',
-    'Okay',
-    'Good',
-    'Excellent',
+  static List<String> get _labels => <String>[
+    StringConstants.ratingTerrible,
+    StringConstants.ratingPoor,
+    StringConstants.okay,
+    StringConstants.ratingGood,
+    StringConstants.ratingExcellent,
   ];
 
   Color get _labelColor => switch (rating) {
@@ -1041,7 +1041,7 @@ class _ThankYouDialog extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX16),
             Text(
-              'Thank you!',
+              StringConstants.thankYou,
               style: textTheme.bodyTextLarge?.copyWith(
                 color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w800,
@@ -1057,7 +1057,7 @@ class _ThankYouDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppDimens.paddingX18),
-            CustomButton(text: 'Done', onPressed: onDone),
+            CustomButton(text: StringConstants.done, onPressed: onDone),
           ],
         ),
       ),

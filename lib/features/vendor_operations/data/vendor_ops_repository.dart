@@ -11,6 +11,7 @@ import 'package:hamro_futsal/features/bookings/domain/repository/booking_reposit
 import 'package:hamro_futsal/features/vendor_operations/data/data_source/vendor_ops_remote_data_source.dart';
 import 'package:hamro_futsal/features/vendor_operations/data/model/court_availability_slots_model.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class VendorOpsRepository {
   VendorOpsRepository({
@@ -70,7 +71,7 @@ class VendorOpsRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not load this court\'s week from the server.',
+          errorMessage: StringConstants.couldNotLoadCourtWeek,
           statusCode: 0,
         ),
       );
@@ -96,7 +97,7 @@ class VendorOpsRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not load the day\'s slots from the server.',
+          errorMessage: StringConstants.couldNotLoadDaySlots,
           statusCode: 0,
         ),
       );

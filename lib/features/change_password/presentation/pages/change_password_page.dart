@@ -70,7 +70,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.changePassword),
+      appBar: CustomAppBar(title: StringConstants.changePassword),
       body: SafeArea(
         top: false,
         child: BlocConsumer<ChangePasswordBloc, ChangePasswordState>(
@@ -79,7 +79,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               AppUtils().showSnackBar(
                 context,
                 MsgType.error,
-                state.message ?? 'Could not change the password.',
+                state.message ?? StringConstants.couldNotChangePassword,
               );
             }
             if (state.status == ChangePasswordStatus.success) {
@@ -106,7 +106,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   AppDimens.paddingX20,
                 ),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(
+                  constraints: const BoxConstraints(
                     maxWidth:
                         (AppDimens.sizeX130 + AppDimens.sizeX130) *
                         AppDimens.sizeX2,
@@ -257,7 +257,7 @@ class _ChangePasswordHeader extends StatelessWidget {
           height: AppDimens.sizeX58,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: <Color>[

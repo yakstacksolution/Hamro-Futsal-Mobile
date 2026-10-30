@@ -17,7 +17,7 @@ class BookingVenuePerformanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = analytics.futsalLeaderboard;
     if (rows.isEmpty) {
-      return const BookingEmptyMicro(text: StringConstants.noVenueActivity);
+      return BookingEmptyMicro(text: StringConstants.noVenueActivity);
     }
 
     return BookingSurface(
@@ -75,7 +75,7 @@ class _VenueRow extends StatelessWidget {
               Expanded(
                 child: _VenueMetric(
                   icon: Icons.event_available_outlined,
-                  label: 'Bookings',
+                  label: StringConstants.bookings,
                   value: '${row.bookings}',
                 ),
               ),
@@ -87,7 +87,7 @@ class _VenueRow extends StatelessWidget {
               Expanded(
                 child: _VenueMetric(
                   icon: Icons.timer_outlined,
-                  label: 'Booked hours',
+                  label: StringConstants.bookedHours,
                   value: '${BookingFmt.hours(row.bookedHours)}h',
                 ),
               ),
@@ -95,7 +95,9 @@ class _VenueRow extends StatelessWidget {
               Expanded(
                 child: _VenueMetric(
                   icon: Icons.grid_view_rounded,
-                  label: row.courtCount == 1 ? 'Court' : 'Courts',
+                  label: row.courtCount == 1
+                      ? StringConstants.court
+                      : StringConstants.courts,
                   value: '${row.courtCount}',
                 ),
               ),
@@ -220,7 +222,7 @@ class BookingTopCourtsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = analytics.courtLeaderboard.take(5).toList();
     if (rows.isEmpty) {
-      return const BookingEmptyMicro(text: StringConstants.noCourtActivity);
+      return BookingEmptyMicro(text: StringConstants.noCourtActivity);
     }
 
     final maxV = rows.first.revenue.clamp(1, 1 << 30);
@@ -252,7 +254,7 @@ class BookingTopCourtsCard extends StatelessWidget {
                     title: rows[i].courtName,
                     subtitle: <String>[
                       if (rows[i].venueName.isNotEmpty) rows[i].venueName,
-                      '${rows[i].bookings} ${rows[i].bookings == 1 ? 'booking' : 'bookings'}',
+                      StringConstants.bookingCount(rows[i].bookings),
                     ].join(' · '),
                     revenue: rows[i].revenue,
                   ),
@@ -395,7 +397,7 @@ class BookingTopCustomersCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = analytics.topCustomers;
     if (rows.isEmpty) {
-      return const BookingEmptyMicro(text: StringConstants.noCustomerActivity);
+      return BookingEmptyMicro(text: StringConstants.noCustomerActivity);
     }
 
     final textTheme = FutsalTheme.getTextTheme(context);
@@ -421,7 +423,7 @@ class BookingTopCustomersCard extends StatelessWidget {
                 ),
                 title: rows[i].name,
                 subtitle: <String>[
-                  '${rows[i].bookings} ${rows[i].bookings == 1 ? 'booking' : 'bookings'}',
+                  StringConstants.bookingCount(rows[i].bookings),
                   if (rows[i].phone.isNotEmpty)
                     rows[i].phone
                   else if (rows[i].email.isNotEmpty)

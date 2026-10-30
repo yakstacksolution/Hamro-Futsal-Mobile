@@ -71,8 +71,10 @@ class ExpenseHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            '≈ ${ExpenseFmt.npr(summary.avgPerDay.round())} / day · '
-            '${summary.entries} ${summary.entries == 1 ? 'entry' : 'entries'}',
+            StringConstants.avgPerDayWithEntries(
+              ExpenseFmt.npr(summary.avgPerDay.round()),
+              summary.entries,
+            ),
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.hintTextColor,
             ),
@@ -165,14 +167,14 @@ class ExpenseKpiGrid extends StatelessWidget {
         icon: Icons.functions_rounded,
         label: StringConstants.avgDay,
         value: ExpenseFmt.npr(summary.avgPerDay.round()),
-        sub: 'Daily average',
+        sub: StringConstants.dailyAverage,
         accent: LightColor.secondaryColor,
       ),
       _Kpi(
         icon: Icons.format_list_numbered_rounded,
         label: StringConstants.entries,
         value: '${summary.entries}',
-        sub: 'Avg ${ExpenseFmt.npr(summary.avgPerEntry)} / entry',
+        sub: StringConstants.avgPerEntry(ExpenseFmt.npr(summary.avgPerEntry)),
         accent: LightColor.blueColor,
       ),
       _Kpi(
@@ -181,7 +183,9 @@ class ExpenseKpiGrid extends StatelessWidget {
         categoryId: topCat?.id,
         label: StringConstants.topCategory,
         value: topCat?.name.isNotEmpty == true ? topCat!.name : '—',
-        sub: topCat == null ? 'No expenses yet' : ExpenseFmt.npr(topCat.total),
+        sub: topCat == null
+            ? StringConstants.noExpensesYet
+            : ExpenseFmt.npr(topCat.total),
         accent: topCatEnum?.color ?? LightColor.iconGrey,
       ),
       _Kpi(
@@ -189,7 +193,7 @@ class ExpenseKpiGrid extends StatelessWidget {
         label: StringConstants.topVenue,
         value: topVenue?.name.isNotEmpty == true ? topVenue!.name : '—',
         sub: topVenue == null
-            ? 'No expenses yet'
+            ? StringConstants.noExpensesYet
             : ExpenseFmt.npr(topVenue.total),
         accent: LightColor.warningColor,
       ),

@@ -9,6 +9,7 @@ import 'package:hamro_futsal/features/coupons/data/model/applied_coupon_model.da
 import 'package:hamro_futsal/features/coupons/data/model/coupon_model.dart';
 import 'package:hamro_futsal/features/coupons/domain/usecase/apply_coupon_use_case.dart';
 import 'package:hamro_futsal/features/coupons/domain/usecase/get_active_coupons_use_case.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 part 'coupon_event.dart';
 part 'coupon_state.dart';
@@ -58,7 +59,7 @@ class CouponBloc extends Bloc<CouponEvent, CouponState> {
   ) async {
     final String code = event.code.trim();
     if (code.isEmpty) {
-      emit(state.copyWith(applyError: 'Enter a coupon code.'));
+      emit(state.copyWith(applyError: StringConstants.enterACouponCode));
       return;
     }
 

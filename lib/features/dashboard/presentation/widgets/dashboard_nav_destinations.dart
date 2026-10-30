@@ -15,7 +15,7 @@ class DashboardNavDestination {
   final String label;
 }
 
-const List<DashboardNavDestination> dashboardNavDestinations =
+List<DashboardNavDestination> get dashboardNavDestinations =>
     <DashboardNavDestination>[
       DashboardNavDestination(
         icon: ImageConstants.navHome,

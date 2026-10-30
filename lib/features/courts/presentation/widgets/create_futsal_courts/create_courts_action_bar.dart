@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 
 class CreateCourtsActionBar extends StatelessWidget {
@@ -40,7 +41,9 @@ class CreateCourtsActionBar extends StatelessWidget {
             Expanded(
               flex: 2,
               child: CustomButton(
-                text: currentStep > 0 ? 'Back' : 'Reset',
+                text: currentStep > 0
+                    ? StringConstants.back
+                    : StringConstants.reset,
                 icon: currentStep > 0
                     ? Icons.arrow_back_ios
                     : Icons.refresh_rounded,
@@ -57,7 +60,9 @@ class CreateCourtsActionBar extends StatelessWidget {
             Expanded(
               flex: 2,
               child: CustomButton(
-                text: isLastStep ? 'Create Shop' : 'Continue',
+                text: isLastStep
+                    ? StringConstants.createShop
+                    : StringConstants.continueLabel,
                 icon: isLastStep
                     ? Icons.add_business_rounded
                     : Icons.arrow_forward_ios,

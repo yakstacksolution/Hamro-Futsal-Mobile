@@ -62,7 +62,7 @@ class _HelpFaqView extends StatelessWidget {
     if (context.isTabletOrWider) {
       return Scaffold(
         backgroundColor: LightColor.background,
-        appBar: const CustomAppBar(title: StringConstants.helpAndFaq),
+        appBar: CustomAppBar(title: StringConstants.helpAndFaq),
         body: SafeArea(top: false, child: _HelpCenterWide(isVendor: isVendor)),
       );
     }
@@ -70,7 +70,7 @@ class _HelpFaqView extends StatelessWidget {
       length: 3,
       child: Scaffold(
         backgroundColor: LightColor.background,
-        appBar: const CustomAppBar(title: StringConstants.helpAndFaq),
+        appBar: CustomAppBar(title: StringConstants.helpAndFaq),
         body: SafeArea(
           top: false,
           child: Column(
@@ -87,7 +87,7 @@ class _HelpFaqView extends StatelessWidget {
                 unselectedLabelStyle: textTheme.bodyTextSmall?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
-                tabs: const <Widget>[
+                tabs: <Widget>[
                   Tab(text: StringConstants.faqs, height: 40),
                   Tab(text: StringConstants.help, height: 40),
                   Tab(text: StringConstants.videos, height: 40),
@@ -102,10 +102,10 @@ class _HelpFaqView extends StatelessWidget {
                           status: state.faqsStatus,
                           isEmpty: state.faqs.isEmpty,
                           errorMessage:
-                              state.faqsError ?? 'Could not load FAQs.',
-                          emptyTitle: 'No FAQs yet',
-                          emptyMessage:
-                              'Frequently asked questions will appear here.',
+                              state.faqsError ??
+                              StringConstants.couldNotLoadFaqs,
+                          emptyTitle: StringConstants.noFaqsYet,
+                          emptyMessage: StringConstants.faqsWillAppearHere,
                           onRetry: () => context.read<SupportBloc>().add(
                             const FetchFaqsEvent(),
                           ),
@@ -134,10 +134,10 @@ class _HelpFaqView extends StatelessWidget {
                               isEmpty: otherHelps.isEmpty,
                               errorMessage:
                                   state.helpsError ??
-                                  'Could not load help topics.',
-                              emptyTitle: 'No help topics yet',
+                                  StringConstants.couldNotLoadHelpTopics,
+                              emptyTitle: StringConstants.noHelpTopicsYet,
                               emptyMessage:
-                                  'Help and how-to guides will appear here.',
+                                  StringConstants.helpGuidesWillAppearHere,
                               onRetry: () => context.read<SupportBloc>().add(
                                 const FetchHelpsEvent(),
                               ),
@@ -219,7 +219,7 @@ class _SupportTab extends StatelessWidget {
         icon: Icons.cloud_off_rounded,
         title: errorMessage,
         message: StringConstants.checkYourConnectionAndTryAgain,
-        actionLabel: 'Retry',
+        actionLabel: StringConstants.retry,
         onAction: onRetry,
       );
     }
@@ -524,7 +524,9 @@ List<_SocialChannel> _socialChannelsFromHelps(List<PublicHelpModel> helps) {
     channels.add(
       _SocialChannel(
         label: help.title.trim().isEmpty
-            ? (key == null ? 'Link' : key[0].toUpperCase() + key.substring(1))
+            ? (key == null
+                  ? StringConstants.link
+                  : key[0].toUpperCase() + key.substring(1))
             : help.title.trim(),
         icon: meta.icon,
         color: LightColor.brandSafe(meta.color),
@@ -566,7 +568,7 @@ class _SocialConnectSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Connect with us',
+            StringConstants.connectWithUs,
             style: textTheme.bodyTextMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: LightColor.primaryTextColor,
@@ -574,7 +576,7 @@ class _SocialConnectSection extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX4),
           Text(
-            'Reach out on social media — we usually reply within a few hours.',
+            StringConstants.reachOutOnSocialMedia,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.secondaryTextColor,
               height: 1.4,
@@ -742,7 +744,7 @@ class _HelpCenterWideState extends State<_HelpCenterWide> {
 
   String _label(_HelpSection s) => switch (s) {
     _HelpSection.faqs => StringConstants.faqs,
-    _HelpSection.guides => 'Help guides',
+    _HelpSection.guides => StringConstants.helpGuides,
     _HelpSection.videos => StringConstants.videos,
   };
 
@@ -867,7 +869,7 @@ class _HelpCenterWideState extends State<_HelpCenterWide> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'Help center',
+                StringConstants.helpCenter,
                 style: textTheme.headingSmall?.copyWith(
                   color: LightColor.primaryTextColor,
                   fontWeight: FontWeight.w800,
@@ -875,7 +877,7 @@ class _HelpCenterWideState extends State<_HelpCenterWide> {
               ),
               const SizedBox(height: AppDimens.paddingX4),
               Text(
-                'Answers, guides and videos for using Hamro Futsal.',
+                StringConstants.helpCenterSubtitle,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                 ),
@@ -894,7 +896,7 @@ class _HelpCenterWideState extends State<_HelpCenterWide> {
               color: LightColor.primaryTextColor,
             ),
             decoration: InputDecoration(
-              hintText: 'Search FAQs and guides',
+              hintText: StringConstants.searchFaqsAndGuides,
               hintStyle: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.hintTextColor,
               ),
@@ -906,7 +908,7 @@ class _HelpCenterWideState extends State<_HelpCenterWide> {
               suffixIcon: _search.text.isEmpty
                   ? null
                   : IconButton(
-                      tooltip: 'Clear search',
+                      tooltip: StringConstants.clearSearch,
                       icon: Icon(
                         Icons.close_rounded,
                         size: AppDimens.sizeX18,
@@ -1084,8 +1086,8 @@ class _HelpCenterWideState extends State<_HelpCenterWide> {
     );
     Widget noMatch() => _SupportMessage(
       icon: Icons.search_off_rounded,
-      title: 'No results for "${_search.text.trim()}"',
-      message: 'Try a different word, or browse the other sections.',
+      title: StringConstants.noResultsFor(_search.text.trim()),
+      message: StringConstants.tryDifferentWordOrBrowse,
     );
 
     switch (_section) {
@@ -1093,9 +1095,9 @@ class _HelpCenterWideState extends State<_HelpCenterWide> {
         return _SupportTab(
           status: state.faqsStatus,
           isEmpty: state.faqs.isEmpty,
-          errorMessage: state.faqsError ?? 'Could not load FAQs.',
-          emptyTitle: 'No FAQs yet',
-          emptyMessage: 'Frequently asked questions will appear here.',
+          errorMessage: state.faqsError ?? StringConstants.couldNotLoadFaqs,
+          emptyTitle: StringConstants.noFaqsYet,
+          emptyMessage: StringConstants.faqsWillAppearHere,
           onRetry: () =>
               context.read<SupportBloc>().add(const FetchFaqsEvent()),
           child: faqs.isEmpty
@@ -1107,9 +1109,10 @@ class _HelpCenterWideState extends State<_HelpCenterWide> {
         return _SupportTab(
           status: state.helpsStatus,
           isEmpty: state.helps.isEmpty,
-          errorMessage: state.helpsError ?? 'Could not load help topics.',
-          emptyTitle: 'No help topics yet',
-          emptyMessage: 'Help and how-to guides will appear here.',
+          errorMessage:
+              state.helpsError ?? StringConstants.couldNotLoadHelpTopics,
+          emptyTitle: StringConstants.noHelpTopicsYet,
+          emptyMessage: StringConstants.helpGuidesWillAppearHere,
           onRetry: () =>
               context.read<SupportBloc>().add(const FetchHelpsEvent()),
           child: !hasAny && _query.isNotEmpty

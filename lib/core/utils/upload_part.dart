@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 
 MultipartFile buildUploadPart(UploadAttachment attachment) {
   if (attachment.bytes.isEmpty || attachment.size <= 0) {
-    throw const UploadValidationException(
+    throw UploadValidationException(
       UploadValidationCode.empty,
-      'That file is empty. Please attach it again.',
+      StringConstants.fileIsEmptyAttachAgain,
     );
   }
   return MultipartFile.fromBytes(
@@ -17,9 +18,9 @@ MultipartFile buildUploadPart(UploadAttachment attachment) {
 
 void validateMultipartFormData(FormData form) {
   if (form.files.length > kUploadMaxFilesPerRequest) {
-    throw const UploadValidationException(
+    throw UploadValidationException(
       UploadValidationCode.tooManyFiles,
-      'You can upload at most 5 files at once.',
+      StringConstants.uploadAtMostFiles(5),
     );
   }
 
@@ -27,15 +28,18 @@ void validateMultipartFormData(FormData form) {
     if (entry.value.length <= 0) {
       throw UploadValidationException(
         UploadValidationCode.empty,
-        '${entry.value.filename ?? 'The selected file'} is empty. '
-        'Please attach it again.',
+        StringConstants.namedFileIsEmpty(
+          entry.value.filename ?? StringConstants.theSelectedFile,
+        ),
       );
     }
     if (entry.value.length > kUploadMaxFileBytes) {
       throw UploadValidationException(
         UploadValidationCode.fileTooLarge,
-        '${entry.value.filename ?? 'The selected file'} must be '
-        '${formatUploadSize(kUploadMaxFileBytes)} or smaller.',
+        StringConstants.namedFileMustBeOrSmaller(
+          entry.value.filename ?? StringConstants.theSelectedFile,
+          formatUploadSize(kUploadMaxFileBytes),
+        ),
       );
     }
   }
@@ -43,8 +47,9 @@ void validateMultipartFormData(FormData form) {
   if (form.length > kUploadMaxRequestBytes) {
     throw UploadValidationException(
       UploadValidationCode.requestTooLarge,
-      'The upload exceeds the '
-      '${formatUploadSize(kUploadMaxRequestBytes)} request limit.',
+      StringConstants.uploadExceedsRequestLimit(
+        formatUploadSize(kUploadMaxRequestBytes),
+      ),
     );
   }
 }

@@ -90,8 +90,8 @@ class ExpenseAmountCard extends StatelessWidget {
             const SizedBox(height: AppDimens.paddingX6),
             Text(
               showError
-                  ? 'Enter an amount greater than 0'
-                  : 'Tap to enter the expense amount',
+                  ? StringConstants.enterAmountGreaterThan0
+                  : StringConstants.tapToEnterExpenseAmount,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: showError
                     ? LightColor.redColor

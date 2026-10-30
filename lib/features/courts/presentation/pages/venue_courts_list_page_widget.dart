@@ -13,6 +13,7 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:hamro_futsal/core/widgets/data_card.dart';
@@ -33,7 +34,6 @@ import 'package:hamro_futsal/features/vendor/presentation/bloc/vendor_onboarding
 import 'package:hamro_futsal/features/courts/domain/model/venue_court_purpose.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_court_manager.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class VenueCourtsListPage extends StatefulWidget {
   const VenueCourtsListPage({super.key, this.bloc});
@@ -404,7 +404,7 @@ class _VenuePaginationFooter extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
-          error ?? 'Could not load more venues.',
+          error ?? StringConstants.couldNotLoadMoreVenues,
           textAlign: TextAlign.center,
           style: FutsalTheme.getTextTheme(
             context,
@@ -413,7 +413,7 @@ class _VenuePaginationFooter extends StatelessWidget {
         TextButton.icon(
           onPressed: onRetry,
           icon: const Icon(Icons.refresh_rounded),
-          label: const Text(StringConstants.retry),
+          label: Text(StringConstants.retry),
         ),
       ],
     );
@@ -488,8 +488,8 @@ class _TopDashboardHeader extends StatelessWidget {
                     const SizedBox(height: AppDimens.paddingX4),
                     Text(
                       stats.futsalCount == 0
-                          ? 'Start by adding your first venue'
-                          : 'Everything you own, at a glance',
+                          ? StringConstants.startByAddingYourFirstVenue
+                          : StringConstants.everythingYouOwnAtAGlance,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextSmall?.copyWith(
@@ -512,25 +512,25 @@ class _TopDashboardHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 _PortfolioMetric(
-                  label: 'Venues',
+                  label: StringConstants.venues,
                   value: stats.futsalCount,
                   color: LightColor.brandTextColor,
                 ),
                 const _MetricSeparator(),
                 _PortfolioMetric(
-                  label: 'Courts',
+                  label: StringConstants.courts,
                   value: stats.courtCount,
                   color: LightColor.primaryTextColor,
                 ),
                 const _MetricSeparator(),
                 _PortfolioMetric(
-                  label: 'Live',
+                  label: StringConstants.live,
                   value: stats.liveCourtCount,
                   color: LightColor.secondaryColor,
                 ),
                 const _MetricSeparator(),
                 _PortfolioMetric(
-                  label: 'Pending',
+                  label: StringConstants.pending,
                   value: pending,
                   color: pending > 0
                       ? LightColor.warningColor
@@ -921,13 +921,13 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: <Widget>[
                         _VenueStat(
-                          label: 'Courts',
+                          label: StringConstants.courts,
                           value: '$totalCourts',
                           color: LightColor.primaryTextColor,
                         ),
                         const _MetricSeparator(),
                         _VenueStat(
-                          label: 'Live',
+                          label: StringConstants.live,
                           value: '$liveCourts',
                           color: liveCourts > 0
                               ? LightColor.secondaryColor
@@ -935,7 +935,9 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                         ),
                         const _MetricSeparator(),
                         _VenueStat(
-                          label: pendingCourts > 0 ? 'Pending' : 'From',
+                          label: pendingCourts > 0
+                              ? StringConstants.pending
+                              : StringConstants.from,
                           value: pendingCourts > 0
                               ? '$pendingCourts'
                               : startPrice == null
@@ -980,7 +982,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                         children: <Widget>[
                           Flexible(
                             child: Text(
-                              'Courts',
+                              StringConstants.courts,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.bodyTextSmall?.copyWith(
@@ -1002,7 +1004,9 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                     ),
                     const SizedBox(width: AppDimens.sizeX8),
                     Text(
-                      _expandedCourts ? 'Hide' : 'Show',
+                      _expandedCourts
+                          ? StringConstants.hide
+                          : StringConstants.show,
                       maxLines: 1,
                       style: textTheme.bodyTextSmall?.copyWith(
                         fontWeight: FontWeight.w600,
@@ -1354,7 +1358,7 @@ class _CourtRowV2 extends StatelessWidget {
   Future<void> _confirmDeleteCourt(BuildContext context) async {
     final VenueCourtBloc bloc = context.read<VenueCourtBloc>();
     final String name = court.name.trim().isEmpty
-        ? 'Court $index'
+        ? StringConstants.courtNumber(index)
         : court.name.trim();
     await showDialog<void>(
       context: context,
@@ -1392,9 +1396,7 @@ class _CourtRowV2 extends StatelessWidget {
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     if (courtId == null) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text(StringConstants.couldNotIdentifyThisCourt),
-        ),
+        SnackBar(content: Text(StringConstants.couldNotIdentifyThisCourt)),
       );
       return;
     }
@@ -1432,7 +1434,9 @@ class _CourtRowV2 extends StatelessWidget {
         AppUtils().showSnackBar(
           context,
           MsgType.success,
-          currentlyActive ? 'Court is now inactive.' : 'Court is now active.',
+          currentlyActive
+              ? StringConstants.courtIsNowInactive
+              : StringConstants.courtIsNowActive,
         );
       },
     );
@@ -1442,7 +1446,7 @@ class _CourtRowV2 extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final String name = court.name.trim().isEmpty
-        ? 'Court $index'
+        ? StringConstants.courtNumber(index)
         : court.name.trim();
     final String type = (court.courtType ?? '').trim();
     final String matchFormat = (court.matchFormat ?? '').trim();
@@ -1454,7 +1458,8 @@ class _CourtRowV2 extends StatelessWidget {
     final String meta = <String>[
       matchFormat,
       type,
-      if (court.maxPlayers != null) '${court.maxPlayers} players',
+      if (court.maxPlayers != null)
+        StringConstants.playersCountLowercase(court.maxPlayers!),
     ].where((String detail) => detail.isNotEmpty).join('  ·  ');
 
     return Container(
@@ -1541,7 +1546,7 @@ class _CourtRowV2 extends StatelessWidget {
                         ),
                       ),
                       TextSpan(
-                        text: ' /hr',
+                        text: StringConstants.perHrSuffix,
                         style: textTheme.bodyTextSmall?.copyWith(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -1560,7 +1565,9 @@ class _CourtRowV2 extends StatelessWidget {
                 icon: isLive
                     ? Icons.check_circle_rounded
                     : Icons.pause_circle_outline_rounded,
-                label: isLive ? 'Active' : 'Inactive',
+                label: isLive
+                    ? StringConstants.active
+                    : StringConstants.inactive,
                 color: isLive
                     ? LightColor.secondaryColor
                     : LightColor.secondaryTextColor,
@@ -1572,7 +1579,7 @@ class _CourtRowV2 extends StatelessWidget {
                     : Icons.money_off_csred_outlined,
                 label: court.advancePaymentRequired
                     ? StringConstants.advance
-                    : 'No advance',
+                    : StringConstants.noAdvance,
                 color: court.advancePaymentRequired
                     ? LightColor.secondaryColor
                     : LightColor.secondaryTextColor,
@@ -1738,7 +1745,7 @@ class _CourtMenu extends StatelessWidget {
         item(
           _VenueMenuAction.toggleCourtStatus,
           isLive ? Icons.toggle_off_outlined : Icons.toggle_on_outlined,
-          isLive ? 'Make Inactive' : 'Make Active',
+          isLive ? StringConstants.makeInactive : StringConstants.makeActive,
           isLive ? LightColor.redColor : LightColor.secondaryColor,
         ),
         item(
@@ -1797,7 +1804,9 @@ class _EmptyStateV2 extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX14),
             Text(
-              isSearching ? 'No matching venues' : 'No futsal venues yet',
+              isSearching
+                  ? StringConstants.noMatchingVenues
+                  : StringConstants.noFutsalVenuesYet,
               style: textTheme.bodyTextMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: LightColor.primaryTextColor,
@@ -1806,8 +1815,8 @@ class _EmptyStateV2 extends StatelessWidget {
             const SizedBox(height: AppDimens.paddingX6),
             Text(
               isSearching
-                  ? 'Try a different search or filter.'
-                  : 'Create your first venue and add courts for online booking.',
+                  ? StringConstants.tryADifferentSearchOrFilter
+                  : StringConstants.createYourFirstVenueAndAddCourts,
               textAlign: TextAlign.center,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
@@ -1903,7 +1912,7 @@ class _FutsalEntry {
     return _FutsalEntry(
       id: model.id,
       slug: model.slug,
-      title: model.title.isEmpty ? 'My Futsal' : model.title,
+      title: model.title.isEmpty ? StringConstants.myFutsal : model.title,
       address: model.address,
       phone: model.phone,
       courts: model.courts,
@@ -2004,8 +2013,7 @@ class _CourtDeleteDialogState extends State<_CourtDeleteDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Are you sure you want to delete "${widget.courtName}"? '
-            'This action cannot be undone.',
+            StringConstants.confirmDeleteCourt(widget.courtName),
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.secondaryTextColor,
               height: 1.5,

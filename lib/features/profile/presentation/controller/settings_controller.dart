@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/l10n/app_language.dart';
+import 'package:hamro_futsal/core/l10n/app_locale_controller.dart';
 import 'package:hamro_futsal/core/security/biometric_auth_service.dart';
 import 'package:hamro_futsal/core/theme/app_theme_controller.dart';
 import 'package:hamro_futsal/core/security/biometric_session_store.dart';
 import 'package:hamro_futsal/features/profile/data/model/profile_model.dart';
 import 'package:hamro_futsal/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:hamro_futsal/features/profile/domain/usecase/profile_usecase.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class SettingsController extends ChangeNotifier {
   SettingsController({AppSettings? settings, ProfileUseCase? profileUseCase})
@@ -27,7 +30,7 @@ class SettingsController extends ChangeNotifier {
   late bool _promotionalEmails;
   late bool _biometricLogin;
   late ThemeMode _themeMode;
-  late String _language;
+  late AppLanguage _language;
   late NotificationPreferences _syncedNotificationPrefs;
   bool _notificationPrefsEdited = false;
   bool _notificationSyncing = false;
@@ -44,19 +47,20 @@ class SettingsController extends ChangeNotifier {
   bool get promotionalEmails => _promotionalEmails;
   bool get biometricLogin => _biometricLogin;
   ThemeMode get themeMode => _themeMode;
-  String get themeModeLabel => themeModeOptions[_themeMode] ?? 'System';
-  String get language => _language;
+  String get themeModeLabel =>
+      themeModeOptions[_themeMode] ?? StringConstants.themeSystem;
+  AppLanguage get language => _language;
   int? get userId => _userId;
   bool get deletingAccount => _deletingAccount;
   bool get profileResolved => _profileResolved;
 
   bool get canDeleteAccount => !_deletingAccount;
 
-  static const List<String> languages = <String>['English', 'नेपाली', 'हिन्दी'];
-  static const Map<ThemeMode, String> themeModeOptions = <ThemeMode, String>{
-    ThemeMode.light: 'Light',
-    ThemeMode.dark: 'Dark',
-    ThemeMode.system: 'System',
+  static const List<AppLanguage> languages = AppLanguage.values;
+  static Map<ThemeMode, String> get themeModeOptions => <ThemeMode, String>{
+    ThemeMode.light: StringConstants.themeLight,
+    ThemeMode.dark: StringConstants.themeDark,
+    ThemeMode.system: StringConstants.themeSystem,
   };
 
   void _load() {
@@ -66,7 +70,7 @@ class SettingsController extends ChangeNotifier {
     _promotionalEmails = _settings.promotionalEmails;
     _biometricLogin = _settings.biometricLogin;
     _themeMode = AppThemeController.instance.value;
-    _language = _settings.appLanguage;
+    _language = AppLocaleController.instance.value;
     _syncedNotificationPrefs = _currentNotificationPrefs;
   }
 
@@ -181,9 +185,7 @@ class SettingsController extends ChangeNotifier {
     if (value) {
       final BiometricAuthService biometricAuth = BiometricAuthService();
       if (!await biometricAuth.isAvailable()) {
-        onError?.call(
-          'Face ID or fingerprint is not available on this device.',
-        );
+        onError?.call(StringConstants.biometricNotAvailableOnDevice);
         return;
       }
       if (!await biometricAuth.authenticate()) return;
@@ -203,17 +205,17 @@ class SettingsController extends ChangeNotifier {
     _notifyIfActive();
   }
 
-  void setLanguage(String value) {
+  void setLanguage(AppLanguage value) {
     if (_language == value) return;
     _language = value;
-    _settings.appLanguage = value;
+    AppLocaleController.instance.setLanguage(value);
     _notifyIfActive();
   }
 
   Future<bool> deleteAccount({required String reason}) async {
     final String trimmedReason = reason.trim();
     if (trimmedReason.isEmpty) {
-      onError?.call('Please add a reason for deleting your account.');
+      onError?.call(StringConstants.addReasonForDeletingAccount);
       return false;
     }
     if (_deletingAccount) return false;

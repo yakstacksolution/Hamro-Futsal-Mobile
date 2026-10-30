@@ -91,7 +91,7 @@ class _ProfilePageState extends State<ProfilePage> {
         onTap: () => context.pushNamed(AppRouterParams.account.name),
       ),
     _ProfileItem(
-      title: 'Products',
+      title: StringConstants.products,
       icon: Icons.inventory_2_outlined,
       onTap: () => context.pushNamed(AppRouterParams.products.name),
     ),
@@ -247,7 +247,9 @@ class _ProfilePageState extends State<ProfilePage> {
           label: StringConstants.account,
           items: [
             _ProfileItem(
-              title: _isLoggingOut ? 'Logging out…' : 'Log out',
+              title: _isLoggingOut
+                  ? StringConstants.loggingOut
+                  : StringConstants.logOut,
               icon: Icons.logout_rounded,
               destructive: true,
               loading: _isLoggingOut,
@@ -501,8 +503,8 @@ class _ProfileRow extends StatelessWidget {
                   children: [
                     Text(
                       isLoading
-                          ? 'Loading…'
-                          : fullName ?? 'Profile unavailable',
+                          ? StringConstants.loading
+                          : fullName ?? StringConstants.profileUnavailable,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextLarge?.copyWith(
@@ -512,7 +514,7 @@ class _ProfileRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      email ?? 'Pull to refresh your account',
+                      email ?? StringConstants.pullToRefreshYourAccount,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextSmall?.copyWith(
@@ -582,7 +584,9 @@ class _ProfileSideCard extends StatelessWidget {
           _Avatar(url: profilePhoto, size: 88),
           const SizedBox(height: AppDimens.paddingX14),
           Text(
-            isLoading ? 'Loading…' : fullName ?? 'Profile unavailable',
+            isLoading
+                ? StringConstants.loading
+                : fullName ?? StringConstants.profileUnavailable,
             maxLines: 2,
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
@@ -593,7 +597,7 @@ class _ProfileSideCard extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX4),
           Text(
-            email ?? 'Pull to refresh your account',
+            email ?? StringConstants.pullToRefreshYourAccount,
             maxLines: 1,
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
@@ -605,7 +609,7 @@ class _ProfileSideCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: CustomButton(
-              text: 'View profile',
+              text: StringConstants.viewProfile,
               icon: Icons.person_outline_rounded,
               onPressed: onView,
               isOutlined: true,
@@ -654,7 +658,7 @@ class _LogoutConfirmationSheet extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    'Log out?',
+                    StringConstants.logOutQuestion,
                     style: textTheme.bodyTextLarge?.copyWith(
                       color: LightColor.primaryTextColor,
                       fontWeight: FontWeight.w700,
@@ -662,7 +666,7 @@ class _LogoutConfirmationSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: AppDimens.paddingX6),
                   Text(
-                    'You will need to sign in again to access your bookings, chats, and profile.',
+                    StringConstants.logOutConfirmationMessage,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.secondaryTextColor,
                       height: 1.45,
@@ -692,7 +696,7 @@ class _LogoutConfirmationSheet extends StatelessWidget {
             Expanded(
               child: CustomButton(
                 key: const Key('confirm-logout-button'),
-                text: 'Log out',
+                text: StringConstants.logOut,
                 icon: Icons.logout_rounded,
                 backgroundColor: LightColor.redColor,
                 foregroundColor: LightColor.inverseTextColor,
@@ -724,52 +728,52 @@ class _VendorStatusCard extends StatelessWidget {
       IconData icon,
     ) = switch (user.vendorStatus) {
       VendorLifecycleStatus.active => (
-        'Vendor account active',
+        StringConstants.vendorAccountActive,
         user.businessVerified
-            ? 'Your business is verified and ready to receive bookings.'
-            : 'Your vendor account is active. Business verification is pending.',
+            ? StringConstants.businessVerifiedReadyForBookings
+            : StringConstants.vendorActiveVerificationPending,
         LightColor.secondaryColor,
         Icons.verified_rounded,
       ),
       VendorLifecycleStatus.underReview => (
-        'Business under review',
-        'Hamro Futsal is reviewing your submitted business information.',
+        StringConstants.businessUnderReview,
+        StringConstants.hamroFutsalReviewingBusinessInfo,
         LightColor.warningColor,
         Icons.hourglass_top_rounded,
       ),
       VendorLifecycleStatus.rejected => (
-        'Business verification rejected',
+        StringConstants.businessVerificationRejected,
         user.vendorStatusReason.isNotEmpty
             ? user.vendorStatusReason
-            : 'Review your business information and submit it again.',
+            : StringConstants.reviewBusinessInfoAndResubmit,
         LightColor.redColor,
         Icons.error_outline_rounded,
       ),
       VendorLifecycleStatus.suspended => (
-        'Vendor account suspended',
+        StringConstants.vendorAccountSuspended,
         user.vendorStatusReason.isNotEmpty
             ? user.vendorStatusReason
-            : 'Contact Hamro Futsal support for assistance.',
+            : StringConstants.contactSupportForAssistance,
         LightColor.redColor,
         Icons.block_rounded,
       ),
       VendorLifecycleStatus.actionRequired => (
-        'Action required',
+        StringConstants.actionRequired,
         user.vendorStatusReason.isNotEmpty
             ? user.vendorStatusReason
-            : 'Update your vendor information to continue.',
+            : StringConstants.updateVendorInfoToContinue,
         LightColor.warningColor,
         Icons.notification_important_outlined,
       ),
       VendorLifecycleStatus.incomplete => (
-        'Complete vendor setup',
-        'Finish your venue and business details to start accepting bookings.',
+        StringConstants.completeVendorSetup,
+        StringConstants.finishVenueAndBusinessDetails,
         LightColor.warningColor,
         Icons.edit_note_rounded,
       ),
       VendorLifecycleStatus.notStarted => (
-        'Start vendor setup',
-        'Add your business and venue details to become a verified vendor.',
+        StringConstants.startVendorSetup,
+        StringConstants.addBusinessAndVenueDetails,
         LightColor.secondaryColor,
         Icons.storefront_outlined,
       ),

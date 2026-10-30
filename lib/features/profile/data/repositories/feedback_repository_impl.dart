@@ -4,6 +4,7 @@ import 'package:hamro_futsal/core/helper/response_helper.dart';
 import 'package:hamro_futsal/features/profile/data/data_source/feedback_data_source.dart';
 import 'package:hamro_futsal/features/profile/data/model/feedback_history_model.dart';
 import 'package:hamro_futsal/features/profile/data/model/feedback_option_model.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 final class FeedbackRepositoryImpl {
   FeedbackRepositoryImpl({FeedbackRemoteDataSource? remoteDataSource})
@@ -65,7 +66,7 @@ final class FeedbackRepositoryImpl {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse feedback options from server.',
+          errorMessage: StringConstants.couldNotParseFeedbackOptions,
           statusCode: 0,
         ),
       );
@@ -109,7 +110,7 @@ final class FeedbackRepositoryImpl {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse feedback list from server.',
+          errorMessage: StringConstants.couldNotParseFeedbackList,
           statusCode: 0,
         ),
       );
@@ -129,7 +130,7 @@ final class FeedbackRepositoryImpl {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse feedback details from server.',
+          errorMessage: StringConstants.couldNotParseFeedbackDetails,
           statusCode: 0,
         ),
       );

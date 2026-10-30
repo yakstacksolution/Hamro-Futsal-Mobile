@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class SignInEntity extends Equatable {
   final String password;
@@ -19,11 +20,18 @@ class SignInEntity extends Equatable {
   }
 }
 
+/// Account types offered at registration. The constants are fixed,
+/// language-independent ids (the dropdown value and what [SignUpEntity.toMap]
+/// maps to the backend); use [labelFor] to display them.
 abstract final class AccountTypeLabels {
-  static const String player = 'Player';
-  static const String vendor = 'Venue Vendor';
+  static const String player = 'player';
+  static const String vendor = 'vendor';
 
   static const List<String> all = <String>[player, vendor];
+
+  static String labelFor(String accountType) => accountType == vendor
+      ? StringConstants.venueVendor
+      : StringConstants.playerGuides;
 }
 
 class SignUpEntity extends Equatable {
@@ -57,7 +65,7 @@ class SignUpEntity extends Equatable {
       "full_name": fullName,
       "password": password,
       "password_confirmation": passwordConfirmation,
-      // UI label → backend value: vendor label → vendor, anything else →
+      // Account type id → backend value: vendor → vendor, anything else →
       // candidate.
       "account_type": accountType == AccountTypeLabels.vendor
           ? "vendor"

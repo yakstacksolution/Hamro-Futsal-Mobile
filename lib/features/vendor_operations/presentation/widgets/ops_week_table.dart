@@ -10,6 +10,7 @@ import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/bloc/vendor_ops_bloc.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops_style.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class OpsWeekTableView extends StatelessWidget {
   const OpsWeekTableView({
@@ -49,9 +50,9 @@ class OpsWeekTableView extends StatelessWidget {
         final List<OpsCourt> courts = state.filterableCourts;
         final OpsCourt? court = state.tableCourt;
         if (court == null) {
-          return const _Message(
+          return _Message(
             icon: Icons.filter_alt_off_rounded,
-            text: 'No courts match the venue filter.',
+            text: StringConstants.noCourtsMatchVenueFilter,
           );
         }
 
@@ -102,7 +103,7 @@ class OpsWeekTableView extends StatelessWidget {
                 child: _Message(
                   icon: Icons.cloud_off_rounded,
                   text: state.weekSlotsError!,
-                  actionLabel: 'Retry',
+                  actionLabel: StringConstants.retry,
                   onAction: () => bloc.add(const VendorOpsRefreshed()),
                 ),
               )
@@ -221,7 +222,9 @@ class _CourtChip extends StatelessWidget {
     final String meta = <String>[
       formatDuration(court.slotMinutes),
       if (freeThisWeek != null)
-        freeThisWeek == 0 ? 'full this week' : '$freeThisWeek free',
+        freeThisWeek == 0
+            ? StringConstants.fullThisWeek
+            : StringConstants.freeCount(freeThisWeek!),
     ].join(' · ');
 
     return Semantics(
@@ -361,7 +364,7 @@ class _WeekNavigator extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: <Widget>[
         IconButton(
-          tooltip: 'Previous week',
+          tooltip: StringConstants.previousWeek,
           visualDensity: VisualDensity.compact,
           onPressed: () => bloc.add(
             VendorOpsDateChanged(date.subtract(const Duration(days: 7))),
@@ -382,7 +385,7 @@ class _WeekNavigator extends StatelessWidget {
           ),
         ),
         IconButton(
-          tooltip: 'Next week',
+          tooltip: StringConstants.nextWeek,
           visualDensity: VisualDensity.compact,
           onPressed: () =>
               bloc.add(VendorOpsDateChanged(date.add(const Duration(days: 7)))),
@@ -426,7 +429,7 @@ class _WeekStartPickerState extends State<_WeekStartPicker> {
     final DateTime today = KathmanduClock.today();
     return PopupMenuButton<OpsWeekStart>(
       key: const Key('ops-week-start'),
-      tooltip: 'Week starts from',
+      tooltip: StringConstants.weekStartsFrom,
       initialValue: widget.mode,
       position: PopupMenuPosition.under,
       offset: const Offset(0, 6),
@@ -452,7 +455,7 @@ class _WeekStartPickerState extends State<_WeekStartPicker> {
           height: 34,
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
           child: Text(
-            'WEEK STARTS FROM',
+            StringConstants.weekStartsFromHeader,
             style: TextStyle(
               fontSize: 10,
               letterSpacing: 0.8,
@@ -532,24 +535,24 @@ class _WeekStartOption extends StatelessWidget {
   final bool selected;
   final DateTime today;
 
-  static const List<String> _letters = <String>[
-    'S',
-    'M',
-    'T',
-    'W',
-    'T',
-    'F',
-    'S',
+  static List<String> get _letters => <String>[
+    StringConstants.sundayInitial,
+    StringConstants.mondayInitial,
+    StringConstants.tuesdayInitial,
+    StringConstants.wednesdayInitial,
+    StringConstants.thursdayInitial,
+    StringConstants.fridayInitial,
+    StringConstants.saturdayInitial,
   ];
 
   String get _title => switch (mode) {
-    OpsWeekStart.sunday => 'Calendar week',
-    OpsWeekStart.today => 'Starting today',
+    OpsWeekStart.sunday => StringConstants.calendarWeek,
+    OpsWeekStart.today => StringConstants.startingToday,
   };
 
   String get _subtitle => switch (mode) {
-    OpsWeekStart.sunday => 'Sunday to Saturday',
-    OpsWeekStart.today => 'Today and the next 6 days',
+    OpsWeekStart.sunday => StringConstants.sundayToSaturday,
+    OpsWeekStart.today => StringConstants.todayAndNextSixDays,
   };
 
   String _range(DateTime start) => _weekRange(start);
@@ -610,7 +613,7 @@ class _WeekStartOption extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'This week · ${_range(start)}',
+                  StringConstants.thisWeekRange(_range(start)),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -858,8 +861,8 @@ class _TableState extends State<_Table> {
       return _Message(
         icon: Icons.event_busy_rounded,
         text: table.closedDays.length == 7
-            ? '${table.court.name} is closed all week.'
-            : '${table.court.name} has no slots set for this week.',
+            ? StringConstants.courtClosedAllWeek(table.court.name)
+            : StringConstants.courtHasNoSlotsThisWeek(table.court.name),
       );
     }
     final bool edge = widget.edgeToEdge;
@@ -1015,7 +1018,7 @@ class _TableState extends State<_Table> {
       fontWeight: FontWeight.w800,
       color: stuck ? LightColor.brandTextColor : LightColor.hintTextColor,
     );
-    if (!stuck) return Text('Time slot', style: style);
+    if (!stuck) return Text(StringConstants.timeSlot, style: style);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: FittedBox(
@@ -1059,7 +1062,7 @@ class _TableState extends State<_Table> {
       child: Text(text, maxLines: 1, style: style),
     );
     return Semantics(
-      label: '$start to $end',
+      label: StringConstants.timeRangeSemantics(start, end),
       child: ExcludeSemantics(
         child: Container(
           height: _rowHeight,
@@ -1093,7 +1096,7 @@ class _TableState extends State<_Table> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           Text(
-            today ? 'Today' : AppDateFormat.weekdayShort(day),
+            today ? StringConstants.today : AppDateFormat.weekdayShort(day),
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
@@ -1103,7 +1106,7 @@ class _TableState extends State<_Table> {
             ),
           ),
           Text(
-            closed != null ? 'Closed' : AppDateFormat.day(day),
+            closed != null ? StringConstants.closed : AppDateFormat.day(day),
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -1183,18 +1186,30 @@ class _TableState extends State<_Table> {
         '${formatMinuteOfDay(table.rows[r])}';
     switch (wc.kind) {
       case OpsCellKind.available:
-        return '$when, ${selected ? 'selected' : 'available'}, '
-            '${wc.cell!.price == null ? 'price on confirmation' : Money.npr(wc.cell!.price!)}';
+        return StringConstants.weekAvailableSlotSemantics(
+          when,
+          selected: selected,
+          price: wc.cell!.price == null
+              ? StringConstants.priceOnConfirmationLower
+              : Money.npr(wc.cell!.price!),
+        );
       case OpsCellKind.booked:
         final BookingModel b = wc.cell!.booking!;
-        return '$when, ${opsPhaseStyle(wc.cell!.phase!).label}, '
-            '${b.playerName ?? 'customer'}, ${opsPaymentLabel(wc.cell!.payment!)}';
+        return StringConstants.weekBookedSlotSemantics(
+          when,
+          opsPhaseStyle(wc.cell!.phase!).label,
+          b.playerName ?? StringConstants.customerLower,
+          opsPaymentLabel(wc.cell!.payment!),
+        );
       case OpsCellKind.closed:
-        return '$when, ${wc.note ?? 'closed'}';
+        return StringConstants.slotNoteSemantics(
+          when,
+          wc.note ?? StringConstants.closedLower,
+        );
       case OpsCellKind.past:
-        return '$when, past';
+        return StringConstants.pastSlotSemantics(when);
       case null:
-        return '$when, no slot';
+        return StringConstants.noSlotSemantics(when);
     }
   }
 }
@@ -1223,19 +1238,19 @@ class _CellBody extends StatelessWidget {
 
     final (String top, String? bottom) = switch (cell.kind) {
       OpsCellKind.available => (
-        selected ? 'Selected' : 'Available',
+        selected ? StringConstants.selected : StringConstants.available,
         opsCompactPrice(c!.price),
       ),
       OpsCellKind.booked => (
         quiet
-            ? 'Same booking'
+            ? StringConstants.sameBooking
             : ((c!.booking!.playerName?.trim().isNotEmpty ?? false)
                   ? c.booking!.playerName!.trim()
-                  : 'Booked'),
+                  : StringConstants.booked),
         quiet ? null : opsPhaseStyle(c!.phase!).label,
       ),
-      OpsCellKind.closed => (c?.note ?? 'Closed', null),
-      OpsCellKind.past => ('Past', null),
+      OpsCellKind.closed => (c?.note ?? StringConstants.closed, null),
+      OpsCellKind.past => (StringConstants.past, null),
       null => ('', null),
     };
 
@@ -1348,7 +1363,7 @@ class _TableSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final BorderSide line = BorderSide(color: LightColor.dividerColor);
     return Semantics(
-      label: 'Loading this court\'s week',
+      label: StringConstants.loadingCourtWeek,
       child: ExcludeSemantics(
         child: Container(
           decoration: BoxDecoration(

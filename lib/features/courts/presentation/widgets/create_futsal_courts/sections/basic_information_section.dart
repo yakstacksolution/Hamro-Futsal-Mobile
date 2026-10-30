@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/courts/presentation/bloc/create_futsal_courts_bloc.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BasicInformationSection extends StatelessWidget {
   const BasicInformationSection({super.key, required this.bloc});
@@ -23,8 +23,10 @@ class BasicInformationSection extends StatelessWidget {
           hintText: StringConstants.hamroFutsalArena,
           icon: Icons.badge_rounded,
           iconColor: LightColor.monoIconColor,
-          validator: (String? value) =>
-              bloc.requiredValidator(value, fieldName: 'Futsal name'),
+          validator: (String? value) => bloc.requiredValidator(
+            value,
+            fieldName: StringConstants.futsalNameFieldName,
+          ),
         ),
         const SizedBox(height: 14),
         CustomTextField(
@@ -65,8 +67,10 @@ class BasicInformationSection extends StatelessWidget {
               StringConstants.describeYourFutsalFacilitiesAndWhatMakesItSpecial,
           icon: Icons.description_rounded,
           iconColor: LightColor.monoIconColor,
-          validator: (String? value) =>
-              bloc.requiredValidator(value, fieldName: 'Description'),
+          validator: (String? value) => bloc.requiredValidator(
+            value,
+            fieldName: StringConstants.description,
+          ),
         ),
         const SizedBox(height: 14),
         CustomTextField(
@@ -83,7 +87,7 @@ class BasicInformationSection extends StatelessWidget {
           validator: (String? value) {
             final String? baseError = bloc.requiredValidator(
               value,
-              fieldName: 'Contact phone',
+              fieldName: StringConstants.contactPhoneFieldName,
             );
             if (baseError != null) return baseError;
             return bloc.phoneValidator(value);
@@ -104,7 +108,7 @@ class BasicInformationSection extends StatelessWidget {
           validator: (String? value) {
             final String? baseError = bloc.requiredValidator(
               value,
-              fieldName: 'Contact email',
+              fieldName: StringConstants.contactEmailFieldName,
             );
             if (baseError != null) return baseError;
             return bloc.emailValidator(value);

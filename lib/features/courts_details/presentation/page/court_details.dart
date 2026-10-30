@@ -255,7 +255,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
     final selectedDate = _dates[_selectedDateIndex];
     final selectedLabel = hasSelection
         ? '${AppDateFormat.format(selectedDate, 'EEE, d MMM')} · $selectedTime'
-        : 'Select a time slot to continue';
+        : StringConstants.selectATimeSlotToContinue;
 
     return SlideTransition(
       position: _bottomBarSlide,
@@ -422,7 +422,9 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                           children: [
                             Flexible(
                               child: Text(
-                                hasSelection ? 'Book Now' : 'Select Slot',
+                                hasSelection
+                                    ? StringConstants.bookNow
+                                    : StringConstants.selectSlot,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: FutsalTheme.getTextTheme(context)

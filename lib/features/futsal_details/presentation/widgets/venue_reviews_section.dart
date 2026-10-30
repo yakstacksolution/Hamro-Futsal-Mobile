@@ -126,7 +126,9 @@ class _SeeAllButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Text(
-                count > 0 ? 'View all ($count)' : 'View all',
+                count > 0
+                    ? StringConstants.viewAllCount(count)
+                    : StringConstants.viewAll,
                 style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
                   color: LightColor.onBrandSurface,
                   fontWeight: FontWeight.w700,

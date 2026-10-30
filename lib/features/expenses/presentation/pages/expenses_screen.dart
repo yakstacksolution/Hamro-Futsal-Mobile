@@ -146,7 +146,7 @@ class _ExpensesViewState extends State<_ExpensesView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.expenses),
+      appBar: CustomAppBar(title: StringConstants.expenses),
 
       // Tablet / desktop carry "New expense" in the dashboard header.
       floatingActionButton: context.isTabletOrWider
@@ -192,7 +192,8 @@ class _ExpensesViewState extends State<_ExpensesView>
             if (state.expensesStatus == ExpensesStatus.failure &&
                 state.expenses.isEmpty) {
               return _LoadError(
-                message: state.errorMessage ?? 'Could not load expenses.',
+                message:
+                    state.errorMessage ?? StringConstants.couldNotLoadExpenses,
                 onRetry: () => context.read<ExpensesBloc>()
                   ..add(const LoadVenueCourtsEvent())
                   ..add(const LoadExpensesEvent()),
@@ -427,7 +428,7 @@ class _ExpensesViewState extends State<_ExpensesView>
                 unselectedLabelStyle: FutsalTheme.getTextTheme(
                   context,
                 ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w500),
-                tabs: const [
+                tabs: [
                   Tab(text: StringConstants.overview, height: 40),
                   Tab(text: StringConstants.analytics, height: 40),
                   Tab(text: StringConstants.records, height: 40),
@@ -537,7 +538,7 @@ class _ExpensesViewState extends State<_ExpensesView>
     AppUtils().showSnackBar(
       context,
       MsgType.success,
-      'Expense added · ${ExpenseFmt.npr(created.amount)}',
+      StringConstants.expenseAdded(ExpenseFmt.npr(created.amount)),
     );
   }
 
@@ -588,7 +589,7 @@ class _ExpensesViewState extends State<_ExpensesView>
       AppUtils().showSnackBar(
         context,
         MsgType.info,
-        'Expense deleted · ${ExpenseFmt.npr(expense.amount)}',
+        StringConstants.expenseDeleted(ExpenseFmt.npr(expense.amount)),
       );
     }
   }
@@ -614,7 +615,7 @@ class _ExpensesViewState extends State<_ExpensesView>
     AppUtils().showSnackBar(
       context,
       MsgType.success,
-      'Expense updated · ${ExpenseFmt.npr(updated.amount)}',
+      StringConstants.expenseUpdated(ExpenseFmt.npr(updated.amount)),
     );
   }
 }
@@ -650,7 +651,7 @@ class _LoadError extends StatelessWidget {
                 foregroundColor: LightColor.secondaryColor,
                 side: const BorderSide(color: LightColor.secondaryColor),
               ),
-              child: const Text(StringConstants.retry),
+              child: Text(StringConstants.retry),
             ),
           ],
         ),

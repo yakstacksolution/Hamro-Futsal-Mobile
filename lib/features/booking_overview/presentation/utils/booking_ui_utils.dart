@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/features/booking_overview/data/model/booking_overview_model.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 extension BookingStatusUi on BookingStatus {
   Color get color => switch (this) {
@@ -28,7 +29,7 @@ extension StatusMixEntryUi on StatusMixEntry {
 
 class BookingFmt {
   static String npr(int v) =>
-      '${v < 0 ? '-' : ''}NPR ${group(v.abs().toString())}';
+      '${v < 0 ? '-' : ''}${StringConstants.npr} ${group(v.abs().toString())}';
 
   static String hours(double v) =>
       v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);

@@ -246,7 +246,8 @@ class _PaymentQrCardState extends State<PaymentQrCard> {
           ),
           const SizedBox(height: AppDimens.sizeX4),
           Text(
-            '${_page + 1} of $count · ${StringConstants.swipeForMoreQrs}',
+            '${StringConstants.pageOfTotal(_page + 1, count)} · '
+            '${StringConstants.swipeForMoreQrs}',
             style: textTheme.bodyMiniSubTitle?.copyWith(
               color: LightColor.hintTextColor,
               fontWeight: FontWeight.w500,

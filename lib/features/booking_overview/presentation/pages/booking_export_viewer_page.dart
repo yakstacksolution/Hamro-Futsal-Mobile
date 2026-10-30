@@ -103,8 +103,8 @@ class _BookingExportViewerPageState extends State<BookingExportViewerPage> {
                 AppDimens.paddingX12,
               ),
               child: Text(
-                '${widget.file.fileName} · $records '
-                '${records == 1 ? 'row' : 'rows'}',
+                '${widget.file.fileName} · '
+                '${StringConstants.rowCount(records)}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: textTheme.bodyTextSmall?.copyWith(

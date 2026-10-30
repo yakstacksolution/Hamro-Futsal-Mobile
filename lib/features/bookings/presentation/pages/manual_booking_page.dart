@@ -26,6 +26,7 @@ import 'package:hamro_futsal/features/courts/domain/model/venue_court_purpose.da
 import 'package:hamro_futsal/features/courts/domain/usecase/get_venue_court_use_case.dart';
 import 'package:hamro_futsal/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/slots_selection_route_args.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class ManualBookingPage extends StatefulWidget {
   const ManualBookingPage({super.key});
@@ -41,7 +42,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
   final TextEditingController _name = TextEditingController();
   final TextEditingController _phone = TextEditingController();
   final TextEditingController _note = TextEditingController(
-    text: 'Paid at counter',
+    text: StringConstants.paidAtCounter,
   );
 
   final TextEditingController _totalAmount = TextEditingController();
@@ -177,7 +178,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
       setState(() {
         _candidatesLoading = false;
         _candidatesLoadingMore = false;
-        _candidateError = 'Could not read candidates from the server.';
+        _candidateError = StringConstants.couldNotReadCandidatesFromServer;
       });
     }
   }
@@ -268,8 +269,8 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
     final String raw = value?.trim() ?? '';
     if (raw.isEmpty) return null;
     final double? amount = double.tryParse(raw);
-    if (amount == null) return 'Enter an amount like 1200 or 1200.50.';
-    if (amount <= 0) return 'Enter an amount greater than zero.';
+    if (amount == null) return StringConstants.enterAmountLikeExample;
+    if (amount <= 0) return StringConstants.enterAmountGreaterThanZero;
     return null;
   }
 
@@ -277,7 +278,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Manual booking & adjustments'),
+      appBar: CustomAppBar(title: StringConstants.manualBookingAndAdjustments),
       bottomNavigationBar: _loading || _error != null || _venues.isEmpty
           ? null
           : _ManualBookingActionBar(onContinue: _continue),
@@ -295,9 +296,9 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
           : _error != null
           ? AppMessageView(
               icon: Icons.cloud_off_rounded,
-              title: 'Could not load your venues',
+              title: StringConstants.couldNotLoadYourVenues,
               message: _error!,
-              actionLabel: 'Retry',
+              actionLabel: StringConstants.retry,
               onAction: _loadVenues,
             )
           : _venues.isEmpty
@@ -305,11 +306,9 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
           // be sent.
           ? AppMessageView(
               icon: Icons.stadium_outlined,
-              title: 'No venues to book yet',
-              message:
-                  'Once a venue with courts is approved, you can take '
-                  'walk-in bookings for it here.',
-              actionLabel: 'Refresh',
+              title: StringConstants.noVenuesToBookYet,
+              message: StringConstants.noVenuesToBookYetMessage,
+              actionLabel: StringConstants.refresh,
               onAction: _loadVenues,
             )
           : SafeArea(
@@ -331,13 +330,13 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                     _sectionGap(),
                     _sectionCard(
                       context,
-                      title: 'Venue',
-                      subtitle: 'Choose where this booking will be created.',
+                      title: StringConstants.venue,
+                      subtitle: StringConstants.chooseWhereBookingWillBeCreated,
                       icon: Icons.stadium_outlined,
                       children: <Widget>[
                         CustomDropdownField<VenueCourtModel>(
-                          labelText: 'Futsal venue',
-                          hintText: 'Select a venue',
+                          labelText: StringConstants.futsalVenue,
+                          hintText: StringConstants.selectAVenue,
                           icon: Icons.stadium_outlined,
                           initialValue: _venue,
                           isRequired: true,
@@ -355,8 +354,9 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                               .toList(),
                           onChanged: (VenueCourtModel? value) =>
                               setState(() => _venue = value),
-                          validator: (VenueCourtModel? value) =>
-                              value == null ? 'Select a venue.' : null,
+                          validator: (VenueCourtModel? value) => value == null
+                              ? StringConstants.selectAVenueDot
+                              : null,
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                       ],
@@ -364,29 +364,29 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                     _sectionGap(),
                     _sectionCard(
                       context,
-                      title: 'Customer details',
-                      subtitle: 'Contact information for the walk-in customer.',
+                      title: StringConstants.customerDetails,
+                      subtitle: StringConstants.walkInCustomerContactInfo,
                       icon: Icons.person_outline_rounded,
                       children: <Widget>[
                         _field(
                           _name,
-                          'Customer name',
+                          StringConstants.customerName,
                           TextInputType.name,
-                          hint: 'Full name',
+                          hint: StringConstants.fullNameSentenceCase,
                           icon: Icons.person_outline_rounded,
                           capitalization: TextCapitalization.words,
                           autofillHints: const <String>[AutofillHints.name],
                           onChanged: _onCandidateSearchChanged,
                           validator: (String? v) => (v?.trim().isEmpty ?? true)
-                              ? 'Enter the customer\'s name'
+                              ? StringConstants.enterCustomerName
                               : null,
                         ),
                         _gap(),
                         _field(
                           _phone,
-                          'Phone number',
+                          StringConstants.phoneNumberSentenceCase,
                           TextInputType.phone,
-                          hint: '98XXXXXXXX',
+                          hint: StringConstants.text98xxxxxxxx,
                           icon: Icons.phone_outlined,
                           autofillHints: const <String>[
                             AutofillHints.telephoneNumber,
@@ -399,10 +399,10 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                           validator: (String? v) {
                             final String t = v?.trim() ?? '';
                             if (t.isEmpty) {
-                              return 'Enter the customer\'s phone number';
+                              return StringConstants.enterCustomerPhoneNumber;
                             }
                             if (t.length < 7) {
-                              return 'Enter a valid phone number';
+                              return StringConstants.enterValidPhoneNumber;
                             }
                             return null;
                           },
@@ -413,15 +413,16 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                     _sectionGap(),
                     _sectionCard(
                       context,
-                      title: 'Booking details',
-                      subtitle: 'Set the initial payment and booking status.',
+                      title: StringConstants.bookingDetailsSentenceCase,
+                      subtitle:
+                          StringConstants.setInitialPaymentAndBookingStatus,
                       icon: Icons.payments_outlined,
                       children: <Widget>[
                         CustomTextField(
                           key: const Key('manual-booking-total-amount'),
-                          labelText: 'Total amount (NPR)',
+                          labelText: StringConstants.totalAmountNpr,
                           // Optional: blank lets the server price the slots.
-                          hintText: 'Leave blank to use slot prices',
+                          hintText: StringConstants.leaveBlankToUseSlotPrices,
                           controller: _totalAmount,
                           // CustomTextField marks every label required by
                           // default; this one genuinely is not.
@@ -445,7 +446,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                         ),
                         _gap(),
                         _dropdown(
-                          label: 'Payment method',
+                          label: StringConstants.paymentMethod,
                           icon: Icons.account_balance_wallet_outlined,
                           value: _paymentMethod,
                           values: const <String>['cash', 'online'],
@@ -454,7 +455,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                         ),
                         _gap(),
                         _dropdown(
-                          label: 'Payment status',
+                          label: StringConstants.paymentStatus,
                           icon: Icons.verified_outlined,
                           value: _paymentStatus,
                           values: const <String>['paid', 'pending', 'unpaid'],
@@ -463,7 +464,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                         ),
                         _gap(),
                         _dropdown(
-                          label: 'Booking status',
+                          label: StringConstants.bookingStatus,
                           icon: Icons.event_available_outlined,
                           value: _bookingStatus,
                           values: const <String>['confirmed', 'pending'],
@@ -472,8 +473,8 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                         ),
                         _gap(),
                         CustomTextField(
-                          labelText: 'Payment note',
-                          hintText: 'Add a payment remark',
+                          labelText: StringConstants.paymentNote,
+                          hintText: StringConstants.addPaymentRemark,
                           controller: _note,
                           icon: Icons.notes_rounded,
                           maxLines: 2,
@@ -526,7 +527,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Enter booking details',
+                  StringConstants.enterBookingDetails,
                   style: textTheme.bodyTextMedium?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w700,
@@ -534,7 +535,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                 ),
                 const SizedBox(height: AppDimens.paddingX2),
                 Text(
-                  'Next, select an available date and time slot.',
+                  StringConstants.nextSelectDateAndTimeSlot,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryTextColor,
                   ),
@@ -695,7 +696,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                   const SizedBox(width: AppDimens.paddingX8),
                   Expanded(
                     child: Text(
-                      'Existing candidates',
+                      StringConstants.existingCandidates,
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.primaryTextColor,
                         fontWeight: FontWeight.w700,
@@ -751,7 +752,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                   AppDimens.paddingX12,
                 ),
                 child: Text(
-                  'No existing candidate found. This booking will use the new customer details.',
+                  StringConstants.noExistingCandidateFound,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryTextColor,
                     height: 1.3,
@@ -781,7 +782,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                                 ),
                               )
                             : const Icon(Icons.expand_more_rounded),
-                        label: const Text('Load more candidates'),
+                        label: Text(StringConstants.loadMoreCandidates),
                       );
                     }
                     final CandidateModel candidate = _candidates[index];
@@ -798,7 +799,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                       ),
                       title: Text(
                         candidate.name.isEmpty
-                            ? 'Unnamed customer'
+                            ? StringConstants.unnamedCustomer
                             : candidate.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -882,7 +883,7 @@ class _ManualBookingActionBar extends StatelessWidget {
           child: SizedBox(
             height: AppDimens.sizeX46,
             child: CustomButton(
-              text: 'Continue to slot selection',
+              text: StringConstants.continueToSlotSelection,
               icon: Icons.arrow_forward_rounded,
               onPressed: onContinue,
             ),

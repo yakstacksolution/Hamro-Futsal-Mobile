@@ -13,6 +13,7 @@ import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/bloc/vendor_ops_bloc.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops_style.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 Future<void> showOpsBookingDetails(
   BuildContext context,
@@ -39,7 +40,7 @@ Future<void> showOpsBookingDetails(
   return showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
-    barrierLabel: 'Close booking details',
+    barrierLabel: StringConstants.closeBookingDetails,
     barrierColor: LightColor.scrimColor,
     transitionDuration: const Duration(milliseconds: 220),
     pageBuilder: (BuildContext context, _, __) => Align(
@@ -110,7 +111,7 @@ class _BookingDetails extends StatelessWidget {
                 child: Text(
                   b.playerName?.trim().isNotEmpty ?? false
                       ? b.playerName!.trim()
-                      : 'Customer',
+                      : StringConstants.customer,
                   style: textTheme.bodyTextLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: LightColor.primaryTextColor,
@@ -118,7 +119,7 @@ class _BookingDetails extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: 'Close',
+                tooltip: StringConstants.close,
                 onPressed: () => Navigator.of(context).maybePop(),
                 icon: const Icon(Icons.close_rounded),
               ),
@@ -158,12 +159,15 @@ class _BookingDetails extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _Row('Reference', b.bookingRef.isEmpty ? '#${b.id}' : b.bookingRef),
-          _Row('Venue', b.futsalName),
-          _Row('Court', b.courtName),
-          _Row('Date', DateFmt.date(b.date)),
           _Row(
-            intervals.length > 1 ? 'Slots' : 'Time',
+            StringConstants.reference,
+            b.bookingRef.isEmpty ? '#${b.id}' : b.bookingRef,
+          ),
+          _Row(StringConstants.venue, b.futsalName),
+          _Row(StringConstants.court, b.courtName),
+          _Row(StringConstants.date, DateFmt.date(b.date)),
+          _Row(
+            intervals.length > 1 ? StringConstants.slots : StringConstants.time,
             intervals.isEmpty
                 ? b.displayTimeRange
                 : intervals
@@ -174,10 +178,10 @@ class _BookingDetails extends StatelessWidget {
                       .join('\n'),
           ),
           const Divider(height: 24),
-          _Row('Total', Money.npr(b.amount), strong: true),
-          _Row('Paid', Money.npr(b.paidAmount)),
+          _Row(StringConstants.total, Money.npr(b.amount), strong: true),
+          _Row(StringConstants.paid, Money.npr(b.paidAmount)),
           _Row(
-            'Balance due',
+            StringConstants.balanceDue,
             Money.npr(b.balanceDue),
             color: b.balanceDue > 0 ? LightColor.warningColor : null,
             strong: b.balanceDue > 0,
@@ -185,7 +189,7 @@ class _BookingDetails extends StatelessWidget {
           if (b.payments.isNotEmpty) ...<Widget>[
             const SizedBox(height: 12),
             Text(
-              'PAYMENTS',
+              StringConstants.paymentsHeader,
               style: TextStyle(
                 fontSize: 10,
                 letterSpacing: 0.6,
@@ -234,7 +238,7 @@ class _BookingDetails extends StatelessWidget {
           ],
           if (b.notes?.trim().isNotEmpty ?? false) ...<Widget>[
             const SizedBox(height: 12),
-            _Row('Note', b.notes!.trim()),
+            _Row(StringConstants.note, b.notes!.trim()),
           ],
           const SizedBox(height: 16),
           // Payments, cancellation and edits arrive with the booking list in
@@ -262,7 +266,9 @@ class _BookingDetails extends StatelessWidget {
             ),
             icon: const Icon(Icons.open_in_new_rounded, size: 16),
             label: Text(
-              demo ? 'Actions & receipt (not in demo)' : 'Actions & receipt',
+              demo
+                  ? StringConstants.actionsAndReceiptNotInDemo
+                  : StringConstants.actionsAndReceipt,
             ),
           ),
         ],

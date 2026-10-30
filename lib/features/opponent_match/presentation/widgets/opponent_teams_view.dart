@@ -94,7 +94,7 @@ class OpponentTeamsView extends StatelessWidget {
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: CreateTeamSheet(
           title: StringConstants.renameTeam,
-          actionLabel: 'Save',
+          actionLabel: StringConstants.save,
           actionIcon: Icons.check_rounded,
           initialName: team.name,
           onCreate: (name) {
@@ -111,8 +111,7 @@ class OpponentTeamsView extends StatelessWidget {
     final bool confirmed = await showDeleteDialog(
       context: context,
       title: StringConstants.deleteTeam,
-      message:
-          'This removes "${team.name}" and its players. This can\'t be undone.',
+      message: StringConstants.deleteTeamConfirmation(team.name),
     );
     if (confirmed) bloc.addIfOpen(DeleteTeamEvent(team.id));
   }
@@ -123,7 +122,7 @@ class OpponentTeamsView extends StatelessWidget {
     String memberId,
   ) async {
     final bloc = context.read<OpponentMatchBloc>();
-    String playerName = 'this player';
+    String playerName = StringConstants.thisPlayer;
     for (final PlayerModel player in team.players) {
       if (player.id == memberId) {
         playerName = player.name;
@@ -133,8 +132,7 @@ class OpponentTeamsView extends StatelessWidget {
     final bool confirmed = await showDeleteDialog(
       context: context,
       title: StringConstants.removePlayer,
-      message:
-          'This removes "$playerName" from "${team.name}". This can\'t be undone.',
+      message: StringConstants.removePlayerConfirmation(playerName, team.name),
       confirmText: StringConstants.remove,
       icon: Icons.person_remove_outlined,
     );
@@ -250,7 +248,7 @@ class _EmptyTeams extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX6),
             Text(
-              'Create a team and add players — you\'ll pick it when sending a match request.',
+              StringConstants.createTeamAndAddPlayersHint,
               textAlign: TextAlign.center,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,

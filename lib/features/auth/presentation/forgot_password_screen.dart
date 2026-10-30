@@ -82,7 +82,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       title: StringConstants.forgotPassword,
       subtitle: StringConstants.enterYourEmailAndWeWillSendYouAnOtpCode,
       headerIcon: Icons.lock_reset_rounded,
-      primaryButtonLabel: 'Send OTP',
+      primaryButtonLabel: StringConstants.sendOtp,
       primaryButtonEnabled: _isEmailValid && !isSending,
       onPrimaryTap: _submit,
       secondaryPrefixText: StringConstants.rememberPassword,

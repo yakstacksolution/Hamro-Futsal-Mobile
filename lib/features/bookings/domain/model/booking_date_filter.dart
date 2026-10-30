@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:intl/intl.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 enum BookingDateMode {
   all('all'),
@@ -85,17 +86,17 @@ final class BookingDateFilter extends Equatable {
   };
 
   String get label => switch (mode) {
-    BookingDateMode.all => 'All dates',
+    BookingDateMode.all => StringConstants.allDates,
     BookingDateMode.day => AppDateFormat.format(anchor, _dayPattern),
     BookingDateMode.month => _monthFormat.format(anchor),
     BookingDateMode.range => _rangeLabel,
   };
 
   String get modeLabel => switch (mode) {
-    BookingDateMode.all => 'All dates',
-    BookingDateMode.day => 'Day',
-    BookingDateMode.month => 'Month',
-    BookingDateMode.range => 'Range',
+    BookingDateMode.all => StringConstants.allDates,
+    BookingDateMode.day => StringConstants.dateModeDay,
+    BookingDateMode.month => StringConstants.periodMonth,
+    BookingDateMode.range => StringConstants.dateModeRange,
   };
 
   String get _rangeLabel {
@@ -109,9 +110,13 @@ final class BookingDateFilter extends Equatable {
       return '$start – ${AppDateFormat.format(to!, _shortDayPattern)}';
     }
     if (from != null) {
-      return 'From ${AppDateFormat.format(from!, _shortDayPattern)}';
+      return StringConstants.fromDateLabel(
+        AppDateFormat.format(from!, _shortDayPattern),
+      );
     }
-    return 'Until ${AppDateFormat.format(to!, _shortDayPattern)}';
+    return StringConstants.untilDateLabel(
+      AppDateFormat.format(to!, _shortDayPattern),
+    );
   }
 
   Map<String, dynamic> toQueryParameters() => <String, dynamic>{

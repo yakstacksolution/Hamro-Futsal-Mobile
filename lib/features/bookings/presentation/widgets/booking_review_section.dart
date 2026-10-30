@@ -7,6 +7,7 @@ import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
 import 'package:hamro_futsal/features/bookings/presentation/bloc/booking_details_bloc/booking_details_bloc.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BookingReviewSection extends StatefulWidget {
   const BookingReviewSection({super.key, required this.bookingId});
@@ -97,12 +98,12 @@ class _ReviewForm extends StatelessWidget {
   final ValueChanged<int> onRating;
   final VoidCallback onSubmit;
 
-  static const List<String> _ratingWords = <String>[
-    'Poor',
-    'Fair',
-    'Good',
-    'Great',
-    'Excellent',
+  static List<String> get _ratingWords => <String>[
+    StringConstants.ratingPoor,
+    StringConstants.ratingFair,
+    StringConstants.ratingGood,
+    StringConstants.ratingGreat,
+    StringConstants.ratingExcellent,
   ];
 
   @override
@@ -115,7 +116,7 @@ class _ReviewForm extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'How was your game?',
+              StringConstants.howWasYourGame,
               style: textTheme.bodyTextMedium?.copyWith(
                 color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w800,
@@ -123,7 +124,7 @@ class _ReviewForm extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX2),
             Text(
-              'Your rating helps other players choose a venue.',
+              StringConstants.ratingHelpsOtherPlayers,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
                 height: 1.4,
@@ -152,7 +153,7 @@ class _ReviewForm extends StatelessWidget {
             if (ratingMissing) ...<Widget>[
               const SizedBox(height: AppDimens.sizeX4),
               Text(
-                'Pick a star rating first.',
+                StringConstants.pickStarRatingFirst,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.redColor,
                   fontWeight: FontWeight.w600,
@@ -161,8 +162,8 @@ class _ReviewForm extends StatelessWidget {
             ],
             const SizedBox(height: AppDimens.sizeX12),
             CustomTextField(
-              labelText: 'Your review',
-              hintText: 'Court condition, facilities, how it all went…',
+              labelText: StringConstants.yourReview,
+              hintText: StringConstants.reviewHint,
               controller: controller,
               minLines: 3,
               maxLines: 5,
@@ -173,8 +174,12 @@ class _ReviewForm extends StatelessWidget {
               ensureVisibleOnFocus: true,
               validator: (String? value) {
                 final String text = value?.trim() ?? '';
-                if (text.isEmpty) return 'Write a few words about the venue.';
-                if (text.length < 10) return 'A little more detail, please.';
+                if (text.isEmpty) {
+                  return StringConstants.writeAFewWordsAboutVenue;
+                }
+                if (text.length < 10) {
+                  return StringConstants.aLittleMoreDetailPlease;
+                }
                 return null;
               },
               autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -191,7 +196,7 @@ class _ReviewForm extends StatelessWidget {
             ],
             const SizedBox(height: AppDimens.sizeX14),
             CustomButton(
-              text: 'Submit review',
+              text: StringConstants.submitReview,
               icon: Icons.rate_review_outlined,
               isLoading: isSubmitting,
               onPressed: onSubmit,
@@ -222,8 +227,10 @@ class _SubmittedReviewCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   review.statusLabel.isEmpty
-                      ? 'You reviewed this booking'
-                      : 'Review ${review.statusLabel.toLowerCase()}',
+                      ? StringConstants.youReviewedThisBooking
+                      : StringConstants.reviewStatus(
+                          review.statusLabel.toLowerCase(),
+                        ),
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,
@@ -336,7 +343,7 @@ class _ReviewCheckingCard extends StatelessWidget {
           ),
           const SizedBox(width: AppDimens.sizeX10),
           Text(
-            'Checking your review…',
+            StringConstants.checkingYourReview,
             style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               color: LightColor.secondaryTextColor,
               fontWeight: FontWeight.w600,

@@ -94,7 +94,7 @@ class FutsalBusinessSection extends StatelessWidget {
               subtitle:
                   StringConstants.primaryBusinessThumbnailForTheFutsalListing,
               onPick: () => unawaited(_openCoverLibrary(context)),
-              actionLabel: 'Gallery',
+              actionLabel: StringConstants.gallery,
               previewAsImage: true,
               files: draft.coverImage == null
                   ? const <UploadRef>[]
@@ -108,7 +108,7 @@ class FutsalBusinessSection extends StatelessWidget {
               title: StringConstants.gallery,
               subtitle: StringConstants.dragToReorderFirstImageIsTheCover,
               onPick: () => unawaited(_openGalleryLibrary(context)),
-              actionLabel: 'Gallery',
+              actionLabel: StringConstants.gallery,
               previewAsImage: true,
               files: draft.gallery,
               onRemove: cubit.removeFutsalGalleryImage,
@@ -121,7 +121,7 @@ class FutsalBusinessSection extends StatelessWidget {
               onPick: () {
                 unawaited(_openDocumentLibrary(context));
               },
-              actionLabel: 'Add new',
+              actionLabel: StringConstants.addNew,
               asGrid: true,
               files: draft.companyDocuments,
               onRemove: cubit.removeCompanyDocument,
@@ -136,28 +136,28 @@ class FutsalBusinessSection extends StatelessWidget {
   _BusinessSectionMeta _sectionMeta(int index) {
     switch (index) {
       case 0:
-        return const _BusinessSectionMeta(
+        return _BusinessSectionMeta(
           title: StringConstants.businessAssets,
           subtitle:
               StringConstants.uploadThePrimaryCoverImageForYourFutsalListing,
           icon: Icons.image_rounded,
         );
       case 1:
-        return const _BusinessSectionMeta(
+        return _BusinessSectionMeta(
           title: StringConstants.gallery,
           subtitle:
               StringConstants.addVenueLevelGalleryImagesForYourBusinessProfile,
           icon: Icons.collections_rounded,
         );
       case 2:
-        return const _BusinessSectionMeta(
+        return _BusinessSectionMeta(
           title: StringConstants.companyDocs,
           subtitle:
               StringConstants.uploadRegistrationPanLicenseAndRelatedDocuments,
           icon: Icons.description_rounded,
         );
       default:
-        return const _BusinessSectionMeta(
+        return _BusinessSectionMeta(
           title: StringConstants.businessAssets,
           subtitle: StringConstants.uploadYourFutsalBusinessMediaAndDocuments,
           icon: Icons.business_center_rounded,

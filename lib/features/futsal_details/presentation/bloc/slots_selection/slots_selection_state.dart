@@ -196,31 +196,37 @@ final class SlotsSelectionState extends Equatable {
       hasDiscount ? _money(selectedOriginalPrice) : null;
 
   String? get savingsText =>
-      hasDiscount ? 'save ${_money(selectedSavings)}' : null;
+      hasDiscount ? StringConstants.saveAmount(_money(selectedSavings)) : null;
 
   static String _money(double value) =>
-      'Rs ${Money.group(value.round().abs().toString())}';
+      StringConstants.rsAmount(Money.group(value.round().abs().toString()));
 
   String get priceUnit {
-    if (!hasSlotSelection) return '/ hour';
-    if (isRecurring) return 'total · $sessions sessions';
-    return '/ hour';
+    if (!hasSlotSelection) return StringConstants.perHourSuffix;
+    if (isRecurring) return StringConstants.totalLowercaseSessions(sessions);
+    return StringConstants.perHourSuffix;
   }
 
   String get selectedLabel {
     final VenueCourtItemModel? court = selectedCourt;
     if (!hasSlotSelection || court == null) {
-      return 'Select a time slot to continue';
+      return StringConstants.selectATimeSlotToContinue;
     }
     if (isRecurring) {
-      return '${court.name} · Every ${RecurringWeekdays.summary(effectiveWeekdays)} · $selectedTime';
+      return StringConstants.courtEveryWeekdaysAtTime(
+        court.name,
+        RecurringWeekdays.summary(effectiveWeekdays),
+        selectedTime,
+      );
     }
     return '${court.name} · ${AppDateFormat.format(selectedDate, 'EEE, d MMM')} · $selectedTime';
   }
 
   String get buttonText {
-    if (!hasSlotSelection) return 'Select Slot';
-    return selectedCourt == null ? 'Unavailable' : 'Book Now';
+    if (!hasSlotSelection) return StringConstants.selectSlot;
+    return selectedCourt == null
+        ? StringConstants.unavailable
+        : StringConstants.bookNow;
   }
 
   BookingDraft? get bookingDraft {

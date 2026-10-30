@@ -26,7 +26,9 @@ class BookingDateFilterButton extends StatelessWidget {
     final bool active = filter.isActive;
     final Color accent = LightColor.secondaryColor;
     return Tooltip(
-      message: active ? 'Edit date filter' : StringConstants.filterByDate,
+      message: active
+          ? StringConstants.editDateFilter
+          : StringConstants.filterByDate,
       child: Material(
         color: active ? accent.withValues(alpha: 0.10) : LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX6),
@@ -424,7 +426,7 @@ class _BookingDateFilterSheetState extends State<_BookingDateFilterSheet> {
                 Expanded(
                   child: _OrderButton(
                     buttonKey: const Key('date-sheet-order-newest'),
-                    label: 'Newest first',
+                    label: StringConstants.newestFirst,
                     icon: Icons.arrow_downward_rounded,
                     isSelected: _order == BookingDateOrder.descending,
                     onTap: () =>
@@ -435,7 +437,7 @@ class _BookingDateFilterSheetState extends State<_BookingDateFilterSheet> {
                 Expanded(
                   child: _OrderButton(
                     buttonKey: const Key('date-sheet-order-oldest'),
-                    label: 'Oldest first',
+                    label: StringConstants.oldestFirst,
                     icon: Icons.arrow_upward_rounded,
                     isSelected: _order == BookingDateOrder.ascending,
                     onTap: () =>
@@ -470,7 +472,7 @@ class _BookingDateFilterSheetState extends State<_BookingDateFilterSheet> {
                           ),
                         ),
                       ),
-                      child: const Text(StringConstants.applyFilter),
+                      child: Text(StringConstants.applyFilter),
                     ),
                   ),
                 ),
@@ -517,10 +519,10 @@ class _ModeSelector extends StatelessWidget {
   final ValueChanged<BookingDateMode> onSelected;
 
   static String _label(BookingDateMode mode) => switch (mode) {
-    BookingDateMode.all => 'All',
-    BookingDateMode.day => 'Day',
-    BookingDateMode.month => 'Month',
-    BookingDateMode.range => 'Range',
+    BookingDateMode.all => StringConstants.all,
+    BookingDateMode.day => StringConstants.dateModeDay,
+    BookingDateMode.month => StringConstants.periodMonth,
+    BookingDateMode.range => StringConstants.dateModeRange,
   };
 
   @override
@@ -655,7 +657,7 @@ class _AllModeBody extends StatelessWidget {
         const SizedBox(width: AppDimens.paddingX8),
         Expanded(
           child: Text(
-            'Every booking is shown, whatever its date.',
+            StringConstants.everyBookingShownWhateverDate,
             style: FutsalTheme.getTextTheme(
               context,
             ).bodyTextSmall?.copyWith(color: LightColor.secondaryTextColor),
@@ -686,18 +688,29 @@ class _DayModeBody extends StatelessWidget {
       children: <Widget>[
         _SheetDateField(
           fieldKey: const Key('date-sheet-day'),
-          label: 'Day',
+          label: StringConstants.dateModeDay,
           value: day,
           onTap: onPick,
         ),
         const SizedBox(height: AppDimens.paddingX12),
         _QuickPicks(
-          picks: <String, VoidCallback>{
-            'Today': () => onQuickPick(today),
-            'Yesterday': () =>
-                onQuickPick(today.subtract(const Duration(days: 1))),
-            'Tomorrow': () => onQuickPick(today.add(const Duration(days: 1))),
-          },
+          picks: <_QuickPick>[
+            (
+              id: 'today',
+              label: StringConstants.today,
+              onTap: () => onQuickPick(today),
+            ),
+            (
+              id: 'yesterday',
+              label: StringConstants.yesterday,
+              onTap: () => onQuickPick(today.subtract(const Duration(days: 1))),
+            ),
+            (
+              id: 'tomorrow',
+              label: StringConstants.tomorrow,
+              onTap: () => onQuickPick(today.add(const Duration(days: 1))),
+            ),
+          ],
         ),
       ],
     );
@@ -840,26 +853,42 @@ class _RangeModeBody extends StatelessWidget {
         ),
         const SizedBox(height: AppDimens.paddingX12),
         _QuickPicks(
-          picks: <String, VoidCallback>{
-            'Last 7 days': () =>
-                onQuickPick(today.subtract(const Duration(days: 6)), today),
-            'Last 30 days': () =>
-                onQuickPick(today.subtract(const Duration(days: 29)), today),
-            'This month': () => onQuickPick(
-              DateTime(today.year, today.month),
-              DateTime(today.year, today.month + 1, 0),
+          picks: <_QuickPick>[
+            (
+              id: 'last-7-days',
+              label: StringConstants.last7Days,
+              onTap: () =>
+                  onQuickPick(today.subtract(const Duration(days: 6)), today),
             ),
-          },
+            (
+              id: 'last-30-days',
+              label: StringConstants.last30Days,
+              onTap: () =>
+                  onQuickPick(today.subtract(const Duration(days: 29)), today),
+            ),
+            (
+              id: 'this-month',
+              label: StringConstants.thisMonth,
+              onTap: () => onQuickPick(
+                DateTime(today.year, today.month),
+                DateTime(today.year, today.month + 1, 0),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
+/// A quick-pick chip: [id] is a fixed, language-independent key; [label] is
+/// the translated text shown to the user.
+typedef _QuickPick = ({String id, String label, VoidCallback onTap});
+
 class _QuickPicks extends StatelessWidget {
   const _QuickPicks({required this.picks});
 
-  final Map<String, VoidCallback> picks;
+  final List<_QuickPick> picks;
 
   @override
   Widget build(BuildContext context) {
@@ -867,16 +896,14 @@ class _QuickPicks extends StatelessWidget {
     return Wrap(
       spacing: AppDimens.paddingX8,
       runSpacing: AppDimens.paddingX8,
-      children: picks.entries
-          .map((MapEntry<String, VoidCallback> entry) {
+      children: picks
+          .map((_QuickPick entry) {
             return Material(
               color: LightColor.background,
               borderRadius: BorderRadius.circular(AppDimens.radiusX20),
               child: InkWell(
-                key: Key(
-                  'date-quick-${entry.key.toLowerCase().replaceAll(' ', '-')}',
-                ),
-                onTap: entry.value,
+                key: Key('date-quick-${entry.id}'),
+                onTap: entry.onTap,
                 borderRadius: BorderRadius.circular(AppDimens.radiusX20),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -888,7 +915,7 @@ class _QuickPicks extends StatelessWidget {
                     border: Border.all(color: LightColor.dividerColor),
                   ),
                   child: Text(
-                    entry.key,
+                    entry.label,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.secondaryColor,
                       fontWeight: FontWeight.w600,
@@ -957,7 +984,7 @@ class _SheetDateField extends StatelessWidget {
                   Expanded(
                     child: Text(
                       value == null
-                          ? 'Any'
+                          ? StringConstants.any
                           : AppDateFormat.format(value!, 'd MMM yyyy'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

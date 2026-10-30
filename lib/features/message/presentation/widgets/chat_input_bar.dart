@@ -7,6 +7,7 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_futsal/features/message/domain/model/message_mentions.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class ChatInputBar extends StatefulWidget {
   const ChatInputBar({
@@ -21,7 +22,7 @@ class ChatInputBar extends StatefulWidget {
     this.replyingTo,
     this.onCancelReply,
     this.enabled = true,
-    this.disabledHint = 'You cannot send messages in this conversation.',
+    this.disabledHint,
     this.mentionCandidates = const <MentionCandidate>[],
     this.currentUserId,
   });
@@ -40,7 +41,7 @@ class ChatInputBar extends StatefulWidget {
   final ChatMessageModel? replyingTo;
   final VoidCallback? onCancelReply;
   final bool enabled;
-  final String disabledHint;
+  final String? disabledHint;
 
   @override
   State<ChatInputBar> createState() => _ChatInputBarState();
@@ -277,8 +278,10 @@ class _ChatInputBarState extends State<ChatInputBar> {
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
                                 hintText: widget.enabled
-                                    ? 'Type here'
-                                    : widget.disabledHint,
+                                    ? StringConstants.typeHere
+                                    : widget.disabledHint ??
+                                          StringConstants
+                                              .cannotSendMessagesInConversation,
                                 hintStyle: textTheme.bodyTextSmall?.copyWith(
                                   color: LightColor.hintTextColor,
                                   fontSize: 13.5,
@@ -465,7 +468,7 @@ class _MentionSuggestions extends StatelessWidget {
                     ),
                     if (isAll)
                       Text(
-                        'Notify everyone',
+                        StringConstants.notifyEveryone,
                         style: textTheme.bodySubTitle?.copyWith(
                           color: LightColor.secondaryTextColor,
                           fontWeight: FontWeight.w500,
@@ -491,12 +494,12 @@ class _ReplyPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final body = message.isDeleted
-        ? 'Deleted message'
+        ? StringConstants.deletedMessage
         : message.body.trim().isNotEmpty
         ? message.body.trim()
         : message.media.isNotEmpty
         ? message.media.first.name
-        : 'Message';
+        : StringConstants.message;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -514,7 +517,7 @@ class _ReplyPreview extends StatelessWidget {
           const SizedBox(width: AppDimens.paddingX6),
           Expanded(
             child: Text(
-              'Replying to ${message.senderName.isEmpty ? 'message' : message.senderName}: $body',
+              StringConstants.replyingTo(message.senderName, body),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

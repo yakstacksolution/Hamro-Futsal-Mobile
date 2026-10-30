@@ -572,7 +572,7 @@ class VendorUploadSection extends StatelessWidget {
     required this.onRemove,
     this.onReplace,
     this.onReorder,
-    this.actionLabel = 'Upload',
+    this.actionLabel,
     this.actionIcon = Icons.upload_rounded,
     this.previewAsImage = false,
     this.asGrid = false,
@@ -586,7 +586,7 @@ class VendorUploadSection extends StatelessWidget {
   final ValueChanged<UploadRef>? onReplace;
 
   final void Function(int oldIndex, int newIndex)? onReorder;
-  final String actionLabel;
+  final String? actionLabel;
   final IconData actionIcon;
   final bool previewAsImage;
 
@@ -663,7 +663,7 @@ class VendorUploadSection extends StatelessWidget {
                       vertical: AppDimens.sizeX6,
                     ),
                     child: Text(
-                      actionLabel,
+                      actionLabel ?? StringConstants.upload,
                       style: FutsalTheme.getTextTheme(context).bodyTextSmall
                           ?.copyWith(color: LightColor.inverseTextColor),
                     ),
@@ -721,7 +721,9 @@ class VendorUploadSection extends StatelessWidget {
                         ),
                         const SizedBox(height: AppDimens.sizeX4),
                         Text(
-                          'Tap $actionLabel to attach files for this section.',
+                          StringConstants.tapToAttachFilesForSection(
+                            actionLabel ?? StringConstants.upload,
+                          ),
                           textAlign: TextAlign.center,
                           style: FutsalTheme.getTextTheme(context).bodyTextSmall
                               ?.copyWith(
@@ -1332,7 +1334,7 @@ class VendorUploadItem extends StatelessWidget {
               ),
             ),
             if (_isRejected)
-              const _RejectionCallout(
+              _RejectionCallout(
                 message: StringConstants
                     .thisDocumentWasRejectedPleaseRemoveItAndAddANewC30fa5f11,
               ),
@@ -1452,7 +1454,7 @@ class VendorUploadItem extends StatelessWidget {
           ),
           if (_isRejected) ...<Widget>[
             const SizedBox(height: AppDimens.sizeX10),
-            const _RejectionCallout(
+            _RejectionCallout(
               message: StringConstants
                   .thisDocumentWasRejectedPleaseRemoveItAndAddANewC30fa5f11,
             ),
@@ -1742,15 +1744,15 @@ InputDecoration vendorInputDecoration(String label) {
 String stepStatusLabel(StepStatus status) {
   switch (status) {
     case StepStatus.locked:
-      return 'Locked';
+      return StringConstants.locked;
     case StepStatus.notStarted:
-      return 'Not Started';
+      return StringConstants.notStarted;
     case StepStatus.inProgress:
-      return 'In Progress';
+      return StringConstants.inProgressTitle;
     case StepStatus.complete:
-      return 'Complete';
+      return StringConstants.completeSetup;
     case StepStatus.error:
-      return 'Needs Attention';
+      return StringConstants.needsAttention;
     case StepStatus.pending:
       throw UnimplementedError();
   }
@@ -1776,19 +1778,19 @@ Color stepStatusColor(StepStatus status) {
 String saveStatusLabel(DraftSaveStatus status, DateTime? lastSavedAt) {
   switch (status) {
     case DraftSaveStatus.idle:
-      if (lastSavedAt == null) return 'Session state';
-      return 'Ready in session';
+      if (lastSavedAt == null) return StringConstants.sessionState;
+      return StringConstants.readyInSession;
     case DraftSaveStatus.saving:
-      return 'Saving draft...';
+      return StringConstants.savingDraft;
     case DraftSaveStatus.saved:
-      if (lastSavedAt == null) return 'Draft saved';
-      return 'Saved at ${formatTime(lastSavedAt)}';
+      if (lastSavedAt == null) return StringConstants.draftSaved;
+      return StringConstants.savedAt(formatTime(lastSavedAt));
     case DraftSaveStatus.failure:
-      return 'Draft save failed';
+      return StringConstants.draftSaveFailed;
     case DraftSaveStatus.error:
       throw UnimplementedError();
     case DraftSaveStatus.unsaved:
-      return 'Session only';
+      return StringConstants.sessionOnly;
   }
 }
 
@@ -1846,7 +1848,9 @@ class VendorSwitchButton extends StatelessWidget {
 String formatTime(DateTime value) {
   final int hour = value.hour % 12 == 0 ? 12 : value.hour % 12;
   final String minute = value.minute.toString().padLeft(2, '0');
-  final String suffix = value.hour >= 12 ? 'PM' : 'AM';
+  final String suffix = value.hour >= 12
+      ? StringConstants.pm
+      : StringConstants.am;
   return '$hour:$minute $suffix';
 }
 
@@ -1920,14 +1924,14 @@ class VendorLocationSearchField extends StatefulWidget {
     super.key,
     required this.initialValue,
     required this.onLocationSelected,
-    this.label = 'Exact location',
-    this.hintText = 'Search location...',
+    this.label,
+    this.hintText,
   });
 
   final String initialValue;
   final ValueChanged<PickedLocation> onLocationSelected;
-  final String label;
-  final String hintText;
+  final String? label;
+  final String? hintText;
 
   @override
   State<VendorLocationSearchField> createState() =>
@@ -2158,8 +2162,9 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
               return CustomTextField(
                 controller: _controller,
                 focusNode: _focusNode,
-                labelText: widget.label,
-                hintText: widget.hintText,
+                labelText:
+                    widget.label ?? StringConstants.exactLocationSentenceCase,
+                hintText: widget.hintText ?? StringConstants.searchLocationHint,
                 icon: Icons.search_rounded,
                 onChanged: _onSearchChanged,
                 suffixIcon: isSearching

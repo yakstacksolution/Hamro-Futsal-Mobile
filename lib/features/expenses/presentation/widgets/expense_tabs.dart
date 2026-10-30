@@ -8,6 +8,7 @@ import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_char
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_common.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_record_widgets.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_summary_widgets.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class ExpenseOverviewTab extends StatelessWidget {
   const ExpenseOverviewTab({super.key, required this.report});
@@ -25,10 +26,10 @@ class ExpenseOverviewTab extends StatelessWidget {
         bottom: AppDimens.paddingX20,
       ),
       children: [
-        ExpenseSectionLabel('Total spend'),
+        ExpenseSectionLabel(StringConstants.totalSpend),
         ExpenseHeroCard(report: report),
         const SizedBox(height: AppDimens.paddingX18),
-        ExpenseSectionLabel('Snapshot'),
+        ExpenseSectionLabel(StringConstants.snapshot),
         ExpenseKpiGrid(report: report),
       ],
     );
@@ -69,7 +70,7 @@ class ExpenseAnalyticsTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    ExpenseSectionLabel('Trend'),
+                    ExpenseSectionLabel(StringConstants.trend),
                     ExpenseTrendCard(report: report),
                   ],
                 ),
@@ -79,7 +80,7 @@ class ExpenseAnalyticsTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    ExpenseSectionLabel('By category'),
+                    ExpenseSectionLabel(StringConstants.byCategory),
                     ExpenseCategoryCard(
                       report: report,
                       selectedCategory: selectedCategory,
@@ -91,10 +92,10 @@ class ExpenseAnalyticsTab extends StatelessWidget {
             ],
           )
         else ...[
-          ExpenseSectionLabel('Trend'),
+          ExpenseSectionLabel(StringConstants.trend),
           ExpenseTrendCard(report: report),
           const SizedBox(height: AppDimens.paddingX18),
-          ExpenseSectionLabel('By category'),
+          ExpenseSectionLabel(StringConstants.byCategory),
           ExpenseCategoryCard(
             report: report,
             selectedCategory: selectedCategory,
@@ -103,7 +104,7 @@ class ExpenseAnalyticsTab extends StatelessWidget {
         ],
         if (report.byCourt.isNotEmpty) ...[
           const SizedBox(height: AppDimens.paddingX18),
-          ExpenseSectionLabel('By court'),
+          ExpenseSectionLabel(StringConstants.byCourt),
           ExpenseCourtCard(report: report),
         ],
       ],
@@ -147,7 +148,9 @@ class ExpenseRecordsTab extends StatelessWidget {
           ),
           sliver: SliverToBoxAdapter(
             child: ExpenseSectionLabel(
-              categoryLabel == null ? 'Records' : 'Records · $categoryLabel',
+              categoryLabel == null
+                  ? StringConstants.records
+                  : StringConstants.recordsForCategory(categoryLabel!),
             ),
           ),
         ),

@@ -3,14 +3,15 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 
 Future<bool> showConfirmDialog({
   required BuildContext context,
   required String title,
   required String message,
-  String confirmText = 'Confirm',
-  String cancelText = 'Cancel',
+  String? confirmText,
+  String? cancelText,
   Color confirmColor = LightColor.secondaryColor,
   IconData? icon,
   Widget? iconWidget,
@@ -36,8 +37,8 @@ class CustomConfirmDialog extends StatelessWidget {
     super.key,
     required this.title,
     required this.message,
-    this.confirmText = 'Confirm',
-    this.cancelText = 'Cancel',
+    this.confirmText,
+    this.cancelText,
     this.confirmColor,
     this.icon,
     this.iconWidget,
@@ -45,8 +46,12 @@ class CustomConfirmDialog extends StatelessWidget {
 
   final String title;
   final String message;
-  final String confirmText;
-  final String cancelText;
+
+  /// Defaults to [StringConstants.confirm] in the current language.
+  final String? confirmText;
+
+  /// Defaults to [StringConstants.cancel] in the current language.
+  final String? cancelText;
   final Color? confirmColor;
   final IconData? icon;
   final Widget? iconWidget;
@@ -58,6 +63,8 @@ class CustomConfirmDialog extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     final double dialogWidth = MediaQuery.sizeOf(context).width;
     final bool stackActions = dialogWidth < 360;
+    final String confirmText = this.confirmText ?? StringConstants.confirm;
+    final String cancelText = this.cancelText ?? StringConstants.cancel;
 
     return Dialog(
       insetPadding: appUtils.getPadding(

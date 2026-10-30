@@ -2,6 +2,7 @@ import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/features/rewards/data/model/rewards_model.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class RewardFmt {
   RewardFmt._();
@@ -30,7 +31,9 @@ class RewardFmt {
   static String dateTime(DateTime value) {
     final int hour12 = value.hour % 12 == 0 ? 12 : value.hour % 12;
     final String minute = value.minute.toString().padLeft(2, '0');
-    final String meridiem = value.hour < 12 ? 'AM' : 'PM';
+    final String meridiem = value.hour < 12
+        ? StringConstants.am
+        : StringConstants.pm;
     return '${date(value)} · ${hour12.toString().padLeft(2, '0')}:$minute $meridiem';
   }
 
@@ -40,10 +43,12 @@ class RewardFmt {
       final String text = percent == percent.roundToDouble()
           ? percent.round().toString()
           : percent.toStringAsFixed(1);
-      return '$text% off';
+      return StringConstants.percentOff(text);
     }
     if (coupon.discountAmount != null && coupon.discountAmount! > 0) {
-      return '${money(coupon.discountAmount!, currency: coupon.currency)} off';
+      return StringConstants.amountOff(
+        money(coupon.discountAmount!, currency: coupon.currency),
+      );
     }
     return '';
   }
@@ -65,9 +70,9 @@ extension RewardEntryTypeUi on RewardEntryType {
   };
 
   String get fallbackTitle => switch (this) {
-    RewardEntryType.earned => 'Points earned',
-    RewardEntryType.redeemed => 'Points redeemed',
-    RewardEntryType.expired => 'Points expired',
-    RewardEntryType.adjusted => 'Points adjusted',
+    RewardEntryType.earned => StringConstants.pointsEarnedTitle,
+    RewardEntryType.redeemed => StringConstants.pointsRedeemedTitle,
+    RewardEntryType.expired => StringConstants.pointsExpiredTitle,
+    RewardEntryType.adjusted => StringConstants.pointsAdjustedTitle,
   };
 }

@@ -8,6 +8,7 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/scroll_behavior.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/features/message/presentation/pages/chat_launcher.dart';
 import 'package:hamro_futsal/features/courts_details/presentation/page/court_details.dart';
@@ -33,7 +34,6 @@ import 'package:hamro_futsal/features/futsal_details/presentation/bloc/venue_rev
 import 'package:hamro_futsal/features/futsal_details/presentation/widgets/venue_reviews_section.dart';
 import 'package:hamro_futsal/features/futsal_details/presentation/widgets/loading/hosted_by_section_loading.dart';
 import 'package:hamro_futsal/features/public/data/model/public_venue_model.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class FutsalDetailsPageView extends StatefulWidget {
   final CourtDetailModel? court;
@@ -143,8 +143,8 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
         : exactLocationText;
     // Get court type from the court_types array
     final String courtType = (venue.courtTypes?.isNotEmpty ?? false)
-        ? venue.courtTypes!.first.name ?? 'Not specified'
-        : 'Not specified';
+        ? venue.courtTypes!.first.name ?? StringConstants.notSpecified
+        : StringConstants.notSpecified;
 
     final int maxPlayers = venue.maxPlayer ?? 0;
     final String openTime = (venue.minTime ?? '').trim();
@@ -156,13 +156,18 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
       name: venue.name ?? '',
       location: address,
       address: exactLocation,
-      price: venue.price == null ? '' : 'Rs ${venue.price!.toStringAsFixed(0)}',
+      price: venue.price == null
+          ? ''
+          : StringConstants.rsAmount(venue.price!.toStringAsFixed(0)),
       rating: 0,
       reviewCount: 0,
       images: images,
       isOpen: venue.isOpen ?? false,
       distance: _formatDistanceMeters(venue.distanceMeters),
-      features: <String>[courtType, if (maxPlayers > 0) '$maxPlayers Players'],
+      features: <String>[
+        courtType,
+        if (maxPlayers > 0) StringConstants.playersCountTitle(maxPlayers),
+      ],
       description: '',
       hostedByName: '',
       hostedByAvatar: '',
@@ -182,9 +187,11 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
 
   String _formatDistanceMeters(double? meters) {
     if (meters == null) return '';
-    if (meters < 1000) return '${meters.round()} m';
+    if (meters < 1000) return StringConstants.distanceInMeters(meters.round());
     final double km = meters / 1000;
-    return km < 10 ? '${km.toStringAsFixed(1)} km' : '${km.round()} km';
+    return km < 10
+        ? StringConstants.distanceInKm(km.toStringAsFixed(1))
+        : StringConstants.distanceInKm(km.round());
   }
 
   @override
@@ -386,9 +393,9 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
           ],
           categories: <String, String>{
             for (final VenueAmenityFacilityItem amenity in data.amenities)
-              amenity.name: 'Amenities',
+              amenity.name: StringConstants.amenities,
             for (final VenueAmenityFacilityItem facility in data.facilities)
-              facility.name: 'Facilities',
+              facility.name: StringConstants.facilities,
           },
           iconUrls: <String, String>{
             for (final VenueAmenityFacilityItem item
@@ -707,9 +714,9 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     final String price = _court.price.trim();
 
     return <String>[
-      'Check out $name on ${StringConstants.hamroFutsal}.',
+      StringConstants.checkOutVenueOnHamroFutsal(name),
       if (address.isNotEmpty) address,
-      if (price.isNotEmpty) 'Starting from $price',
+      if (price.isNotEmpty) StringConstants.startingFrom(price),
     ].join('\n');
   }
 

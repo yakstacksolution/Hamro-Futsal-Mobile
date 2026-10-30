@@ -57,14 +57,18 @@ String bookingTimeAgo(BookingModel booking, {DateTime? now}) {
   final bool past = !diff.isNegative;
   final Duration span = diff.abs();
 
-  if (span.inMinutes < 1) return 'Just now';
+  if (span.inMinutes < 1) return StringConstants.justNow;
   if (span.inMinutes < 60) {
-    final String value = '${span.inMinutes} m';
-    return past ? '$value ago' : 'in $value';
+    final String value = StringConstants.minutesShort(span.inMinutes);
+    return past
+        ? StringConstants.timeAgo(value)
+        : StringConstants.timeIn(value);
   }
   if (span.inHours <= 12) {
-    final String value = '${span.inHours} hr';
-    return past ? '$value ago' : 'in $value';
+    final String value = StringConstants.hoursShortHr(span.inHours);
+    return past
+        ? StringConstants.timeAgo(value)
+        : StringConstants.timeIn(value);
   }
   // Older (or further out) than half a day — an exact stamp is more useful
   // than an ever-growing relative count.
@@ -72,24 +76,26 @@ String bookingTimeAgo(BookingModel booking, {DateTime? now}) {
 }
 
 String bookingDateTimeStamp(DateTime moment, {DateTime? reference}) {
-  const List<String> months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
+  final List<String> months = <String>[
+    StringConstants.monthShortJan,
+    StringConstants.monthShortFeb,
+    StringConstants.monthShortMar,
+    StringConstants.monthShortApr,
+    StringConstants.monthShortMay,
+    StringConstants.monthShortJun,
+    StringConstants.monthShortJul,
+    StringConstants.monthShortAug,
+    StringConstants.monthShortSep,
+    StringConstants.monthShortOct,
+    StringConstants.monthShortNov,
+    StringConstants.monthShortDec,
   ];
   final DateTime now = reference ?? DateTime.now();
   final int hour12 = moment.hour % 12 == 0 ? 12 : moment.hour % 12;
   final String minute = moment.minute.toString().padLeft(2, '0');
-  final String meridiem = moment.hour < 12 ? 'AM' : 'PM';
+  final String meridiem = moment.hour < 12
+      ? StringConstants.am
+      : StringConstants.pm;
   if (AppDateFormat.isBs) {
     final String bsYear = AppDateFormat.year(moment);
     final String yearPart = bsYear == AppDateFormat.year(now) ? '' : ' $bsYear';
@@ -399,18 +405,18 @@ class BookingErrorView extends StatelessWidget {
     super.key,
     required this.message,
     required this.onRetry,
-    this.title = StringConstants.unableToLoadBookings,
+    this.title,
   });
 
   final String message;
   final VoidCallback onRetry;
-  final String title;
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
     return AppMessageView(
       icon: Icons.wifi_off_rounded,
-      title: title,
+      title: title ?? StringConstants.unableToLoadBookings,
       message: message,
       actionLabel: StringConstants.retry,
       onAction: onRetry,
@@ -469,8 +475,9 @@ class BookingCard extends StatelessWidget {
       if (booking.isRecurring)
         BookingInfoChip(
           icon: Icons.repeat_rounded,
-          label:
-              '${_capitalize(booking.recurrenceType ?? 'Recurring')} booking',
+          label: StringConstants.typedBooking(
+            _capitalize(booking.recurrenceType ?? StringConstants.recurring),
+          ),
           color: LightColor.purpleColor,
         ),
     ];

@@ -1,5 +1,6 @@
 import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_futsal/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class OpponentCostSplit {
   const OpponentCostSplit({
@@ -74,22 +75,31 @@ class OpponentCostSplit {
   }
 
   String get badgeLabel {
-    if (split == SplitMode.even) return '50% my side';
-    if (isResultBased) return 'Conditional';
-    return '$myPercent% my side';
+    if (split == SplitMode.even) return StringConstants.percentMySide(50);
+    if (isResultBased) return StringConstants.conditional;
+    return StringConstants.percentMySide(myPercent);
   }
 
   String get shareSummary {
-    if (!hasCourtFee) return 'Court fee not set yet';
+    if (!hasCourtFee) return StringConstants.courtFeeNotSetYetMessage;
     if (split == SplitMode.even) {
-      return 'Your share ${OpponentFmt.npr(yourShare)} of '
-          '${OpponentFmt.npr(courtFee)} (50%)';
+      return StringConstants.yourShareOfCourtFee(
+        OpponentFmt.npr(yourShare),
+        OpponentFmt.npr(courtFee),
+        50,
+      );
     }
     if (isResultBased) {
-      return 'Loser ${OpponentFmt.npr(loserShare)} ($loserPercent%) · '
-          'Winner ${OpponentFmt.npr(winnerShare)}';
+      return StringConstants.loserWinnerShares(
+        OpponentFmt.npr(loserShare),
+        loserPercent,
+        OpponentFmt.npr(winnerShare),
+      );
     }
-    return 'Your share ${OpponentFmt.npr(yourShare)} of '
-        '${OpponentFmt.npr(courtFee)} ($myPercent%)';
+    return StringConstants.yourShareOfCourtFee(
+      OpponentFmt.npr(yourShare),
+      OpponentFmt.npr(courtFee),
+      myPercent,
+    );
   }
 }

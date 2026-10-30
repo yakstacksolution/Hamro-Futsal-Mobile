@@ -45,10 +45,8 @@ class BookingsPage extends StatelessWidget {
         return BookingErrorView(
           message: fetchFailed
               ? (profileState.errorMessage ??
-                    'We could not load your account details, so your bookings '
-                        'cannot be shown.')
-              : 'Your account role is missing, so we cannot tell which '
-                    'bookings to show.',
+                    StringConstants.couldNotLoadAccountForBookings)
+              : StringConstants.accountRoleMissingForBookings,
           onRetry: () =>
               context.read<ProfileBloc>().add(const FetchProfileEvent()),
         );
@@ -505,7 +503,7 @@ class _BookingsViewState extends State<_BookingsView>
       unselectedLabelStyle: textTheme.bodyTextSmall?.copyWith(
         fontWeight: FontWeight.w500,
       ),
-      tabs: const <Widget>[
+      tabs: <Widget>[
         Tab(text: StringConstants.futsalBookings, height: 40),
         Tab(text: StringConstants.myBookings, height: 40),
       ],
@@ -517,8 +515,8 @@ class _BookingsViewState extends State<_BookingsView>
     final TextEditingController searchController = _activeSearchController;
     final bool hasQuery = searchController.text.trim().isNotEmpty;
     final String hint = _showsMyBookings
-        ? 'Search venue, court or booking ID'
-        : 'Search court, player or booking ID';
+        ? StringConstants.searchVenueCourtOrBookingId
+        : StringConstants.searchCourtPlayerOrBookingId;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

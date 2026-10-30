@@ -11,6 +11,7 @@ import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/scroll_behavior.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/validation/receipt_validator.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
@@ -27,7 +28,6 @@ import 'package:hamro_futsal/features/futsal_details/presentation/bloc/payment_q
 import 'package:hamro_futsal/core/routers/booking_navigation.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_success_action.dart';
 import 'package:hamro_futsal/features/media/utils/media_file_picker.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:path_provider/path_provider.dart';
 
 class BookingCheckoutPage extends StatefulWidget {
@@ -54,7 +54,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
 
   final TextEditingController _paymentDescCtrl = TextEditingController();
 
-  static const String _payeeName = 'Hamro Futsal Pvt. Ltd.';
+  static String get _payeeName => StringConstants.hamroFutsalPvtLtd;
 
   static const String _paymentMethod = 'cash';
 
@@ -153,31 +153,31 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
         : <BookingCalculationLineModel>[
             if (price.subtotal != null)
               BookingCalculationLineModel(
-                label: 'Subtotal',
+                label: StringConstants.subtotal,
                 key: 'subtotal',
                 amount: price.subtotal,
               ),
             if ((price.discountAmount ?? 0) != 0)
               BookingCalculationLineModel(
-                label: 'Discount',
+                label: StringConstants.discount,
                 key: 'discount_amount',
                 amount: -(price.discountAmount!.abs()),
               ),
             if (price.bookingTotal != null)
               BookingCalculationLineModel(
-                label: 'Booking total',
+                label: StringConstants.bookingTotal,
                 key: 'booking_total',
                 amount: price.bookingTotal,
               ),
             if (price.advancePayableNow != null)
               BookingCalculationLineModel(
-                label: 'Pay now (advance)',
+                label: StringConstants.payNowAdvance,
                 key: 'advance_payable_now',
                 amount: price.advancePayableNow,
               ),
             if (price.balanceDueLater != null)
               BookingCalculationLineModel(
-                label: 'Balance due later',
+                label: StringConstants.balanceDueLater,
                 key: 'balance_due_later',
                 amount: price.balanceDueLater,
               ),
@@ -297,7 +297,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'The payment amount is not ready yet. Please try again.',
+        StringConstants.paymentAmountNotReady,
         key: 'receipt_amount_not_ready',
       );
       return;
@@ -340,7 +340,9 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
       context,
       validation.accepted ? MsgType.success : MsgType.error,
       validation.accepted
-          ? 'Receipt accepted for manual verification (score: ${validation.score}%).'
+          ? StringConstants.receiptAcceptedForManualVerification(
+              validation.score,
+            )
           : validation.reason,
       key: validation.accepted
           ? 'receipt_validation_passed'
@@ -391,7 +393,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'Please upload your payment proof.',
+        StringConstants.pleaseUploadYourPaymentProof,
         key: 'doc_required',
       );
       return;
@@ -412,7 +414,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'Please accept the booking terms.',
+        StringConstants.pleaseAcceptTheBookingTerms,
         key: 'terms_required',
       );
       return;
@@ -435,8 +437,8 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
         pricing: _pricingFor(coupon, quote: quote),
         couponCode: coupon.hasApplied ? coupon.appliedCode : null,
         paymentMethodLabel: _isManual
-            ? 'Paid at counter'
-            : 'Online (QR) · proof attached',
+            ? StringConstants.paidAtCounter
+            : StringConstants.onlineQrProofAttached,
         paymentProofName: _paymentDoc?.name,
         paymentDescription: _paymentNote,
       ),
@@ -557,7 +559,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
           AppUtils().showSnackBar(
             context,
             MsgType.error,
-            state.errorMessage ?? 'Could not create booking. Please try again.',
+            state.errorMessage ?? StringConstants.couldNotCreateBooking,
             key: 'booking_failed',
           );
         }
@@ -566,19 +568,19 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
         behavior: FutsalScrollBehavior(),
         child: Scaffold(
           backgroundColor: LightColor.background,
-          appBar: const CustomAppBar(title: StringConstants.confirmBooking),
+          appBar: CustomAppBar(title: StringConstants.confirmBooking),
           body: SafeArea(
             top: false,
             child: LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 final List<Widget> summarySection = <Widget>[
-                  const _SectionLabel('Booking summary'),
+                  _SectionLabel(StringConstants.bookingSummary),
                   _SummaryCard(draft: draft),
                   const SizedBox(height: AppDimens.sizeX20),
                 ];
                 final List<Widget> couponSection = <Widget>[
                   if (showCoupons) ...<Widget>[
-                    const _SectionLabel('Apply coupon'),
+                    _SectionLabel(StringConstants.applyCoupon),
                     const SizedBox(height: AppDimens.sizeX6),
                     _CouponField(
                       controller: _couponCtrl,
@@ -596,7 +598,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: <Widget>[
-                      const _SectionLabel('Price details'),
+                      _SectionLabel(StringConstants.priceDetails),
                       if (pricing.items.isNotEmpty)
                         GestureDetector(
                           onTap: () => _showPriceDetailsSheet(pricing),
@@ -638,7 +640,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                 ];
                 final List<Widget> qrSection = <Widget>[
                   if (!_isManual) ...<Widget>[
-                    const _SectionLabel('Payment'),
+                    _SectionLabel(StringConstants.payment),
                     Builder(
                       builder: (context) {
                         final PaymentQrState qrState = context
@@ -657,7 +659,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                               ? pricing.advanceText()
                               : pricing.ready ||
                                     holdState.status == BookingHoldStatus.held
-                              ? 'Confirmed by venue'
+                              ? StringConstants.confirmedByVenue
                               : holdState.status == BookingHoldStatus.failure
                               ? '—'
                               : StringConstants.calculatingPrice,
@@ -669,7 +671,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                 ];
                 final List<Widget> proofSection = <Widget>[
                   if (!_isManual) ...<Widget>[
-                    const _SectionLabel('Payment proof'),
+                    _SectionLabel(StringConstants.paymentProof),
                     _UploadCard(
                       file: _paymentDoc,
                       isValidating: _isValidatingReceipt,
@@ -875,8 +877,10 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
               ),
               Text(
                 pricing.ready
-                    ? 'Total Rs ${pricing.total.toStringAsFixed(0)}'
-                    : 'Total —',
+                    ? StringConstants.totalRsAmount(
+                        pricing.total.toStringAsFixed(0),
+                      )
+                    : StringConstants.totalDash,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w600,
@@ -888,7 +892,9 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
           SizedBox(
             height: AppDimens.sizeX50,
             child: CustomButton(
-              text: submitting ? 'Confirming…' : 'Confirm Booking',
+              text: submitting
+                  ? StringConstants.confirmingEllipsis
+                  : StringConstants.confirmBooking,
               isLoading: submitting,
               onPressed: submitting ? null : _confirmBooking,
               backgroundColor: _canConfirm
@@ -946,8 +952,10 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                 ),
                 Text(
                   pricing.ready
-                      ? 'Total Rs ${pricing.total.toStringAsFixed(0)}'
-                      : 'Total —',
+                      ? StringConstants.totalRsAmount(
+                          pricing.total.toStringAsFixed(0),
+                        )
+                      : StringConstants.totalDash,
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: LightColor.hintTextColor,
                     fontWeight: FontWeight.w500,
@@ -960,7 +968,9 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
               child: SizedBox(
                 height: AppDimens.sizeX50,
                 child: CustomButton(
-                  text: submitting ? 'Confirming…' : 'Confirm Booking',
+                  text: submitting
+                      ? StringConstants.confirmingEllipsis
+                      : StringConstants.confirmBooking,
                   isLoading: submitting,
                   onPressed: submitting ? null : _confirmBooking,
                   backgroundColor: _canConfirm
@@ -976,7 +986,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     );
   }
 }
-
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);
@@ -1072,7 +1081,6 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.draft});
 
@@ -1139,7 +1147,9 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
           _InfoRow(
-            label: draft.isRecurring ? 'Starts' : 'Date',
+            label: draft.isRecurring
+                ? StringConstants.starts
+                : StringConstants.date,
             value: _dateLabel(draft.selectedDate),
           ),
           const SizedBox(height: AppDimens.sizeX10),
@@ -1147,14 +1157,16 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: AppDimens.sizeX10),
           _InfoRow(
             label: StringConstants.players,
-            value: 'Up to ${draft.maxPlayers}',
+            value: StringConstants.upToPlayers(draft.maxPlayers),
           ),
           if (draft.isRecurring) ...<Widget>[
             const SizedBox(height: AppDimens.sizeX10),
             _InfoRow(
               label: StringConstants.repeats,
-              value:
-                  'Weekly · ${draft.recurrenceLabel ?? ''} · ${draft.sessions} sessions',
+              value: StringConstants.weeklyRecurrenceSessions(
+                draft.recurrenceLabel ?? '',
+                draft.sessions,
+              ),
             ),
           ],
         ],
@@ -1209,8 +1221,9 @@ class _CouponField extends StatelessWidget {
                       ),
                     ),
                     TextSpan(
-                      text:
-                          'applied · saved Rs ${coupon.discount.toStringAsFixed(0)}',
+                      text: StringConstants.appliedSavedRs(
+                        coupon.discount.toStringAsFixed(0),
+                      ),
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.secondaryTextColor,
                         fontWeight: FontWeight.w500,
@@ -1402,7 +1415,6 @@ class _CouponChip extends StatelessWidget {
   }
 }
 
-
 class _PriceBreakdown extends StatelessWidget {
   const _PriceBreakdown({
     required this.lines,
@@ -1428,7 +1440,9 @@ class _PriceBreakdown extends StatelessWidget {
   static String _money(double? amount) {
     final double value = amount ?? 0;
     final String abs = value.abs().toStringAsFixed(0);
-    return value < 0 ? '- Rs $abs' : 'Rs $abs';
+    return value < 0
+        ? StringConstants.minusRsAmount(abs)
+        : StringConstants.rsAmount(abs);
   }
 
   @override
@@ -1451,7 +1465,7 @@ class _PriceBreakdown extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    "Couldn't calculate the price",
+                    StringConstants.couldNotCalculateThePrice,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.primaryTextColor,
                       fontWeight: FontWeight.w700,
@@ -1461,7 +1475,7 @@ class _PriceBreakdown extends StatelessWidget {
                   Text(
                     (errorMessage ?? '').trim().isNotEmpty
                         ? errorMessage!.trim()
-                        : 'The slot could not be held. Please try again.',
+                        : StringConstants.slotCouldNotBeHeldTryAgain,
                     style: textTheme.bodyMiniSubTitle?.copyWith(
                       color: LightColor.secondaryTextColor,
                     ),
@@ -1472,7 +1486,7 @@ class _PriceBreakdown extends StatelessWidget {
             if (onRetry != null)
               TextButton(
                 onPressed: onRetry,
-                child: const Text(StringConstants.retry),
+                child: Text(StringConstants.retry),
               ),
           ],
         ),
@@ -1485,14 +1499,15 @@ class _PriceBreakdown extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             _InfoRow(
-              label: 'Estimated total',
-              value: 'Rs ${estimatedTotal.toStringAsFixed(0)}',
+              label: StringConstants.estimatedTotal,
+              value: StringConstants.rsAmount(
+                estimatedTotal.toStringAsFixed(0),
+              ),
               emphasize: true,
             ),
             const SizedBox(height: AppDimens.sizeX6),
             Text(
-              'The venue confirms the final price and advance with your '
-              'booking.',
+              StringConstants.venueConfirmsFinalPriceAndAdvance,
               style: textTheme.bodyMiniSubTitle?.copyWith(
                 color: LightColor.secondaryTextColor,
               ),
@@ -1511,8 +1526,10 @@ class _PriceBreakdown extends StatelessWidget {
           children: <Widget>[
             if (estimatedTotal > 0) ...<Widget>[
               _InfoRow(
-                label: 'Estimated total',
-                value: 'Rs ${estimatedTotal.toStringAsFixed(0)}',
+                label: StringConstants.estimatedTotal,
+                value: StringConstants.rsAmount(
+                  estimatedTotal.toStringAsFixed(0),
+                ),
                 emphasize: true,
               ),
               const SizedBox(height: AppDimens.sizeX10),
@@ -1531,7 +1548,7 @@ class _PriceBreakdown extends StatelessWidget {
                 Expanded(
                   child: Text(
                     estimatedTotal > 0
-                        ? 'Calculating the final price and advance…'
+                        ? StringConstants.calculatingFinalPriceAndAdvance
                         : StringConstants.calculatingPrice,
                     style: textTheme.bodyMiniSubTitle?.copyWith(
                       color: LightColor.secondaryTextColor,
@@ -1592,7 +1609,6 @@ class _PriceBreakdown extends StatelessWidget {
   }
 }
 
-
 class _PriceDetailsSheet extends StatelessWidget {
   const _PriceDetailsSheet({required this.items, required this.lines});
 
@@ -1642,7 +1658,9 @@ class _PriceDetailsSheet extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX2),
             Text(
-              '${items.length} ${items.length == 1 ? 'session' : 'sessions'}',
+              items.length == 1
+                  ? StringConstants.oneSession
+                  : StringConstants.sessionsCount(items.length),
               style: textTheme.bodySubTitle?.copyWith(
                 color: LightColor.hintTextColor,
                 fontWeight: FontWeight.w500,
@@ -1778,8 +1796,6 @@ class _MiniRow extends StatelessWidget {
   }
 }
 
-
-
 class _UploadCard extends StatelessWidget {
   const _UploadCard({
     required this.file,
@@ -1803,16 +1819,16 @@ class _UploadCard extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
 
     if (isValidating) {
-      return const _Surface(
+      return _Surface(
         child: Row(
           children: <Widget>[
-            SizedBox(
+            const SizedBox(
               width: AppDimens.sizeX22,
               height: AppDimens.sizeX22,
               child: CircularProgressIndicator(strokeWidth: 2.5),
             ),
-            SizedBox(width: AppDimens.sizeX12),
-            Expanded(child: Text('Checking payment receipt…')),
+            const SizedBox(width: AppDimens.sizeX12),
+            Expanded(child: Text(StringConstants.checkingPaymentReceipt)),
           ],
         ),
       );
@@ -1928,7 +1944,7 @@ class _UploadCard extends StatelessWidget {
                 ),
                 const SizedBox(height: AppDimens.sizeX2),
                 Text(
-                  'Attached · ${picked.sizeLabel}',
+                  StringConstants.attachedWithSize(picked.sizeLabel),
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: LightColor.secondaryTextColor,
                     fontWeight: FontWeight.w500,
@@ -1966,10 +1982,10 @@ class _UploadCard extends StatelessWidget {
 class _PaymentNoteCard extends StatelessWidget {
   const _PaymentNoteCard();
 
-  static const List<String> _notes = <String>[
-    'Please pay the exact amount shown for your booking.',
-    'After completing the payment, upload a clear screenshot of the payment confirmation receipt.',
-    'Bookings with an incorrect payment amount or unclear/invalid screenshot may be cancelled.',
+  static List<String> get _notes => <String>[
+    StringConstants.payExactAmountNote,
+    StringConstants.uploadClearReceiptScreenshotNote,
+    StringConstants.incorrectPaymentMayBeCancelledNote,
   ];
 
   @override
@@ -2106,7 +2122,6 @@ class _TermsCheckbox extends StatelessWidget {
   }
 }
 
-
 class _BookingOverviewSheet extends StatelessWidget {
   const _BookingOverviewSheet({
     required this.draft,
@@ -2130,7 +2145,7 @@ class _BookingOverviewSheet extends StatelessWidget {
     final String timeRange = draft.displayTimeRange;
     final String recurrence = draft.recurrenceLabel?.trim().isNotEmpty == true
         ? draft.recurrenceLabel!.trim()
-        : '${draft.sessions} sessions';
+        : StringConstants.sessionsCount(draft.sessions);
     final List<DateTime> sessionDates = draft.sessionDates.isEmpty
         ? <DateTime>[draft.selectedDate]
         : draft.sessionDates;
@@ -2226,7 +2241,7 @@ class _BookingOverviewSheet extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    const _SectionLabel(StringConstants.bookingDetails),
+                    _SectionLabel(StringConstants.bookingDetails),
                     _ReviewCourtCard(draft: draft, timeRange: timeRange),
                     if (draft.isRecurring) ...<Widget>[
                       const SizedBox(height: AppDimens.sizeX12),
@@ -2237,7 +2252,7 @@ class _BookingOverviewSheet extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: AppDimens.sizeX16),
-                    const _SectionLabel(StringConstants.paymentAndProof),
+                    _SectionLabel(StringConstants.paymentAndProof),
                     _ReviewPaymentCard(
                       paymentMethodLabel: paymentMethodLabel,
                       paymentProofName: paymentProofName,
@@ -2245,7 +2260,7 @@ class _BookingOverviewSheet extends StatelessWidget {
                       couponCode: couponCode,
                     ),
                     const SizedBox(height: AppDimens.sizeX16),
-                    const _SectionLabel(StringConstants.priceSummary),
+                    _SectionLabel(StringConstants.priceSummary),
                     _PriceBreakdown(lines: pricing.lines, ready: pricing.ready),
                     const SizedBox(height: AppDimens.sizeX4),
                   ],
@@ -2373,7 +2388,9 @@ class _ReviewCourtCard extends StatelessWidget {
           ),
           _ReviewDetailRow(
             icon: Icons.calendar_today_rounded,
-            label: draft.isRecurring ? 'Starts' : 'Date',
+            label: draft.isRecurring
+                ? StringConstants.starts
+                : StringConstants.date,
             value: _dateLabel(draft.selectedDate),
           ),
           const SizedBox(height: AppDimens.sizeX10),
@@ -2386,7 +2403,7 @@ class _ReviewCourtCard extends StatelessWidget {
           _ReviewDetailRow(
             icon: Icons.groups_rounded,
             label: StringConstants.players,
-            value: 'Up to ${draft.maxPlayers}',
+            value: StringConstants.upToPlayers(draft.maxPlayers),
           ),
         ],
       ),
@@ -2415,7 +2432,10 @@ class _RecurringReviewCard extends StatelessWidget {
           _ReviewDetailRow(
             icon: Icons.repeat_rounded,
             label: StringConstants.recurringBooking,
-            value: 'Weekly · $recurrence · $sessions sessions',
+            value: StringConstants.weeklyRecurrenceSessions(
+              recurrence,
+              sessions,
+            ),
             emphasize: true,
           ),
           if (sessionDates.isNotEmpty) ...<Widget>[
@@ -2559,7 +2579,7 @@ class _DueNowBadge extends StatelessWidget {
             ),
           ),
           Text(
-            'Rs ${amount.toStringAsFixed(0)}',
+            StringConstants.rsAmount(amount.toStringAsFixed(0)),
             style: textTheme.bodyTextMedium?.copyWith(
               color: LightColor.secondaryColor,
               fontWeight: FontWeight.w800,
@@ -2723,7 +2743,6 @@ class _SessionDateChip extends StatelessWidget {
   }
 }
 
-
 class _BookingSuccessSheet extends StatelessWidget {
   const _BookingSuccessSheet({
     required this.draft,
@@ -2775,7 +2794,12 @@ class _BookingSuccessSheet extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX8),
             Text(
-              '${draft.courtName} · ${draft.selectedTime}\nWe will confirm once your advance of Rs ${advance.toStringAsFixed(0)} is verified. Balance Rs ${balanceDue.toStringAsFixed(0)} payable later.',
+              StringConstants.bookingRequestSentDetails(
+                draft.courtName,
+                draft.selectedTime,
+                advance.toStringAsFixed(0),
+                balanceDue.toStringAsFixed(0),
+              ),
               textAlign: TextAlign.center,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
@@ -2822,8 +2846,9 @@ class _Pricing {
 
   final bool advanceKnown;
 
-  String advanceText({String pending = '—'}) =>
-      ready && advanceKnown ? 'Rs ${advance.toStringAsFixed(0)}' : pending;
+  String advanceText({String pending = '—'}) => ready && advanceKnown
+      ? StringConstants.rsAmount(advance.toStringAsFixed(0))
+      : pending;
   final double balanceDue;
   final bool hasCoupon;
 

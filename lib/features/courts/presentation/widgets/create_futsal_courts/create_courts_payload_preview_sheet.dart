@@ -86,7 +86,7 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(StringConstants.close),
+                child: Text(StringConstants.close),
               ),
             ),
           ],

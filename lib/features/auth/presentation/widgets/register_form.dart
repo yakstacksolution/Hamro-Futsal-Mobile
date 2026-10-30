@@ -8,6 +8,7 @@ import 'package:hamro_futsal/core/widgets/custom_checkbox.dart';
 import 'package:hamro_futsal/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/features/auth/domain/entities/auth_entities.dart';
 
 class RegisterForm extends StatelessWidget {
   const RegisterForm({
@@ -105,7 +106,7 @@ class RegisterForm extends StatelessWidget {
               return DropdownMenuItem<String>(
                 value: type,
                 child: Text(
-                  type,
+                  AccountTypeLabels.labelFor(type),
                   style: FutsalTheme.getTextTheme(context).bodyTextLarge
                       ?.copyWith(
                         color: LightColor.primaryTextColor,
@@ -120,7 +121,7 @@ class RegisterForm extends StatelessWidget {
             dropdownColor: LightColor.background,
             validator: (String? value) {
               if (value == null || value.isEmpty) {
-                return 'Please select an account type';
+                return StringConstants.pleaseSelectAccountType;
               }
               return null;
             },
@@ -189,7 +190,7 @@ class RegisterForm extends StatelessWidget {
             autovalidateMode: autovalidateMode,
             validator: (bool? value) {
               if (acceptedTerms != true) {
-                return 'You must accept the terms to continue';
+                return StringConstants.youMustAcceptTermsToContinue;
               }
               return null;
             },
@@ -314,15 +315,15 @@ class _TermsLabelState extends State<_TermsLabel> {
       text: TextSpan(
         style: baseStyle,
         children: <InlineSpan>[
-          const TextSpan(text: 'I agree to the '),
+          TextSpan(text: StringConstants.iAgreeToThe),
           TextSpan(
-            text: 'Terms',
+            text: StringConstants.terms,
             style: linkStyle,
             recognizer: _termsRecognizer,
           ),
-          const TextSpan(text: ' and '),
+          TextSpan(text: StringConstants.andConnector),
           TextSpan(
-            text: 'Privacy Policy',
+            text: StringConstants.privacyPolicy,
             style: linkStyle,
             recognizer: _privacyRecognizer,
           ),

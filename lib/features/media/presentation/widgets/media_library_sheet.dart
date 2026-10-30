@@ -31,8 +31,8 @@ Future<List<UploadRef>?> showVendorMediaLibrarySheet({
   required VendorOnboardingCubit cubit,
   required List<String> allowedExtensions,
   required bool allowMultiple,
-  String title = 'Media Library',
-  String subtitle = 'Select saved media or add new files for this section.',
+  String? title,
+  String? subtitle,
   List<UploadRef> initiallySelected = const <UploadRef>[],
 }) {
   return showAppBottomSheet<List<UploadRef>>(
@@ -53,8 +53,8 @@ Future<List<UploadRef>?> showVendorMediaLibrarySheet({
               ..add(const FetchMediaEvent()),
         child: MediaLibrarySheet(
           cubit: cubit,
-          title: title,
-          subtitle: subtitle,
+          title: title ?? StringConstants.mediaLibrary,
+          subtitle: subtitle ?? StringConstants.mediaLibrarySubtitle,
           allowedExtensions: allowedExtensions,
           allowMultiple: allowMultiple,
           initiallySelected: initiallySelected,
@@ -172,7 +172,9 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
 
                         Expanded(
                           child: mediaState.fetchStatus == MediaStatus.loading
-                              ? SizedBox(child: Center(child: LoadingWidget()))
+                              ? const SizedBox(
+                                  child: Center(child: LoadingWidget()),
+                                )
                               : isFetchingInitialMedia
                               ? const _CompactLoadingState()
                               : library.isEmpty
@@ -300,7 +302,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
           AppUtils().showSnackBar(
             context,
             MsgType.error,
-            'The upload completed without a usable media reference. Please try again.',
+            StringConstants.uploadWithoutUsableMediaReference,
           );
         }
         setState(() {
@@ -390,9 +392,9 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
       );
       if (!mounted) return;
       if (files.length > kUploadMaxFilesPerRequest) {
-        throw const UploadValidationException(
+        throw UploadValidationException(
           UploadValidationCode.tooManyFiles,
-          'You can upload at most 5 files at once.',
+          StringConstants.uploadAtMostFiveFiles,
         );
       }
       final UploadPolicy policy = UploadPolicy(
@@ -457,16 +459,16 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
         AppUtils().showSnackBar(
           context,
           MsgType.error,
-          'The selected image is empty. Please select the original image again.',
+          StringConstants.selectedImageIsEmpty,
         );
         setState(() => _isAdding = false);
         return;
       }
 
       if (stableImages.length > kUploadMaxFilesPerRequest) {
-        throw const UploadValidationException(
+        throw UploadValidationException(
           UploadValidationCode.tooManyFiles,
-          'You can upload at most 5 files at once.',
+          StringConstants.uploadAtMostFiveFiles,
         );
       }
       final UploadPolicy policy = UploadPolicy(
@@ -487,7 +489,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'Could not select image. Please try again.',
+        StringConstants.couldNotSelectImage,
       );
       setState(() => _isAdding = false);
     }
@@ -514,7 +516,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
         AppUtils().showSnackBar(
           context,
           MsgType.error,
-          'The camera did not finish saving the image. Please take the photo again.',
+          StringConstants.cameraDidNotFinishSavingImage,
         );
         setState(() => _isCapturing = false);
         return;
@@ -541,7 +543,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'Could not open camera. Please try again.',
+        StringConstants.couldNotOpenCamera,
       );
       setState(() => _isCapturing = false);
     }
@@ -613,7 +615,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
     final bool isSingle = files.length == 1;
     final String fileLabel = isSingle
         ? files.first.name
-        : '${files.length} files';
+        : StringConstants.filesCount(files.length);
     final bool? result = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -621,8 +623,8 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
           files: files,
           title: StringConstants.uploadMedia,
           message: isSingle
-              ? 'Do you want to upload "$fileLabel" to media library?'
-              : 'Do you want to upload $fileLabel to media library?',
+              ? StringConstants.uploadFileToMediaLibraryQuoted(fileLabel)
+              : StringConstants.uploadFilesToMediaLibrary(fileLabel),
         );
       },
     );
@@ -634,7 +636,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
       AppUtils().showSnackBar(
         context,
         MsgType.info,
-        'Remote media is read-only in this library.',
+        StringConstants.remoteMediaIsReadOnly,
       );
       return;
     }
@@ -642,8 +644,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
     final bool confirmed = await showConfirmDialog(
       context: context,
       title: StringConstants.removeFromMediaLibrary,
-      message:
-          'Do you want to remove "${item.name}" from your saved collection?',
+      message: StringConstants.removeItemFromSavedCollection(item.name),
       confirmText: StringConstants.remove,
       icon: Icons.delete_outline_rounded,
     );
@@ -778,7 +779,7 @@ class _CompactHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[
                 Text(
-                  '$itemCount items',
+                  StringConstants.itemsCount(itemCount),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: FutsalTheme.getTextTheme(context).bodySubTitle
@@ -789,7 +790,7 @@ class _CompactHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: AppDimens.sizeX2),
                 Text(
-                  '$selectedCount selected',
+                  StringConstants.countSelected(selectedCount),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: FutsalTheme.getTextTheme(context).bodySubTitle
@@ -887,7 +888,7 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
             if (files.length > 1) ...<Widget>[
               const SizedBox(height: AppDimens.sizeX10),
               Text(
-                '+${files.length - 1} more selected',
+                StringConstants.moreSelected(files.length - 1),
                 style: TextStyle(
                   color: LightColor.secondaryTextColor,
                   fontSize: 12,
@@ -1101,15 +1102,25 @@ class _FilterMenuButton extends StatelessWidget {
 }
 
 enum _AddSource {
-  gallery('Gallery', 'Choose from your photos', Icons.image_outlined),
-  camera('Camera', 'Take a new photo', Icons.photo_camera_outlined),
-  files('Files', 'Browse documents', Icons.insert_drive_file_outlined);
+  gallery(Icons.image_outlined),
+  camera(Icons.photo_camera_outlined),
+  files(Icons.insert_drive_file_outlined);
 
-  const _AddSource(this.label, this.description, this.icon);
+  const _AddSource(this.icon);
 
-  final String label;
-  final String description;
   final IconData icon;
+
+  String get label => switch (this) {
+    _AddSource.gallery => StringConstants.gallery,
+    _AddSource.camera => StringConstants.camera,
+    _AddSource.files => StringConstants.files,
+  };
+
+  String get description => switch (this) {
+    _AddSource.gallery => StringConstants.chooseFromYourPhotos,
+    _AddSource.camera => StringConstants.takeANewPhoto,
+    _AddSource.files => StringConstants.browseDocuments,
+  };
 }
 
 class _AddMediaMenuButton extends StatelessWidget {
@@ -1345,8 +1356,8 @@ class _CompactLoadingState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            SizedBox(width: 28, height: 28, child: LoadingWidget()),
-            SizedBox(height: 12),
+            const SizedBox(width: 28, height: 28, child: LoadingWidget()),
+            const SizedBox(height: 12),
             Text(
               StringConstants.loadingMediaLibrary,
               style: TextStyle(
@@ -1355,7 +1366,7 @@ class _CompactLoadingState extends StatelessWidget {
                 color: LightColor.primaryTextColor,
               ),
             ),
-            SizedBox(height: 6),
+            const SizedBox(height: 6),
             Text(
               StringConstants.fetchingYourSavedMediaFromTheServer,
               textAlign: TextAlign.center,
@@ -1644,7 +1655,7 @@ class _MediaPreview extends StatelessWidget {
         );
       }
 
-      return const _MiniFilePlaceholder(
+      return _MiniFilePlaceholder(
         icon: Icons.broken_image_outlined,
         label: StringConstants.image,
       );
@@ -1702,11 +1713,11 @@ class _BottomSelectionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String buttonLabel = allowMultiple
-        ? 'Use Selected Items'
-        : 'Use Selected Item';
+        ? StringConstants.useSelectedItems
+        : StringConstants.useSelectedItem;
     final String titleText = selectionCount == 0
-        ? 'No media selected'
-        : '$selectionCount item${selectionCount == 1 ? '' : 's'} selected';
+        ? StringConstants.noMediaSelected
+        : StringConstants.itemsSelected(selectionCount);
 
     return Container(
       padding: AppUtils().getPadding(all: AppDimens.paddingX10),
@@ -1730,9 +1741,9 @@ class _BottomSelectionBar extends StatelessWidget {
             ),
           ),
 
-          SizedBox(width: AppDimens.paddingX10),
+          const SizedBox(width: AppDimens.paddingX10),
           ConstrainedBox(
-            constraints: BoxConstraints(
+            constraints: const BoxConstraints(
               maxHeight: AppDimens.sizeX40,
               maxWidth: AppDimens.sizeX200,
             ),
@@ -1750,13 +1761,15 @@ class _BottomSelectionBar extends StatelessWidget {
 }
 
 enum _LibraryFilter {
-  all('All'),
-  images('Images'),
-  files('Files');
+  all,
+  images,
+  files;
 
-  const _LibraryFilter(this.label);
-
-  final String label;
+  String get label => switch (this) {
+    _LibraryFilter.all => StringConstants.all,
+    _LibraryFilter.images => StringConstants.images,
+    _LibraryFilter.files => StringConstants.files,
+  };
 }
 
 bool _matchesAllowedExtensions(UploadRef item, Set<String> allowedExtensions) {

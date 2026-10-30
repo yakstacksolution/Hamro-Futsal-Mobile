@@ -112,8 +112,8 @@ class _OpponentTeamCardState extends State<OpponentTeamCard> {
                         const SizedBox(height: 2),
                         Text(
                           count == 0
-                              ? 'No players yet'
-                              : '$count ${count == 1 ? 'player' : 'players'}'
+                              ? StringConstants.noPlayersYet
+                              : '${StringConstants.playerCount(count)}'
                                     '${mix.isEmpty ? '' : ' · $mix'}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -200,8 +200,8 @@ class _OpponentTeamCardState extends State<OpponentTeamCard> {
                   const SizedBox(width: AppDimens.paddingX6),
                   Text(
                     team.players.isEmpty
-                        ? 'Add your first player'
-                        : 'Add Player',
+                        ? StringConstants.addYourFirstPlayer
+                        : StringConstants.addPlayer,
                     style: textTheme.bodyTextSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: LightColor.secondaryColor,

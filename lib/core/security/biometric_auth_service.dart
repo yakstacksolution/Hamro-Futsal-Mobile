@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:local_auth/local_auth.dart';
 
 final class BiometricAuthService {
@@ -19,7 +20,7 @@ final class BiometricAuthService {
     try {
       if (!await isAvailable()) return false;
       return await _authentication.authenticate(
-        localizedReason: 'Authenticate to sign in to Hamro Futsal',
+        localizedReason: StringConstants.biometricSignInReason,
         biometricOnly: true,
         persistAcrossBackgrounding: true,
       );

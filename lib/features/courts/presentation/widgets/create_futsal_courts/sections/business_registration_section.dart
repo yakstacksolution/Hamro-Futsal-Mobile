@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/courts/presentation/bloc/create_futsal_courts_bloc.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BusinessRegistrationSection extends StatelessWidget {
   const BusinessRegistrationSection({
@@ -32,8 +32,10 @@ class BusinessRegistrationSection extends StatelessWidget {
                 hintText: StringConstants.kathmandu,
                 icon: Icons.location_city_rounded,
                 iconColor: LightColor.monoIconColor,
-                validator: (String? value) =>
-                    bloc.requiredValidator(value, fieldName: 'City'),
+                validator: (String? value) => bloc.requiredValidator(
+                  value,
+                  fieldName: StringConstants.cityFieldName,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -48,8 +50,10 @@ class BusinessRegistrationSection extends StatelessWidget {
                 hintText: StringConstants.nepal,
                 icon: Icons.public_rounded,
                 iconColor: LightColor.monoIconColor,
-                validator: (String? value) =>
-                    bloc.requiredValidator(value, fieldName: 'Country'),
+                validator: (String? value) => bloc.requiredValidator(
+                  value,
+                  fieldName: StringConstants.countryFieldName,
+                ),
               ),
             ),
           ],

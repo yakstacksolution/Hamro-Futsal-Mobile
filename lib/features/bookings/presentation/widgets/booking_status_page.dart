@@ -19,11 +19,7 @@ import 'package:hamro_futsal/features/bookings/presentation/utils/booking_search
 import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_products_sheet.dart';
 import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 
-enum BookingListKind {
-  futsal,
-
-  mine,
-}
+enum BookingListKind { futsal, mine }
 
 class BookingStatusPage extends StatelessWidget {
   const BookingStatusPage({
@@ -131,8 +127,8 @@ class BookingStatusPage extends StatelessWidget {
             message:
                 slice.error ??
                 (_isMine
-                    ? 'Failed to load bookings.'
-                    : 'Failed to load futsal bookings.'),
+                    ? StringConstants.failedToLoadBookings
+                    : StringConstants.failedToLoadFutsalBookings),
             onRetry: () => _load(context, force: true),
           );
         }
@@ -346,15 +342,15 @@ class BookingStatusPage extends StatelessWidget {
               child: BookingEmptyView(
                 icon: Icons.calendar_month_outlined,
                 title: hasCriteria
-                    ? 'No matching bookings'
+                    ? StringConstants.noMatchingBookings
                     : _isMine
-                    ? 'No bookings yet'
-                    : 'No futsal bookings yet',
+                    ? StringConstants.noBookingsYet
+                    : StringConstants.noFutsalBookingsYet,
                 subtitle: hasCriteria
                     ? _emptySubtitle
                     : _isMine
-                    ? 'Your upcoming court bookings will appear here.'
-                    : 'Bookings made at your venues will appear here.',
+                    ? StringConstants.upcomingCourtBookingsAppearHere
+                    : StringConstants.venueBookingsAppearHere,
               ),
             ),
           ],
@@ -367,12 +363,12 @@ class BookingStatusPage extends StatelessWidget {
     final bool narrowed =
         searchQuery.trim().isNotEmpty || fromDate != null || toDate != null;
     if (filter == BookingStatusFilter.all) {
-      return 'Try a different search or date range.';
+      return StringConstants.tryDifferentSearchOrDateRange;
     }
     final String status = filter.query;
     return narrowed
-        ? 'No $status bookings match your search or date range.'
-        : 'You have no $status bookings.';
+        ? StringConstants.noStatusBookingsMatch(status)
+        : StringConstants.youHaveNoStatusBookings(status);
   }
 
   Widget _footer(BuildContext context, BookingListSlice slice) {
@@ -400,8 +396,8 @@ class BookingStatusPage extends StatelessWidget {
         ),
         label: Text(
           slice.loadMoreFailed
-              ? 'Could not load more. Retry'
-              : 'Load more bookings',
+              ? StringConstants.couldNotLoadMoreRetry
+              : StringConstants.loadMoreBookings,
         ),
       ),
     );
@@ -466,7 +462,9 @@ class _BookingCardActions extends StatelessWidget {
               icon: count > 0
                   ? Icons.shopping_bag_rounded
                   : Icons.add_shopping_cart_rounded,
-              label: count > 0 ? 'Products' : 'Add products',
+              label: count > 0
+                  ? StringConstants.products
+                  : StringConstants.addProducts,
               // The count is what the vendor scans for on a busy list, so it
               // reads as a badge rather than as part of the label.
               badge: count > 0 ? '$count' : null,
@@ -479,7 +477,7 @@ class _BookingCardActions extends StatelessWidget {
           Expanded(
             child: _CardAction(
               icon: Icons.check_rounded,
-              label: 'Complete',
+              label: StringConstants.completeSetup,
               color: LightColor.secondaryColor,
               // Closing the booking out is the end of the flow, so it carries
               // the only filled surface on the card.

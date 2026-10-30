@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 abstract class AppUpdateRemoteDataSource {
   Future<Result> getAppVersion({required Map<String, dynamic> query});
@@ -49,14 +50,14 @@ final class AppUpdateRemoteDataSourceImpl extends AppUpdateRemoteDataSource {
       );
       if (response.data == null) {
         return Result.error(
-          DataError('Empty App Store lookup response', 0, null),
+          DataError(StringConstants.emptyAppStoreLookupResponse, 0, null),
         );
       }
       return Result.success(response.data);
     } on DioException catch (error) {
       return Result.error(
         DataError(
-          error.message ?? 'App Store lookup failed',
+          error.message ?? StringConstants.appStoreLookupFailed,
           error.response?.statusCode ?? 0,
           error.response?.data,
         ),
@@ -64,7 +65,9 @@ final class AppUpdateRemoteDataSourceImpl extends AppUpdateRemoteDataSource {
     } catch (error) {
       return Result.error(
         DataError(
-          error is SocketException ? 'No internet connection' : '$error',
+          error is SocketException
+              ? StringConstants.noInternetConnection
+              : '$error',
           0,
           null,
         ),

@@ -31,7 +31,7 @@ class AppDrawer extends StatelessWidget {
   final ValueChanged<int> onNavTap;
   final VoidCallback onSignOut;
 
-  static const List<_DrawerNavConfig> _mainItems = <_DrawerNavConfig>[
+  static List<_DrawerNavConfig> get _mainItems => <_DrawerNavConfig>[
     _DrawerNavConfig(
       index: 0,
       icon: Icons.add_business_rounded,
@@ -39,7 +39,7 @@ class AppDrawer extends StatelessWidget {
     ),
   ];
 
-  static const List<_DrawerNavConfig> _managementItems = <_DrawerNavConfig>[
+  static List<_DrawerNavConfig> get _managementItems => <_DrawerNavConfig>[
     _DrawerNavConfig(
       icon: Icons.discount_rounded,
       label: StringConstants.discounts,
@@ -50,7 +50,7 @@ class AppDrawer extends StatelessWidget {
     ),
   ];
 
-  static const List<_DrawerNavConfig> _settingsItems = <_DrawerNavConfig>[
+  static List<_DrawerNavConfig> get _settingsItems => <_DrawerNavConfig>[
     _DrawerNavConfig(
       icon: Icons.store_rounded,
       label: StringConstants.storeSettings,
@@ -71,7 +71,7 @@ class AppDrawer extends StatelessWidget {
     if (trimmedName.isNotEmpty) return trimmedName;
 
     final emailName = user.email.split('@').first.trim();
-    return emailName.isNotEmpty ? emailName : 'Merchant';
+    return emailName.isNotEmpty ? emailName : StringConstants.merchant;
   }
 
   @override
@@ -111,7 +111,7 @@ class AppDrawer extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: <Widget>[
-                    const _DrawerSectionLabel('Futsal Vendor'),
+                    _DrawerSectionLabel(StringConstants.futsalVendor),
                     const SizedBox(height: 6),
                     ..._mainItems.map((item) {
                       return _DrawerNavItem(
@@ -126,7 +126,7 @@ class AppDrawer extends StatelessWidget {
                       );
                     }),
                     const SizedBox(height: 16),
-                    const _DrawerSectionLabel('Management'),
+                    _DrawerSectionLabel(StringConstants.management),
                     const SizedBox(height: 6),
                     ..._managementItems.map((item) {
                       return _DrawerNavItem(
@@ -137,7 +137,7 @@ class AppDrawer extends StatelessWidget {
                       );
                     }),
                     const SizedBox(height: 16),
-                    const _DrawerSectionLabel('Settings'),
+                    _DrawerSectionLabel(StringConstants.settings),
                     const SizedBox(height: 6),
                     ..._settingsItems.map((item) {
                       return _DrawerNavItem(

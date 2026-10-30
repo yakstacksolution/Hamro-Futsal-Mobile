@@ -1,11 +1,11 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/courts/data/model/create_courts_action_result.dart';
 import 'package:hamro_futsal/features/courts/data/model/create_courts_package_option.dart';
 import 'package:hamro_futsal/features/courts/data/model/create_futsal_court_payload.dart';
 import 'package:hamro_futsal/features/courts/data/model/picked_location.dart';
 import 'package:hamro_futsal/features/courts/presentation/bloc/create_futsal_courts_state.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/courts/data/model/create_courts_step_definition.dart';
 
 class CreateFutsalCourtsBloc extends ChangeNotifier {
@@ -18,8 +18,8 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
   }
 
   static const List<String> statuses = <String>['active', 'inactive'];
-  static const List<CreateCourtsStepDefinition>
-  steps = <CreateCourtsStepDefinition>[
+  static List<CreateCourtsStepDefinition>
+  get steps => <CreateCourtsStepDefinition>[
     CreateCourtsStepDefinition(
       label: StringConstants.basic,
       title: StringConstants.basicInformation,
@@ -60,6 +60,9 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
     ),
   ];
   static int get totalSteps => steps.length;
+
+  // Wire values: these fixed English names are what gets selected, stored and
+  // sent in the payload. Use [optionLabel] to display them.
   static const List<String> amenityOptions = <String>[
     'Floodlights',
     'Drinking Water',
@@ -76,28 +79,54 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
     'Spectator Seating',
     'First Aid Desk',
   ];
-  static const List<CreateCourtsPackageOption> packageOptions =
+
+  /// Localized display label for an amenity/facility wire value.
+  static String optionLabel(String wireValue) => switch (wireValue) {
+    'Floodlights' => StringConstants.floodlights,
+    'Drinking Water' => StringConstants.drinkingWater,
+    'Live Scoreboard' => StringConstants.liveScoreboard,
+    'Warm-Up Zone' => StringConstants.warmUpZone,
+    'Wi-Fi' => StringConstants.wiFi,
+    'Equipment Rental' => StringConstants.equipmentRental,
+    'Changing Room' => StringConstants.changingRoom,
+    'Shower Area' => StringConstants.showerArea,
+    'Locker Storage' => StringConstants.lockerStorage,
+    'Parking' => StringConstants.parking,
+    'Spectator Seating' => StringConstants.spectatorSeating,
+    'First Aid Desk' => StringConstants.firstAidDesk,
+    _ => wireValue,
+  };
+
+  // Fixed English package titles sent in the payload (display uses
+  // [CreateCourtsPackageOption.title]).
+  static const Map<String, String> _packageWireTitles = <String, String>{
+    'starter': 'Starter',
+    'growth': 'Growth',
+    'elite': 'Elite',
+  };
+
+  static List<CreateCourtsPackageOption> get packageOptions =>
       <CreateCourtsPackageOption>[
         CreateCourtsPackageOption(
           id: 'starter',
           title: StringConstants.starter,
           subtitle: StringConstants.bestForASingleVenueGettingOnline,
-          priceLabel: 'NPR 2,500 / month',
+          priceLabel: StringConstants.starterPackagePrice,
           features: <String>[
-            '1 venue profile',
-            'Basic listing visibility',
-            'Manual booking confirmation',
+            StringConstants.oneVenueProfile,
+            StringConstants.basicListingVisibility,
+            StringConstants.manualBookingConfirmation,
           ],
         ),
         CreateCourtsPackageOption(
           id: 'growth',
           title: StringConstants.growth,
           subtitle: StringConstants.balancedPackageForActiveFutsalOperations,
-          priceLabel: 'NPR 5,500 / month',
+          priceLabel: StringConstants.growthPackagePrice,
           features: <String>[
-            'Priority listing placement',
-            'Booking workflow support',
-            'Basic reporting access',
+            StringConstants.priorityListingPlacement,
+            StringConstants.bookingWorkflowSupport,
+            StringConstants.basicReportingAccess,
           ],
           isRecommended: true,
         ),
@@ -105,11 +134,11 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
           id: 'elite',
           title: StringConstants.elite,
           subtitle: StringConstants.forPremiumVenuesAndMultiCourtOperators,
-          priceLabel: 'NPR 9,500 / month',
+          priceLabel: StringConstants.elitePackagePrice,
           features: <String>[
-            'Multi-court management',
-            'Premium branding placement',
-            'Priority support routing',
+            StringConstants.multiCourtManagement,
+            StringConstants.premiumBrandingPlacement,
+            StringConstants.prioritySupportRouting,
           ],
         ),
       ];
@@ -184,14 +213,14 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
   String get policiesSummary {
     final List<String> rules = <String>[
       _state.requiresAdvancePayment
-          ? 'Advance payment required'
-          : 'Advance payment optional',
+          ? StringConstants.advancePaymentRequired
+          : StringConstants.advancePaymentOptional,
       _state.allowCancellation
-          ? 'Cancellation allowed'
-          : 'Cancellation not allowed',
+          ? StringConstants.cancellationAllowed
+          : StringConstants.cancellationNotAllowed,
       _state.allowCancellation && _state.supportsRefunds
-          ? 'Refunds supported'
-          : 'Refunds not supported',
+          ? StringConstants.refundsSupported
+          : StringConstants.refundsNotSupported,
     ];
     return rules.join(' • ');
   }
@@ -246,17 +275,22 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
   }
 
   String? requiredValidator(String? value, {required String fieldName}) {
-    if (value == null || value.trim().isEmpty) return '$fieldName is required';
+    if (value == null || value.trim().isEmpty) {
+      return StringConstants.fieldIsRequired(fieldName);
+    }
     return null;
   }
 
   String? slugValidator(String? value) {
-    final String? baseError = requiredValidator(value, fieldName: 'Slug');
+    final String? baseError = requiredValidator(
+      value,
+      fieldName: StringConstants.slug,
+    );
     if (baseError != null) return baseError;
 
     final String slug = value!.trim();
     if (!RegExp(r'^[a-z0-9]+(?:-[a-z0-9]+)*$').hasMatch(slug)) {
-      return 'Use lowercase letters, numbers, and hyphens only';
+      return StringConstants.useLowercaseLettersNumbersHyphensOnly;
     }
     return null;
   }
@@ -266,7 +300,7 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
     if (!RegExp(
       r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
     ).hasMatch(value.trim())) {
-      return 'Enter a valid email address';
+      return StringConstants.enterAValidEmailAddress;
     }
     return null;
   }
@@ -274,7 +308,7 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
   String? phoneValidator(String? value) {
     if (value == null || value.trim().isEmpty) return null;
     if (!RegExp(r'^[0-9+()\-\s]{7,20}$').hasMatch(value.trim())) {
-      return 'Enter a valid phone number';
+      return StringConstants.enterAValidPhoneNumber;
     }
     return null;
   }
@@ -282,19 +316,19 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
   String? establishedYearValidator(String? value) {
     final String? baseError = requiredValidator(
       value,
-      fieldName: 'Established year',
+      fieldName: StringConstants.establishedYearFieldName,
     );
     if (baseError != null) return baseError;
 
     final String yearText = value!.trim();
     if (!RegExp(r'^\d{4}$').hasMatch(yearText)) {
-      return 'Enter a valid 4-digit year';
+      return StringConstants.enterAValidFourDigitYear;
     }
 
     final int year = int.parse(yearText);
     final int currentYear = DateTime.now().year;
     if (year < 1900 || year > currentYear) {
-      return 'Year must be between 1900 and $currentYear';
+      return StringConstants.yearMustBeBetween1900And(currentYear);
     }
     return null;
   }
@@ -303,7 +337,7 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
     if (value == null || value.trim().isEmpty) return null;
     final Uri? uri = Uri.tryParse(value.trim());
     if (uri == null || !(uri.hasScheme && uri.host.isNotEmpty)) {
-      return 'Enter a valid website URL';
+      return StringConstants.enterAValidWebsiteUrl;
     }
     return null;
   }
@@ -311,14 +345,14 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
   String? basicPriceValidator(String? value) {
     final String? baseError = requiredValidator(
       value,
-      fieldName: 'Basic price',
+      fieldName: StringConstants.basicPriceFieldName,
     );
     if (baseError != null) return baseError;
 
     final String normalized = value!.trim().replaceAll(',', '');
     final double? parsed = double.tryParse(normalized);
     if (parsed == null || parsed <= 0) {
-      return 'Enter a valid price amount';
+      return StringConstants.enterAValidPriceAmount;
     }
     return null;
   }
@@ -326,10 +360,13 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
   String? bookingAdvanceDaysValidator(String? value) {
     final String? baseError = requiredValidator(
       value,
-      fieldName: 'Booking advance days',
+      fieldName: StringConstants.bookingAdvanceDaysFieldName,
     );
     if (baseError != null) return baseError;
-    return _positiveIntegerValidator(value, fieldName: 'Booking advance days');
+    return _positiveIntegerValidator(
+      value,
+      fieldName: StringConstants.bookingAdvanceDaysFieldName,
+    );
   }
 
   String? cancellationWindowValidator(String? value) {
@@ -337,18 +374,21 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
 
     final String? baseError = requiredValidator(
       value,
-      fieldName: 'Cancellation window',
+      fieldName: StringConstants.cancellationWindowFieldName,
     );
     if (baseError != null) return baseError;
-    return _positiveIntegerValidator(value, fieldName: 'Cancellation window');
+    return _positiveIntegerValidator(
+      value,
+      fieldName: StringConstants.cancellationWindowFieldName,
+    );
   }
 
   String? exactLocationValidator(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Exact location is required';
+      return StringConstants.exactLocationIsRequired;
     }
     if (_state.selectedLatitude == null || _state.selectedLongitude == null) {
-      return 'Select the exact location from the map';
+      return StringConstants.selectExactLocationFromMap;
     }
     return null;
   }
@@ -358,13 +398,16 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
     if (value == null || value.trim().isEmpty) return null;
     final Uri? uri = Uri.tryParse(value.trim());
     if (uri == null || !(uri.hasScheme && uri.host.isNotEmpty)) {
-      return 'Enter a valid URL (https://...)';
+      return StringConstants.enterAValidUrlHttps;
     }
     return null;
   }
 
   String? houseRulesValidator(String? value) {
-    return requiredValidator(value, fieldName: 'House rules');
+    return requiredValidator(
+      value,
+      fieldName: StringConstants.houseRulesFieldName,
+    );
   }
 
   String? amenitiesSelectionError() {
@@ -372,12 +415,12 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
         _state.selectedFacilities.isNotEmpty) {
       return null;
     }
-    return 'Select at least one amenity or facility.';
+    return StringConstants.selectAtLeastOneAmenityOrFacility;
   }
 
   String? packageSelectionError() {
     if (_state.selectedPackageId != null) return null;
-    return 'Choose a package to continue.';
+    return StringConstants.chooseAPackageToContinue;
   }
 
   void toggleSlugAutomation() {
@@ -447,7 +490,7 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
 
     final PlatformFile file = result.files.first;
     if (file.bytes == null) {
-      return 'Could not read the selected file.';
+      return StringConstants.couldNotReadTheSelectedFile;
     }
 
     if (shopLogoController.text.trim().isEmpty) {
@@ -583,7 +626,7 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
       requiresAdvancePayment: _state.requiresAdvancePayment,
       supportsRefunds: _state.allowCancellation && _state.supportsRefunds,
       selectedPackageId: package.id,
-      selectedPackageTitle: package.title,
+      selectedPackageTitle: _packageWireTitles[package.id] ?? package.id,
       shopLogo: shopLogoController.text.trim().isNotEmpty
           ? shopLogoController.text.trim()
           : (_state.selectedLogoName ?? ''),
@@ -627,7 +670,7 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
   }) {
     final int? parsed = int.tryParse(value!.trim());
     if (parsed == null || parsed <= 0) {
-      return '$fieldName must be a positive number';
+      return StringConstants.fieldMustBePositiveNumber(fieldName);
     }
     return null;
   }
@@ -645,7 +688,7 @@ class CreateFutsalCourtsBloc extends ChangeNotifier {
 
   String _joinOptions(Set<String> values) {
     if (values.isEmpty) return '';
-    final List<String> items = values.toList()..sort();
+    final List<String> items = values.map(optionLabel).toList()..sort();
     return items.join(', ');
   }
 }

@@ -66,7 +66,9 @@ class BookingHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'vs ${BookingFmt.npr(analytics.prevRevenue)} previous period',
+            StringConstants.vsPreviousPeriod(
+              BookingFmt.npr(analytics.prevRevenue),
+            ),
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.hintTextColor,
             ),
@@ -160,7 +162,7 @@ class BookingKpiGrid extends StatelessWidget {
         value: '${analytics.totalBookings}',
         sub: analytics.cardSubtext(
           'total_bookings',
-          '${analytics.paidBookings} paid',
+          StringConstants.paidCount(analytics.paidBookings),
         ),
         accent: LightColor.secondaryColor,
       ),
@@ -170,7 +172,9 @@ class BookingKpiGrid extends StatelessWidget {
         value: '${analytics.cancelledBookings}',
         sub: analytics.cardSubtext(
           'cancelled',
-          '${(analytics.cancelRate * 100).toStringAsFixed(1)}% of bookings',
+          StringConstants.percentOfBookings(
+            (analytics.cancelRate * 100).toStringAsFixed(1),
+          ),
         ),
         accent: LightColor.redColor,
       ),
@@ -180,7 +184,9 @@ class BookingKpiGrid extends StatelessWidget {
         value: BookingFmt.npr(analytics.revenue),
         sub: analytics.cardSubtext(
           'revenue',
-          'Avg ${BookingFmt.npr(analytics.avgPaidBookingValue.round())} / booking',
+          StringConstants.avgPerBooking(
+            BookingFmt.npr(analytics.avgPaidBookingValue.round()),
+          ),
         ),
         accent: LightColor.secondaryColor,
       ),
@@ -188,21 +194,30 @@ class BookingKpiGrid extends StatelessWidget {
         icon: Icons.receipt_long_outlined,
         label: analytics.cardLabel('expenses', StringConstants.expenses),
         value: BookingFmt.npr(analytics.expenses),
-        sub: analytics.cardSubtext('expenses', 'Overheads + processing'),
+        sub: analytics.cardSubtext(
+          'expenses',
+          StringConstants.overheadsAndProcessing,
+        ),
         accent: LightColor.warningColor,
       ),
       _Kpi(
         icon: Icons.timer_outlined,
         label: analytics.cardLabel('hours_played', StringConstants.hoursPlayed),
         value: '${BookingFmt.hours(analytics.hoursPlayed)}h',
-        sub: analytics.cardSubtext('hours_played', 'Across all paid slots'),
+        sub: analytics.cardSubtext(
+          'hours_played',
+          StringConstants.acrossAllPaidSlots,
+        ),
         accent: LightColor.secondaryColor,
       ),
       _Kpi(
         icon: Icons.stadium_outlined,
         label: analytics.cardLabel('occupancy', StringConstants.occupancy),
         value: '${(analytics.occupancy * 100).round()}%',
-        sub: analytics.cardSubtext('occupancy', 'Of available court hours'),
+        sub: analytics.cardSubtext(
+          'occupancy',
+          StringConstants.ofAvailableCourtHours,
+        ),
         accent: LightColor.secondaryColor,
       ),
     ];

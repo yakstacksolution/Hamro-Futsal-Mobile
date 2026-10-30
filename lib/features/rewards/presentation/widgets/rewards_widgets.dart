@@ -239,14 +239,18 @@ class _RedeemProgress extends StatelessWidget {
           : StringConstants.noRewardPointsYetMessage;
     } else if (missing == 0) {
       final String value = summary.couponValue > 0
-          ? ' worth ${RewardFmt.money(summary.couponValue, currency: summary.currency)}'
+          ? StringConstants.worthAmount(
+              RewardFmt.money(summary.couponValue, currency: summary.currency),
+            )
           : '';
-      caption =
-          'You can redeem ${RewardFmt.points(summary.pointsPerCoupon)} points '
-          'for a coupon$value.';
+      caption = StringConstants.youCanRedeemPointsForCoupon(
+        RewardFmt.points(summary.pointsPerCoupon),
+        value,
+      );
     } else {
-      caption =
-          '${RewardFmt.points(missing)} more points for your next coupon.';
+      caption = StringConstants.morePointsForNextCoupon(
+        RewardFmt.points(missing),
+      );
     }
 
     final int threshold = summary.pointsPerCoupon;
@@ -263,7 +267,9 @@ class _RedeemProgress extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  summary.canRedeem ? 'Coupon unlocked' : 'Next coupon',
+                  summary.canRedeem
+                      ? StringConstants.couponUnlocked
+                      : StringConstants.nextCoupon,
                   style: textTheme.bodySubTitle?.copyWith(
                     color: LightColor.onBrandSurface.withValues(alpha: 0.85),
                     fontWeight: FontWeight.w600,
@@ -271,7 +277,10 @@ class _RedeemProgress extends StatelessWidget {
                 ),
               ),
               Text(
-                '${RewardFmt.points(towards)} / ${RewardFmt.points(threshold)} pts',
+                StringConstants.pointsProgress(
+                  RewardFmt.points(towards),
+                  RewardFmt.points(threshold),
+                ),
                 style: textTheme.bodySubTitle?.copyWith(
                   color: LightColor.onBrandSurface,
                   fontWeight: FontWeight.w800,
@@ -400,7 +409,7 @@ class RewardStatsRow extends StatelessWidget {
         _RewardStatTile(
           icon: Icons.card_giftcard_rounded,
           color: LightColor.yellowColor,
-          label: 'Coupons available',
+          label: StringConstants.couponsAvailable,
           value: summary.redeemableCoupons.toString(),
         ),
     ];
@@ -547,8 +556,10 @@ class RewardHistoryTile extends StatelessWidget {
     // The densest useful detail line, in priority order.
     final List<String> details = <String>[
       if (entry.description.isNotEmpty) entry.description,
-      if (entry.couponCode.isNotEmpty) 'Coupon ${entry.couponCode}',
-      if (entry.reference.isNotEmpty) 'Ref ${entry.reference}',
+      if (entry.couponCode.isNotEmpty)
+        StringConstants.couponWithCode(entry.couponCode),
+      if (entry.reference.isNotEmpty)
+        StringConstants.refWithValue(entry.reference),
     ];
     final String? subtitle = details.isEmpty ? null : details.first;
 
@@ -620,7 +631,9 @@ class RewardHistoryTile extends StatelessWidget {
               ),
               if (entry.balanceAfter != null)
                 Text(
-                  'Bal ${RewardFmt.points(entry.balanceAfter!)}',
+                  StringConstants.balanceWithPoints(
+                    RewardFmt.points(entry.balanceAfter!),
+                  ),
                   style: textTheme.bodySubTitle?.copyWith(
                     color: LightColor.hintTextColor,
                   ),
@@ -740,13 +753,19 @@ class RewardHowItWorksCard extends StatelessWidget {
       if (summary.pointsPerCoupon > 0)
         (
           Icons.swap_horiz_rounded,
-          '${RewardFmt.points(summary.pointsPerCoupon)} points'
-              '${summary.couponValue > 0 ? ' = ${RewardFmt.money(summary.couponValue, currency: summary.currency)} coupon' : ' = 1 discount coupon'}.',
+          summary.couponValue > 0
+              ? StringConstants.pointsEqualsCoupon(
+                  RewardFmt.points(summary.pointsPerCoupon),
+                  RewardFmt.money(
+                    summary.couponValue,
+                    currency: summary.currency,
+                  ),
+                )
+              : StringConstants.pointsEqualsDiscountCoupon(
+                  RewardFmt.points(summary.pointsPerCoupon),
+                ),
         ),
-      (
-        Icons.receipt_long_rounded,
-        'Apply the generated coupon code at checkout to use your discount.',
-      ),
+      (Icons.receipt_long_rounded, StringConstants.applyCouponAtCheckout),
     ];
 
     return Container(
@@ -760,7 +779,7 @@ class RewardHowItWorksCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'How it works',
+            StringConstants.authHowItWorks,
             style: textTheme.bodyTextMedium?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w700,

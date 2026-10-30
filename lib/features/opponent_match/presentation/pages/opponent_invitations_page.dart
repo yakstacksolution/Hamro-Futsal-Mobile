@@ -55,15 +55,14 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
         .length;
     final bool confirmed = await showConfirmDialog(
       context: context,
-      title: 'Play ${invitation.teamName}?',
+      title: StringConstants.playTeamQuestion(invitation.teamName),
       message: others == 0
-          ? 'The match will be created and the venue linked to this request. '
-                'A chat room with ${invitation.teamName} opens automatically.'
-          : 'The match will be created with ${invitation.teamName} and the '
-                'venue linked to this request. The other $others '
-                '${others == 1 ? 'invitation' : 'invitations'} will be '
-                'rejected automatically.',
-      confirmText: 'Confirm opponent',
+          ? StringConstants.selectOpponentConfirmSolo(invitation.teamName)
+          : StringConstants.selectOpponentConfirmWithOthers(
+              invitation.teamName,
+              others,
+            ),
+      confirmText: StringConstants.confirmOpponent,
       icon: Icons.handshake_outlined,
     );
     if (!confirmed || !mounted) return;
@@ -96,10 +95,11 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
       context,
       MsgType.success,
       others == 0
-          ? 'Match confirmed with ${invitation.teamName}.'
-          : 'Match confirmed with ${invitation.teamName}. '
-                '$others ${others == 1 ? 'invitation' : 'invitations'} '
-                'auto-rejected.',
+          ? StringConstants.matchConfirmedWithTeam(invitation.teamName)
+          : StringConstants.matchConfirmedWithTeamOthersRejected(
+              invitation.teamName,
+              others,
+            ),
     );
   }
 
@@ -107,7 +107,7 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Invitations'),
+      appBar: CustomAppBar(title: StringConstants.invitations),
       body: SafeArea(
         top: false,
         child: BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
@@ -124,10 +124,10 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
                   ),
                 );
               }
-              return const Center(
+              return Center(
                 child: Padding(
                   padding: EdgeInsets.all(AppDimens.paddingX32),
-                  child: Text('This request is no longer available.'),
+                  child: Text(StringConstants.requestNoLongerAvailable),
                 ),
               );
             }
@@ -141,17 +141,11 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
               OpponentGuidanceCard(
                 icon: Icons.mark_email_unread_outlined,
                 title: invitations.isEmpty
-                    ? 'Waiting for invitations'
-                    : 'Select one opponent',
+                    ? StringConstants.waitingForInvitations
+                    : StringConstants.selectOneOpponent,
                 message: invitations.isEmpty
-                    ? 'Your request is visible to all eligible teams. '
-                          'As soon as a team accepts, its invitation '
-                          'appears here.'
-                    : 'Message a captain to agree the details, then '
-                          'confirm the team you trust. You can wait '
-                          'for more acceptances first — the '
-                          'remaining invitations are rejected '
-                          'automatically once you confirm one.',
+                    ? StringConstants.waitingForInvitationsMessage
+                    : StringConstants.selectOneOpponentMessage,
               ),
               const SizedBox(height: AppDimens.paddingX16),
               _RequestStrip(request: request),
@@ -173,9 +167,10 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
                   )
                 : OpponentSectionLabel(
                     invitations.isEmpty
-                        ? 'No invitations yet'
-                        : '${invitations.length} '
-                              '${invitations.length == 1 ? 'invitation' : 'invitations'} received',
+                        ? StringConstants.noInvitationsYet
+                        : StringConstants.invitationsReceived(
+                            invitations.length,
+                          ),
                   );
 
             Widget card(OpponentInvitationModel invitation) => _InvitationCard(
@@ -453,7 +448,7 @@ class _InvitationsLoading extends StatelessWidget {
             ),
           ),
         Text(
-          'Loading invitations…',
+          StringConstants.loadingInvitations,
           style: textTheme.bodyMiniSubTitle?.copyWith(
             color: LightColor.hintTextColor,
           ),
@@ -508,7 +503,7 @@ class _RefreshingStrip extends StatelessWidget {
           ),
           const SizedBox(width: AppDimens.paddingX8),
           Text(
-            'Checking for new invitations…',
+            StringConstants.checkingForNewInvitations,
             style: textTheme.bodyMiniSubTitle?.copyWith(
               color: LightColor.hintTextColor,
             ),
@@ -602,10 +597,14 @@ class _RequestStrip extends StatelessWidget {
           _Line(
             icon: Icons.payments_outlined,
             text: request.myPct == null
-                ? '${OpponentFmt.npr(request.totalFee)} total · loser pays more'
-                : '${OpponentFmt.npr(request.totalFee)} total · '
-                      'your share ${OpponentFmt.npr(request.yourShare)} '
-                      '(${request.myPct}%)',
+                ? StringConstants.totalLoserPaysMore(
+                    OpponentFmt.npr(request.totalFee),
+                  )
+                : StringConstants.totalWithYourShare(
+                    OpponentFmt.npr(request.totalFee),
+                    OpponentFmt.npr(request.yourShare),
+                    request.myPct!,
+                  ),
           ),
         ],
       ),
@@ -632,25 +631,32 @@ class _InvitationCard extends StatelessWidget {
 
   String _shareLine() {
     if (invitation.share > 0) {
-      return 'Their share ${OpponentFmt.npr(invitation.share)}';
+      return StringConstants.theirShare(OpponentFmt.npr(invitation.share));
     }
     if (request.isResultCost) {
       final int? loser = request.resolvedLoserAmount;
       final int? pct = request.resolvedLoserPercent;
-      if (loser == null) return 'Loser pays — decided by the result';
-      return 'If they lose ${OpponentFmt.npr(loser)}'
+      if (loser == null) return StringConstants.loserPaysDecidedByResult;
+      return '${StringConstants.ifTheyLose(OpponentFmt.npr(loser))}'
           '${pct == null ? '' : ' ($pct%)'}';
     }
-    return 'Their share ${OpponentFmt.npr(request.totalFee - request.yourShare)}';
+    return StringConstants.theirShare(
+      OpponentFmt.npr(request.totalFee - request.yourShare),
+    );
   }
 
   String _metaLine() => <String>[
     if (invitation.captainName.isNotEmpty) invitation.captainName,
-    if (invitation.playerCount > 0) '${invitation.playerCount} players',
+    if (invitation.playerCount > 0)
+      StringConstants.playersCount(invitation.playerCount),
     if (invitation.respondedAt != null)
-      'answered ${OpponentFmt.friendlyDateTime(invitation.respondedAt!)}'
+      StringConstants.answeredAt(
+        OpponentFmt.friendlyDateTime(invitation.respondedAt!),
+      )
     else if (invitation.acceptedAt != null)
-      'accepted ${OpponentFmt.friendlyDateTime(invitation.acceptedAt!)}',
+      StringConstants.acceptedAt(
+        OpponentFmt.friendlyDateTime(invitation.acceptedAt!),
+      ),
   ].join(' · ');
 
   @override
@@ -711,7 +717,7 @@ class _InvitationCard extends StatelessWidget {
                         children: <Widget>[
                           Text(
                             invitation.teamName.isEmpty
-                                ? 'Opponent team'
+                                ? StringConstants.opponentTeam
                                 : invitation.teamName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -802,8 +808,12 @@ class _InvitationCard extends StatelessWidget {
                       ),
                       label: Text(
                         invitation.captainName.isEmpty
-                            ? 'Chat with ${invitation.teamName.isEmpty ? 'this team' : invitation.teamName}'
-                            : 'Chat with ${invitation.captainName}',
+                            ? StringConstants.chatWith(
+                                invitation.teamName.isEmpty
+                                    ? StringConstants.thisTeam
+                                    : invitation.teamName,
+                              )
+                            : StringConstants.chatWith(invitation.captainName),
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.secondaryColor,
                           fontWeight: FontWeight.w700,
@@ -884,7 +894,7 @@ class _WaitingCard extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX12),
           Text(
-            'Waiting for teams to accept',
+            StringConstants.waitingForTeamsToAccept,
             style: textTheme.bodyTextMedium?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w700,
@@ -892,7 +902,7 @@ class _WaitingCard extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX6),
           Text(
-            'Pull down to refresh. You will be notified as invitations arrive.',
+            StringConstants.pullDownToRefreshInvitations,
             textAlign: TextAlign.center,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.secondaryTextColor,
@@ -943,8 +953,8 @@ class _ConfirmedBanner extends StatelessWidget {
               Expanded(
                 child: Text(
                   opponent.isEmpty
-                      ? 'Match confirmed'
-                      : 'Match confirmed with $opponent',
+                      ? StringConstants.matchConfirmed
+                      : StringConstants.matchConfirmedWith(opponent),
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryColor,
                     fontWeight: FontWeight.w800,
@@ -958,7 +968,7 @@ class _ConfirmedBanner extends StatelessWidget {
             height: AppDimens.sizeX40,
             width: double.infinity,
             child: CustomButton(
-              text: 'View match details',
+              text: StringConstants.viewMatchDetails,
               icon: Icons.arrow_forward_rounded,
               onPressed: onOpen,
             ),
@@ -996,9 +1006,7 @@ class _SelectFooter extends StatelessWidget {
           Padding(
             padding: AppUtils().getPadding(bottom: AppDimens.paddingX8),
             child: Text(
-              'Confirming rejects the other $othersCount '
-              '${othersCount == 1 ? 'invitation' : 'invitations'} '
-              'automatically.',
+              StringConstants.confirmingRejectsOthers(othersCount),
               textAlign: TextAlign.center,
               style: textTheme.bodyMiniSubTitle?.copyWith(
                 color: LightColor.secondaryTextColor,
@@ -1009,7 +1017,7 @@ class _SelectFooter extends StatelessWidget {
           height: AppDimens.sizeX54,
           width: double.infinity,
           child: CustomButton(
-            text: 'Select This Opponent',
+            text: StringConstants.selectThisOpponent,
             icon: Icons.handshake_outlined,
             isLoading: busy,
             onPressed: enabled ? onConfirm : null,

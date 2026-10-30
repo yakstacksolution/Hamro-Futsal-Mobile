@@ -145,7 +145,7 @@ class _AuthScreenState extends State<AuthScreen> {
           AppUtils().showSnackBar(
             context,
             MsgType.error,
-            'No biometric account is saved. Sign in with your password first.',
+            StringConstants.noBiometricAccountSaved,
           );
         }
         return;
@@ -224,23 +224,27 @@ class _AuthScreenState extends State<AuthScreen> {
 
   String? _validateEmail(String? value) {
     final String text = value?.trim() ?? '';
-    if (text.isEmpty) return 'Email is required';
-    if (!_emailRegex.hasMatch(text)) return 'Enter a valid email address';
+    if (text.isEmpty) return StringConstants.emailIsRequired;
+    if (!_emailRegex.hasMatch(text)) {
+      return StringConstants.enterValidEmailAddress;
+    }
     return null;
   }
 
   String? _validatePassword(String? value) {
     final String text = value ?? '';
-    if (text.isEmpty) return 'Password is required';
-    if (text.length < 8) return 'Password must be at least 8 characters';
+    if (text.isEmpty) return StringConstants.passwordIsRequired;
+    if (text.length < 8) {
+      return StringConstants.passwordMustBeAtLeast8Characters;
+    }
     return null;
   }
 
   String? _validateConfirmPassword(String? value) {
     final String text = value ?? '';
-    if (text.isEmpty) return 'Please confirm your password';
+    if (text.isEmpty) return StringConstants.pleaseConfirmYourPassword;
     if (text != _registerPasswordController.text) {
-      return 'Passwords do not match';
+      return StringConstants.passwordsDoNotMatch;
     }
     return null;
   }
@@ -393,11 +397,15 @@ class _AuthScreenState extends State<AuthScreen> {
                   state.loginStatus == AuthStatus.loading ||
                   state.registrationStatus == AuthStatus.loading,
               isRotate: isLogin,
-              title: isLogin ? 'Welcome Back' : 'Create Your Account',
+              title: isLogin
+                  ? StringConstants.welcomeBack
+                  : StringConstants.createYourAccount,
               subtitle: isLogin
-                  ? 'Sign in to book matches or manage your venue.'
-                  : 'Join as a player or a venue vendor.',
-              primaryButtonLabel: isLogin ? 'Sign In' : 'Create Account',
+                  ? StringConstants.signInToBookMatchesOrManageVenue
+                  : StringConstants.joinAsPlayerOrVenueVendor,
+              primaryButtonLabel: isLogin
+                  ? StringConstants.signInTitle
+                  : StringConstants.createAccountTitle,
               primaryButtonIcon: isLogin
                   ? Icons.login_rounded
                   : Icons.check_circle_outline_rounded,
@@ -411,9 +419,11 @@ class _AuthScreenState extends State<AuthScreen> {
                   !isAppleSubmitting,
               onPrimaryTap: _submit,
               secondaryPrefixText: isLogin
-                  ? 'New to Hamro Futsal?'
-                  : 'Already have an account?',
-              secondaryActionText: isLogin ? 'Create account' : 'Sign in',
+                  ? StringConstants.newToHamroFutsal
+                  : StringConstants.alreadyHaveAnAccount,
+              secondaryActionText: isLogin
+                  ? StringConstants.createAccount
+                  : StringConstants.signIn,
               onSecondaryTap: _toggleMode,
               footer: isLogin
                   ? _SocialLoginSection(
@@ -572,11 +582,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                 _acceptedTermsNotifier.value = value ?? false;
                               },
                               onTermsTap: () => _openPolicyPage(
-                                title: 'Terms & Conditions',
+                                title: StringConstants.termsAndConditions,
                                 url: AppUrls.termsAndConditions,
                               ),
                               onPrivacyPolicyTap: () => _openPolicyPage(
-                                title: 'Privacy Policy',
+                                title: StringConstants.privacyPolicy,
                                 url: AppUrls.privacyPolicy,
                               ),
                             ),
@@ -767,7 +777,7 @@ class _SocialLoginSection extends StatelessWidget {
                           ),
                           const SizedBox(width: AppDimens.paddingX10),
                           Text(
-                            'Sign in with biometrics',
+                            StringConstants.signInWithBiometrics,
                             style: textTheme.bodyTextSmall?.copyWith(
                               color: LightColor.secondaryColor,
                               fontWeight: FontWeight.w700,

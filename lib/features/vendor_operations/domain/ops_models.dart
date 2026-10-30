@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/core/utils/kathmandu_time.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/weekday_option.dart';
-
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 const int kMinutesPerDay = 24 * 60;
 const int kDefaultSlotMinutes = 60;
@@ -218,16 +218,16 @@ class OpsCourt extends Equatable {
     final String dayKey = weekdayKeyOf(date);
 
     if (!isActive) {
-      return const OpsDaySchedule(
-        slots: <OpsSlot>[],
-        closedReason: 'Court inactive',
+      return OpsDaySchedule(
+        slots: const <OpsSlot>[],
+        closedReason: StringConstants.courtInactive,
       );
     }
     for (final OpsClosure c in closures) {
       if (c.date == dateKey && c.fullDay) {
-        return const OpsDaySchedule(
-          slots: <OpsSlot>[],
-          closedReason: 'Closed all day',
+        return OpsDaySchedule(
+          slots: const <OpsSlot>[],
+          closedReason: StringConstants.closedAllDay,
         );
       }
     }
@@ -260,21 +260,25 @@ class OpsCourt extends Equatable {
     } else if (bands.isNotEmpty) {
       return OpsDaySchedule(
         slots: const <OpsSlot>[],
-        closedReason: 'No slots on ${WeekdayOption.fromAny(dayKey)?.name}',
+        closedReason: StringConstants.noSlotsOn(
+          WeekdayOption.fromAny(dayKey)?.name,
+        ),
       );
     } else {
       if (openDays.isNotEmpty && !openDays.contains(dayKey)) {
         return OpsDaySchedule(
           slots: const <OpsSlot>[],
-          closedReason: 'Closed on ${WeekdayOption.fromAny(dayKey)?.name}',
+          closedReason: StringConstants.closedOn(
+            WeekdayOption.fromAny(dayKey)?.name,
+          ),
         );
       }
       final int? from = open24Hours ? 0 : openMinute;
       final int? to = open24Hours ? kMinutesPerDay : closeMinute;
       if (from == null || to == null) {
-        return const OpsDaySchedule(
-          slots: <OpsSlot>[],
-          closedReason: 'No schedule set',
+        return OpsDaySchedule(
+          slots: const <OpsSlot>[],
+          closedReason: StringConstants.noScheduleSet,
         );
       }
       addRange(from, to, basePrice);
@@ -631,7 +635,7 @@ OpsBoard buildOpsBoard({
           start: c.start!,
           end: c.end!,
           kind: OpsCellKind.closed,
-          note: 'Closed',
+          note: StringConstants.closed,
         ),
       );
     }
@@ -668,7 +672,7 @@ OpsBoard buildOpsBoard({
       for (final MapEntry<int, List<OpsCourtRow>> e in rowsByVenue.entries)
         OpsVenueRow(
           venueId: e.key,
-          venueName: venueNames[e.key] ?? 'Venue',
+          venueName: venueNames[e.key] ?? StringConstants.venue,
           courts: e.value,
         ),
     ],
@@ -844,16 +848,23 @@ OpsSummary summarizeBoard(OpsBoard board) {
 // ───────────────────────────── Focus & filters ─────────────────────────────
 
 enum OpsFocus {
-  all('All'),
-  available('Available'),
-  upcoming('Upcoming'),
-  inProgress('In progress'),
-  completed('Completed'),
-  pending('Pending'),
-  outstanding('Outstanding payment');
+  all,
+  available,
+  upcoming,
+  inProgress,
+  completed,
+  pending,
+  outstanding;
 
-  const OpsFocus(this.label);
-  final String label;
+  String get label => switch (this) {
+    OpsFocus.all => StringConstants.all,
+    OpsFocus.available => StringConstants.available,
+    OpsFocus.upcoming => StringConstants.upcoming,
+    OpsFocus.inProgress => StringConstants.inProgress,
+    OpsFocus.completed => StringConstants.completed,
+    OpsFocus.pending => StringConstants.pending,
+    OpsFocus.outstanding => StringConstants.outstandingPayment,
+  };
 }
 
 bool cellMatchesFocus(OpsCell cell, OpsFocus focus, String search) {
@@ -1006,14 +1017,18 @@ DateTime weekStartOf(DateTime date) {
 }
 
 enum OpsWeekStart {
-  sunday('sunday', 'Sun – Sat'),
+  sunday('sunday'),
 
-  today('today', 'From today');
+  today('today');
 
-  const OpsWeekStart(this.key, this.label);
+  const OpsWeekStart(this.key);
 
   final String key;
-  final String label;
+
+  String get label => switch (this) {
+    OpsWeekStart.sunday => StringConstants.weekSunToSat,
+    OpsWeekStart.today => StringConstants.fromToday,
+  };
 
   static OpsWeekStart fromKey(String? key) => values.firstWhere(
     (OpsWeekStart m) => m.key == key,
@@ -1320,7 +1335,7 @@ OpsCourtRow _serverDayRow({
     return OpsCourtRow(
       court: court,
       cells: const <OpsCell>[],
-      closedReason: 'No slots',
+      closedReason: StringConstants.noSlots,
     );
   }
   final bool isToday = isSameDay(date, today);
@@ -1360,12 +1375,15 @@ OpsCourtRow _serverDayRow({
       OpsServerSlotState.past => (OpsCellKind.past, null),
       OpsServerSlotState.booked => (
         OpsCellKind.closed,
-        slot.reason ?? 'Booked',
+        slot.reason ?? StringConstants.booked,
       ),
-      OpsServerSlotState.held => (OpsCellKind.closed, slot.reason ?? 'On hold'),
+      OpsServerSlotState.held => (
+        OpsCellKind.closed,
+        slot.reason ?? StringConstants.onHold,
+      ),
       OpsServerSlotState.closed => (
         OpsCellKind.closed,
-        slot.reason ?? 'Closed',
+        slot.reason ?? StringConstants.closed,
       ),
     };
     cells.add(

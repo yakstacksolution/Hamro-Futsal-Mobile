@@ -31,10 +31,10 @@ class CourtBookingPaymentSection extends StatelessWidget {
       cubit: cubit,
       allowedExtensions: const <String>['png', 'jpg', 'jpeg', 'webp'],
       allowMultiple: true,
-      title: 'Add payment QRs',
+      title: StringConstants.addPaymentQrs,
       subtitle: remaining == 1
-          ? 'You can add 1 more QR.'
-          : 'You can add up to $remaining more QRs.',
+          ? StringConstants.youCanAddOneMoreQr
+          : StringConstants.youCanAddUpToMoreQrs(remaining),
     );
     if (picked == null || picked.isEmpty || !context.mounted) return;
 
@@ -48,8 +48,7 @@ class CourtBookingPaymentSection extends StatelessWidget {
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'A court can have $kMaxCourtPaymentQrs QRs. Only the first '
-        '$remaining ${remaining == 1 ? 'was' : 'were'} added.',
+        StringConstants.courtQrLimitReached(kMaxCourtPaymentQrs, remaining),
       );
     }
     cubit.setCourtPaymentQrs(<UploadRef>[...court.paymentQrs, ...fresh]);
@@ -89,17 +88,17 @@ class CourtBookingPaymentSection extends StatelessWidget {
 
   _CourtPaymentSectionMeta _sectionMeta(int index) {
     return switch (index) {
-      0 => const _CourtPaymentSectionMeta(
+      0 => _CourtPaymentSectionMeta(
         title: StringConstants.advancePayment,
         subtitle: StringConstants.requirementAndCollectionAmount,
         icon: Icons.payments_rounded,
       ),
-      1 => const _CourtPaymentSectionMeta(
+      1 => _CourtPaymentSectionMeta(
         title: StringConstants.paymentQr,
         subtitle: StringConstants.uploadTheQrUsedToCollectAdvancePayments,
         icon: Icons.qr_code_2_rounded,
       ),
-      _ => const _CourtPaymentSectionMeta(
+      _ => _CourtPaymentSectionMeta(
         title: StringConstants.bookingAndPaymentTitle,
         subtitle: StringConstants.manageBookingAndPaymentSettings,
         icon: Icons.account_balance_wallet_rounded,
@@ -184,23 +183,29 @@ class _AdvancePaymentSectionState extends State<_AdvancePaymentSection> {
     final AdvancePaymentType? type = court.advancePaymentType;
     final double? price = court.advancePrice;
     if (type == null) return null;
-    if (price == null) return 'Enter the advance amount.';
-    if (price <= 0) return 'Amount must be greater than zero.';
+    if (price == null) return StringConstants.enterTheAdvanceAmount;
+    if (price <= 0) return StringConstants.amountMustBeGreaterThanZero;
     if (type == AdvancePaymentType.percentage) {
       if (price < kMinimumAdvancePercent) {
-        return 'The advance must be at least $_minimumPercentLabel%.';
+        return StringConstants.advanceMustBeAtLeastPercent(
+          _minimumPercentLabel,
+        );
       }
-      if (price > 100) return 'Percentage cannot exceed 100.';
+      if (price > 100) return StringConstants.percentageCannotExceed100;
     }
     if (type == AdvancePaymentType.flat) {
       final double? base = court.basePrice;
       if (base != null && price > base) {
-        return 'Flat amount cannot exceed the base price (${formatDouble(base)}).';
+        return StringConstants.flatAmountCannotExceedBasePriceOf(
+          formatDouble(base),
+        );
       }
       final double? minimum = _minimumFlatAmount;
       if (minimum != null && price < minimum) {
-        return 'The advance must be at least $_minimumPercentLabel% of the '
-            'base price (${formatDouble(minimum)}).';
+        return StringConstants.advanceMustBeAtLeastPercentOfBasePrice(
+          _minimumPercentLabel,
+          formatDouble(minimum),
+        );
       }
     }
     return null;
@@ -209,16 +214,19 @@ class _AdvancePaymentSectionState extends State<_AdvancePaymentSection> {
   String _priceHint(AdvancePaymentType? type) {
     switch (type) {
       case AdvancePaymentType.percentage:
-        return 'Minimum $_minimumPercentLabel%, up to 100%';
+        return StringConstants.minimumPercentUpTo100(_minimumPercentLabel);
       case AdvancePaymentType.flat:
         final double? minimum = _minimumFlatAmount;
         final double? base = widget.court.basePrice;
         if (minimum == null || base == null) {
-          return 'Enter the flat advance amount';
+          return StringConstants.enterFlatAdvanceAmount;
         }
-        return 'From ${formatDouble(minimum)} to ${formatDouble(base)}';
+        return StringConstants.fromAmountToAmount(
+          formatDouble(minimum),
+          formatDouble(base),
+        );
       case null:
-        return 'Enter the advance amount';
+        return StringConstants.enterAdvanceAmount;
     }
   }
 
@@ -264,8 +272,9 @@ class _AdvancePaymentSectionState extends State<_AdvancePaymentSection> {
                     ),
                     const SizedBox(height: AppDimens.sizeX2),
                     Text(
-                      'Every court collects an advance of at least '
-                      '$_minimumPercentLabel% before a booking is confirmed.',
+                      StringConstants.everyCourtCollectsAdvance(
+                        _minimumPercentLabel,
+                      ),
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.secondaryTextColor,
                         height: 1.3,
@@ -292,8 +301,8 @@ class _AdvancePaymentSectionState extends State<_AdvancePaymentSection> {
           controller: _priceController,
           initialValue: '',
           label: type == AdvancePaymentType.percentage
-              ? 'Advance percentage (%)'
-              : 'Advance amount',
+              ? StringConstants.advancePercentageLabel
+              : StringConstants.advanceAmount,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           hintText: _priceHint(type),
           onChanged: widget.onPriceChanged,
@@ -427,8 +436,8 @@ class _PaymentQrGallery extends StatelessWidget {
   Future<void> _confirmRemove(BuildContext context, UploadRef qr) async {
     final bool confirmed = await showDeleteDialog(
       context: context,
-      title: 'Remove QR',
-      message: 'Remove this payment QR from the court?',
+      title: StringConstants.removeQr,
+      message: StringConstants.removePaymentQrPrompt,
       confirmText: StringConstants.delete,
       cancelText: StringConstants.cancel,
       icon: Icons.delete_outline_rounded,
@@ -458,8 +467,7 @@ class _PaymentQrGallery extends StatelessWidget {
           children: <Widget>[
             Expanded(
               child: Text(
-                'Add a QR for each wallet or bank you accept. Players can '
-                'pay through any of them.',
+                StringConstants.addQrForEachWalletOrBank,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   height: 1.35,
@@ -492,7 +500,7 @@ class _PaymentQrGallery extends StatelessWidget {
                   _PaymentQrTile(
                     key: ValueKey<String>(qrs[i].storageKey),
                     qr: qrs[i],
-                    label: 'QR ${i + 1}',
+                    label: StringConstants.qrNumber(i + 1),
                     onTap: () => _openViewer(context, i),
                     onRemove: () => unawaited(_confirmRemove(context, qrs[i])),
                   ),
@@ -526,7 +534,7 @@ class _PaymentQrTile extends StatelessWidget {
     final BorderRadius radius = BorderRadius.circular(AppDimens.radiusX12);
     return Semantics(
       button: true,
-      label: '$label, tap to view',
+      label: StringConstants.tapToViewLabel(label),
       child: Stack(
         fit: StackFit.expand,
         children: <Widget>[
@@ -583,13 +591,13 @@ class _PaymentQrTile extends StatelessWidget {
               child: InkWell(
                 customBorder: const CircleBorder(),
                 onTap: onRemove,
-                child: const Padding(
-                  padding: EdgeInsets.all(AppDimens.paddingX4),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppDimens.paddingX4),
                   child: Icon(
                     Icons.close_rounded,
                     size: AppDimens.sizeX14,
                     color: Colors.white,
-                    semanticLabel: 'Remove QR',
+                    semanticLabel: StringConstants.removeQr,
                   ),
                 ),
               ),
@@ -630,7 +638,7 @@ class _AddPaymentQrTile extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX4),
             Text(
-              isFirst ? 'Upload QR' : 'Add QR',
+              isFirst ? StringConstants.uploadQr : StringConstants.addQr,
               style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
                 color: LightColor.brandTextColor,
                 fontWeight: FontWeight.w700,

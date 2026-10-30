@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/date_time/app_calendar.dart';
 import 'package:hamro_futsal/core/date_time/app_date.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_date_picker.dart';
 import 'package:nepali_date_picker/nepali_date_picker.dart' as np;
 
@@ -12,7 +13,7 @@ Future<DateTime?> showAppDatePicker(
   DateTime? lastDate,
   AppCalendar? calendar,
   String? title,
-  String confirmText = 'Select',
+  String? confirmText,
 }) {
   final AppCalendar resolved =
       calendar ?? AppCalendarController.instance.calendar;
@@ -44,7 +45,7 @@ Future<DateTime?> showBsDatePicker(
   required DateTime firstDate,
   required DateTime lastDate,
   String? title,
-  String confirmText = 'Select',
+  String? confirmText,
   CalendarScript? script,
 }) async {
   final (DateTime first, DateTime last) = _bsBounds(firstDate, lastDate);
@@ -58,7 +59,7 @@ Future<DateTime?> showBsDatePicker(
     firstDate: AppDate.toBs(first),
     lastDate: AppDate.toBs(last),
     helpText: title,
-    confirmText: confirmText,
+    confirmText: confirmText ?? StringConstants.select,
     locale: _localeFor(script),
     builder: _themed,
   );

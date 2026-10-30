@@ -8,6 +8,7 @@ import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/profile/data/model/profile_model.dart';
 import 'package:hamro_futsal/features/profile/presentation/profile_bloc/profile_bloc.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class VendorRequestBottomSheet extends StatefulWidget {
   const VendorRequestBottomSheet({super.key, required this.user});
@@ -60,7 +61,7 @@ class _VendorRequestBottomSheetState extends State<VendorRequestBottomSheet> {
 
   String? _requiredValidator(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
+      return StringConstants.fieldIsRequired(fieldName);
     }
     return null;
   }
@@ -110,7 +111,7 @@ class _VendorRequestBottomSheetState extends State<VendorRequestBottomSheet> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       Text(
-                        'Upgrade to Vendor',
+                        StringConstants.upgradeToVendor,
                         style: textTheme.bodyTextLarge?.copyWith(
                           color: LightColor.primaryTextColor,
                           fontWeight: FontWeight.w700,
@@ -120,8 +121,8 @@ class _VendorRequestBottomSheetState extends State<VendorRequestBottomSheet> {
                       CustomTextField(
                         controller: _businessNameController,
                         focusNode: _businessNameFocusNode,
-                        labelText: 'Business name',
-                        hintText: 'Enter your business name',
+                        labelText: StringConstants.businessName,
+                        hintText: StringConstants.enterYourBusinessName,
                         icon: Icons.storefront_outlined,
                         textCapitalization: TextCapitalization.words,
                         textInputAction: TextInputAction.next,
@@ -130,15 +131,17 @@ class _VendorRequestBottomSheetState extends State<VendorRequestBottomSheet> {
                         inputFormatters: <TextInputFormatter>[
                           LengthLimitingTextInputFormatter(255),
                         ],
-                        validator: (value) =>
-                            _requiredValidator(value, 'Business name'),
+                        validator: (value) => _requiredValidator(
+                          value,
+                          StringConstants.businessName,
+                        ),
                       ),
                       const SizedBox(height: AppDimens.paddingX16),
                       CustomTextField(
                         controller: _phoneController,
                         focusNode: _phoneFocusNode,
-                        labelText: 'Phone',
-                        hintText: 'Enter your phone number',
+                        labelText: StringConstants.phone,
+                        hintText: StringConstants.enterYourPhoneNumber,
                         icon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
                         textInputAction: TextInputAction.next,
@@ -148,14 +151,14 @@ class _VendorRequestBottomSheetState extends State<VendorRequestBottomSheet> {
                           LengthLimitingTextInputFormatter(30),
                         ],
                         validator: (value) =>
-                            _requiredValidator(value, 'Phone'),
+                            _requiredValidator(value, StringConstants.phone),
                       ),
                       const SizedBox(height: AppDimens.paddingX16),
                       CustomTextField(
                         controller: _addressController,
                         focusNode: _addressFocusNode,
-                        labelText: 'Address',
-                        hintText: 'Enter your business address',
+                        labelText: StringConstants.address,
+                        hintText: StringConstants.enterYourBusinessAddress,
                         icon: Icons.location_on_outlined,
                         textCapitalization: TextCapitalization.sentences,
                         textInputAction: TextInputAction.next,
@@ -167,14 +170,14 @@ class _VendorRequestBottomSheetState extends State<VendorRequestBottomSheet> {
                           LengthLimitingTextInputFormatter(500),
                         ],
                         validator: (value) =>
-                            _requiredValidator(value, 'Address'),
+                            _requiredValidator(value, StringConstants.address),
                       ),
                       const SizedBox(height: AppDimens.paddingX16),
                       CustomTextField(
                         controller: _messageController,
                         focusNode: _messageFocusNode,
-                        labelText: 'Message',
-                        hintText: 'Add an optional message',
+                        labelText: StringConstants.message,
+                        hintText: StringConstants.addAnOptionalMessage,
                         isRequired: false,
                         textCapitalization: TextCapitalization.sentences,
                         textInputAction: TextInputAction.newline,
@@ -221,7 +224,7 @@ class _VendorRequestActionBar extends StatelessWidget {
               previous.isRequestingVendor != current.isRequestingVendor,
           builder: (context, state) {
             return CustomButton(
-              text: 'Submit request',
+              text: StringConstants.submitRequest,
               icon: Icons.send_rounded,
               isLoading: state.isRequestingVendor,
               onPressed: state.isRequestingVendor ? null : onSubmit,

@@ -1,3 +1,5 @@
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+
 enum CouponDiscountType {
   percentage,
   fixed;
@@ -40,8 +42,10 @@ class CouponModel {
 
   String get label {
     if (title != null && title!.trim().isNotEmpty) return title!.trim();
-    if (isPercentage) return '${_trimNumber(discountValue)}% off';
-    return 'Rs ${_trimNumber(discountValue)} off';
+    if (isPercentage) {
+      return StringConstants.percentOff(_trimNumber(discountValue));
+    }
+    return StringConstants.rsAmountOff(_trimNumber(discountValue));
   }
 
   bool meetsMinimum(double subtotal) =>

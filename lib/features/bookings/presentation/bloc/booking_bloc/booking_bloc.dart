@@ -10,6 +10,7 @@ import 'package:hamro_futsal/features/bookings/domain/usecase/get_bookings_use_c
 import 'package:hamro_futsal/features/bookings/domain/model/booking_date_filter.dart';
 import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
 import 'package:hamro_futsal/features/bookings/domain/model/paginated_bookings.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 part 'booking_event.dart';
 part 'booking_state.dart';
@@ -377,8 +378,8 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       return error;
     }
     final String message = error is SocketException || error is TimeoutException
-        ? 'No internet connection. Check your network and try again.'
-        : 'Something went wrong while loading bookings. Please try again.';
+        ? StringConstants.noInternetCheckNetwork
+        : StringConstants.somethingWentWrongLoadingBookings;
     return DefaultException(errorMessage: message, statusCode: 0);
   }
 }

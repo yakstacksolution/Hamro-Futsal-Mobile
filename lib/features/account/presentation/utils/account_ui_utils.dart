@@ -3,6 +3,7 @@ import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:hamro_futsal/core/utils/date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/features/account/data/model/account_models.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class AccountFmt {
   static String npr(num v) => Money.npr(v);
@@ -43,24 +44,24 @@ extension AccountEntryTypeUi on AccountEntryType {
   };
 
   String get fallbackTitle => switch (this) {
-    AccountEntryType.bookingIncome => 'Booking income',
-    AccountEntryType.opponentMatchIncome => 'Opponent match income',
-    AccountEntryType.commission => 'Platform commission',
-    AccountEntryType.settlement => 'Settlement payout',
-    AccountEntryType.refund => 'Refund',
-    AccountEntryType.adjustment => 'Adjustment',
+    AccountEntryType.bookingIncome => StringConstants.bookingIncome,
+    AccountEntryType.opponentMatchIncome => StringConstants.opponentMatchIncome,
+    AccountEntryType.commission => StringConstants.platformCommission,
+    AccountEntryType.settlement => StringConstants.settlementPayout,
+    AccountEntryType.refund => StringConstants.refund,
+    AccountEntryType.adjustment => StringConstants.adjustment,
   };
 }
 
 extension SettlementStatusUi on SettlementStatus {
   String get label => switch (this) {
-    SettlementStatus.pending => 'Pending',
-    SettlementStatus.processing => 'Processing',
-    SettlementStatus.approved => 'Approved',
-    SettlementStatus.paid => 'Paid',
-    SettlementStatus.rejected => 'Rejected',
-    SettlementStatus.cancelled => 'Cancelled',
-    SettlementStatus.failed => 'Failed',
+    SettlementStatus.pending => StringConstants.pending,
+    SettlementStatus.processing => StringConstants.processing,
+    SettlementStatus.approved => StringConstants.approved,
+    SettlementStatus.paid => StringConstants.paid,
+    SettlementStatus.rejected => StringConstants.rejected,
+    SettlementStatus.cancelled => StringConstants.cancelled,
+    SettlementStatus.failed => StringConstants.failed,
   };
 
   IconData get icon => switch (this) {

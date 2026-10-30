@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:hamro_futsal/core/utils/compress_upload_image.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 const int kUploadMaxFileBytes = 10 * 1024 * 1024;
 const int kUploadImageTargetBytes = 1536 * 1024;
@@ -74,9 +75,9 @@ final class UploadAttachment {
        originalSize = _resolvedOriginalSize(originalSize, bytes.length),
        mimeType = mimeType ?? uploadMimeTypeFor(filename) {
     if (this.bytes.isEmpty) {
-      throw const UploadValidationException(
+      throw UploadValidationException(
         UploadValidationCode.empty,
-        'That file is empty. Please attach it again.',
+        StringConstants.fileIsEmptyAttachAgain,
       );
     }
   }
@@ -117,9 +118,9 @@ Future<UploadAttachment> normalizeUploadAttachment({
   UploadImageOptimizer imageOptimizer = compressUploadImage,
 }) async {
   if (bytes.isEmpty) {
-    throw const UploadValidationException(
+    throw UploadValidationException(
       UploadValidationCode.empty,
-      'That file came through empty. Please attach it again.',
+      StringConstants.fileCameThroughEmpty,
     );
   }
 
@@ -131,8 +132,9 @@ Future<UploadAttachment> normalizeUploadAttachment({
   if (extension.isEmpty || !allowed.contains(extension)) {
     throw UploadValidationException(
       UploadValidationCode.unsupportedType,
-      'Only ${allowed.map((String item) => item.toUpperCase()).join(', ')} '
-      'files can be uploaded.',
+      StringConstants.onlyFileTypesCanBeUploaded(
+        allowed.map((String item) => item.toUpperCase()).join(', '),
+      ),
     );
   }
 
@@ -142,7 +144,9 @@ Future<UploadAttachment> normalizeUploadAttachment({
   if (pickedSize > policy.maxInputBytes) {
     throw UploadValidationException(
       UploadValidationCode.fileTooLarge,
-      'The file must be ${formatUploadSize(policy.maxInputBytes)} or smaller.',
+      StringConstants.fileMustBeOrSmaller(
+        formatUploadSize(policy.maxInputBytes),
+      ),
     );
   }
 
@@ -160,8 +164,9 @@ Future<UploadAttachment> normalizeUploadAttachment({
     if (optimized.isEmpty || optimized.length > policy.imageTargetBytes) {
       throw UploadValidationException(
         UploadValidationCode.imageOptimizationFailed,
-        'The image could not be reduced below '
-        '${formatUploadSize(policy.imageTargetBytes)}. Please choose a smaller image.',
+        StringConstants.imageCouldNotBeReducedBelow(
+          formatUploadSize(policy.imageTargetBytes),
+        ),
       );
     }
     uploadBytes = Uint8List.fromList(optimized);
@@ -184,31 +189,33 @@ Future<UploadAttachment> loadUploadAttachment({
 }) async {
   final String trimmedPath = path.trim();
   if (trimmedPath.isEmpty) {
-    throw const UploadValidationException(
+    throw UploadValidationException(
       UploadValidationCode.unreadable,
-      'That file could not be read. Please attach it again.',
+      StringConstants.fileCouldNotBeRead,
     );
   }
 
   try {
     final File file = File(trimmedPath);
     if (!await file.exists()) {
-      throw const UploadValidationException(
+      throw UploadValidationException(
         UploadValidationCode.unreadable,
-        'That file is no longer available. Please attach it again.',
+        StringConstants.fileNoLongerAvailable,
       );
     }
     final int size = await file.length();
     if (size <= 0) {
-      throw const UploadValidationException(
+      throw UploadValidationException(
         UploadValidationCode.empty,
-        'That file came through empty. Please attach it again.',
+        StringConstants.fileCameThroughEmpty,
       );
     }
     if (size > policy.maxInputBytes) {
       throw UploadValidationException(
         UploadValidationCode.fileTooLarge,
-        'The file must be ${formatUploadSize(policy.maxInputBytes)} or smaller.',
+        StringConstants.fileMustBeOrSmaller(
+          formatUploadSize(policy.maxInputBytes),
+        ),
       );
     }
     return normalizeUploadAttachment(
@@ -222,9 +229,9 @@ Future<UploadAttachment> loadUploadAttachment({
   } on UploadValidationException {
     rethrow;
   } on FileSystemException {
-    throw const UploadValidationException(
+    throw UploadValidationException(
       UploadValidationCode.unreadable,
-      'That file could not be read. Please attach it again.',
+      StringConstants.fileCouldNotBeRead,
     );
   }
 }
@@ -236,7 +243,7 @@ void validateUploadBatch(
   if (attachments.length > policy.maxFiles) {
     throw UploadValidationException(
       UploadValidationCode.tooManyFiles,
-      'You can upload at most ${policy.maxFiles} files at once.',
+      StringConstants.uploadAtMostFiles(policy.maxFiles),
     );
   }
   for (final UploadAttachment attachment in attachments) {
@@ -249,7 +256,9 @@ void validateUploadBatch(
   if (total > policy.maxRequestBytes) {
     throw UploadValidationException(
       UploadValidationCode.requestTooLarge,
-      'The selected files exceed the ${formatUploadSize(policy.maxRequestBytes)} request limit.',
+      StringConstants.selectedFilesExceedRequestLimit(
+        formatUploadSize(policy.maxRequestBytes),
+      ),
     );
   }
 }
@@ -259,9 +268,9 @@ void validateUploadAttachment(
   UploadPolicy policy = const UploadPolicy(),
 }) {
   if (attachment.bytes.isEmpty || attachment.size <= 0) {
-    throw const UploadValidationException(
+    throw UploadValidationException(
       UploadValidationCode.empty,
-      'That file is empty. Please attach it again.',
+      StringConstants.fileIsEmptyAttachAgain,
     );
   }
 
@@ -271,14 +280,16 @@ void validateUploadAttachment(
   if (!allowed.contains(attachment.extension)) {
     throw UploadValidationException(
       UploadValidationCode.unsupportedType,
-      'The selected file type is not supported. Please attach a supported file.',
+      StringConstants.unsupportedFileTypeAttachSupported,
     );
   }
   if (attachment.originalSize > policy.maxInputBytes ||
       attachment.size > policy.maxInputBytes) {
     throw UploadValidationException(
       UploadValidationCode.fileTooLarge,
-      'The file must be ${formatUploadSize(policy.maxInputBytes)} or smaller.',
+      StringConstants.fileMustBeOrSmaller(
+        formatUploadSize(policy.maxInputBytes),
+      ),
     );
   }
   if (policy.optimizeImages &&
@@ -286,8 +297,9 @@ void validateUploadAttachment(
       attachment.size > policy.imageTargetBytes) {
     throw UploadValidationException(
       UploadValidationCode.imageOptimizationFailed,
-      'The image is still larger than '
-      '${formatUploadSize(policy.imageTargetBytes)}. Please choose a smaller image.',
+      StringConstants.imageStillLargerThan(
+        formatUploadSize(policy.imageTargetBytes),
+      ),
     );
   }
 }

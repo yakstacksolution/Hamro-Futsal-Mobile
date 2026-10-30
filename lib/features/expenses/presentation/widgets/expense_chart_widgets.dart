@@ -23,7 +23,7 @@ class ExpenseTrendCard extends StatelessWidget {
     final avg = report.trend.avg;
 
     if (buckets.isEmpty) {
-      return const ExpenseEmptyState(
+      return ExpenseEmptyState(
         title: StringConstants.noTrendYet,
         message: StringConstants.noExpensesRecordedForThisRange,
       );
@@ -44,7 +44,7 @@ class ExpenseTrendCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                'Avg ${ExpenseFmt.npr(avg)}',
+                StringConstants.avgAmount(ExpenseFmt.npr(avg)),
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w600,
@@ -151,7 +151,7 @@ class ExpenseCategoryCard extends StatelessWidget {
     final entries = report.byCategory;
 
     if (entries.isEmpty) {
-      return const ExpenseEmptyState(
+      return ExpenseEmptyState(
         title: StringConstants.nothingToBreakDown,
         message: StringConstants.noExpensesRecordedForThisRange,
       );
@@ -230,7 +230,7 @@ class ExpenseCategoryCard extends StatelessWidget {
                       ),
                     if (entries.length > 4)
                       Text(
-                        '+ ${entries.length - 4} more',
+                        StringConstants.plusMoreCount(entries.length - 4),
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.hintTextColor,
                           fontSize: AppDimens.fontBodySubTitle,

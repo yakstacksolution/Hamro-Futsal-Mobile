@@ -1,3 +1,5 @@
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+
 class AppValidators {
   const AppValidators._();
 
@@ -11,35 +13,37 @@ class AppValidators {
 
   static String? fullName(String? value) {
     final String text = value?.trim() ?? '';
-    if (text.isEmpty) return 'Full name is required';
-    if (text.length < 3) return 'Enter your full name';
-    if (text.length > 80) return 'Full name cannot exceed 80 characters';
+    if (text.isEmpty) return StringConstants.fullNameRequired;
+    if (text.length < 3) return StringConstants.enterYourFullName;
+    if (text.length > 80) return StringConstants.fullNameTooLong;
     if (!_humanNamePattern.hasMatch(text)) {
-      return 'Full name can contain letters and spaces only';
+      return StringConstants.fullNameLettersOnly;
     }
     return null;
   }
 
   static String? email(String? value) {
     final String text = value?.trim() ?? '';
-    if (text.isEmpty) return 'Email is required';
-    if (text.length > 254) return 'Email address is too long';
-    if (!_emailPattern.hasMatch(text)) return 'Enter a valid email address';
+    if (text.isEmpty) return StringConstants.emailRequired;
+    if (text.length > 254) return StringConstants.emailTooLong;
+    if (!_emailPattern.hasMatch(text)) {
+      return StringConstants.enterValidEmailAddress;
+    }
     return null;
   }
 
   static String? nepalMobile(String? value, {bool required = true}) {
     final String text = value?.trim() ?? '';
     if (text.isEmpty) {
-      return required ? 'Phone number is required' : null;
+      return required ? StringConstants.phoneNumberRequired : null;
     }
     if (RegExp(r'[^0-9+\s-]').hasMatch(text) ||
         text.indexOf('+') > 0 ||
         '+'.allMatches(text).length > 1) {
-      return 'Enter a valid Nepal mobile number';
+      return StringConstants.enterValidNepalMobile;
     }
     if (normalizeNepalMobile(text) == null) {
-      return 'Use a 97/98 mobile number with optional +977 prefix';
+      return StringConstants.useNepalMobileFormat;
     }
     return null;
   }

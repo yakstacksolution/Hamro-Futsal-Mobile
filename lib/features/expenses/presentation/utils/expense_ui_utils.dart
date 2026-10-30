@@ -6,6 +6,7 @@ import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_futsal/features/expenses/presentation/bloc/expenses_bloc/expenses_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 extension ExpenseCategoryUi on ExpenseCategory {
   IconData get icon => switch (this) {
@@ -107,7 +108,7 @@ class ExpenseCategoryIcon extends StatelessWidget {
 
 class ExpenseFmt {
   static String npr(int v) =>
-      '${v < 0 ? '-' : ''}NPR ${group(v.abs().toString())}';
+      '${v < 0 ? '-' : ''}${StringConstants.npr} ${group(v.abs().toString())}';
 
   static String group(String digits) {
     final buf = StringBuffer();

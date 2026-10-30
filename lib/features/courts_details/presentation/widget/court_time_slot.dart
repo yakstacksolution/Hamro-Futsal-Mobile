@@ -312,7 +312,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                   ),
                   const SizedBox(height: AppDimens.sizeX2),
                   Text(
-                    today ? 'Today' : _monthName(date),
+                    today ? StringConstants.today : _monthName(date),
                     style: FutsalTheme.getTextTheme(context).bodySubTitle
                         ?.copyWith(
                           color: selected

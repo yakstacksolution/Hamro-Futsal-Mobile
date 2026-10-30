@@ -13,7 +13,7 @@ class OverallPerformanceWidget extends StatelessWidget {
       OverviewMetric(
         title: StringConstants.totalEarning,
         value: 'NPR 52,400',
-        caption: 'This month revenue',
+        caption: StringConstants.thisMonthRevenue,
         icon: Icons.account_balance_wallet_rounded,
         accentColor: LightColor.secondaryColor,
         dimColor: LightColor.secondaryColor.withValues(alpha: 0.12),
@@ -26,7 +26,7 @@ class OverallPerformanceWidget extends StatelessWidget {
       OverviewMetric(
         title: StringConstants.totalBooking,
         value: '186',
-        caption: 'Booked slots this month',
+        caption: StringConstants.bookedSlotsThisMonth,
         icon: Icons.calendar_month_rounded,
         accentColor: LightColor.secondaryColor,
         dimColor: LightColor.secondaryColor.withValues(alpha: 0.12),
@@ -39,7 +39,7 @@ class OverallPerformanceWidget extends StatelessWidget {
       OverviewMetric(
         title: StringConstants.occupancy,
         value: '84%',
-        caption: 'Court usage today',
+        caption: StringConstants.courtUsageToday,
         icon: Icons.stadium_rounded,
         accentColor: LightColor.secondaryColor,
         dimColor: LightColor.secondaryColor.withValues(alpha: 0.11),
@@ -52,7 +52,7 @@ class OverallPerformanceWidget extends StatelessWidget {
       OverviewMetric(
         title: StringConstants.cancelled,
         value: '12',
-        caption: 'Cancelled reservations',
+        caption: StringConstants.cancelledReservations,
         icon: Icons.cancel_rounded,
         accentColor: LightColor.redColor,
         dimColor: LightColor.redColor.withValues(alpha: 0.12),

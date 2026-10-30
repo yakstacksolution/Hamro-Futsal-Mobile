@@ -410,7 +410,9 @@ CourtPriceRule? _priceRuleFromJson(Map<String, dynamic> json) {
       '${_hourLabel(startHour)} - ${_hourLabel(endHour)}';
 
   return CourtPriceRule(
-    label: _asString(json['label'] ?? json['name'] ?? json['title']) ?? 'Slot',
+    label:
+        _asString(json['label'] ?? json['name'] ?? json['title']) ??
+        StringConstants.slot,
     timeRange: timeRange,
     startHour: startHour,
     endHour: endHour,

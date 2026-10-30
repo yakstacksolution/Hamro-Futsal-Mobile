@@ -43,23 +43,23 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
   static const double _priceMin = 0;
   static const double _priceMax = 5000;
 
-  static const List<_TimeSlotOption> _timeSlotOptions = <_TimeSlotOption>[
+  static List<_TimeSlotOption> get _timeSlotOptions => <_TimeSlotOption>[
     _TimeSlotOption(
       key: '06:00-12:00',
       label: StringConstants.morning,
-      range: '06:00 AM - 12:00 PM',
+      range: StringConstants.morningTimeRange,
       icon: Icons.wb_sunny_rounded,
     ),
     _TimeSlotOption(
       key: '12:00-18:00',
       label: StringConstants.afternoon,
-      range: '12:00 PM - 06:00 PM',
+      range: StringConstants.afternoonTimeRange,
       icon: Icons.wb_twilight_rounded,
     ),
     _TimeSlotOption(
       key: '18:00-00:00',
       label: StringConstants.evening,
-      range: '06:00 PM - 12:00 AM',
+      range: StringConstants.eveningTimeRange,
       icon: Icons.nightlight_round,
     ),
   ];
@@ -224,7 +224,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
             _FilterSectionCard(
               icon: Icons.payments_outlined,
               title: StringConstants.priceRange,
-              subtitle: 'Set your hourly budget',
+              subtitle: StringConstants.setYourHourlyBudget,
               trailing: _SelectionPill(
                 label:
                     '${_priceLabel(_priceRange.start)} – ${_priceLabel(_priceRange.end)}',
@@ -273,14 +273,14 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
                     children: <Widget>[
                       Expanded(
                         child: _PriceBoundary(
-                          label: 'Minimum',
+                          label: StringConstants.minimum,
                           value: _priceLabel(_priceRange.start),
                         ),
                       ),
                       const SizedBox(width: AppDimens.paddingX10),
                       Expanded(
                         child: _PriceBoundary(
-                          label: 'Maximum',
+                          label: StringConstants.maximum,
                           value: _priceLabel(_priceRange.end),
                           alignEnd: true,
                         ),
@@ -293,12 +293,12 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
             const SizedBox(height: AppDimens.paddingX14),
             _FilterSectionCard(
               icon: Icons.stadium_outlined,
-              title: 'Court preferences',
-              subtitle: 'Choose the court and match you prefer',
+              title: StringConstants.courtPreferences,
+              subtitle: StringConstants.chooseCourtAndMatchYouPrefer,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  const _FilterFieldLabel(title: StringConstants.matchType),
+                  _FilterFieldLabel(title: StringConstants.matchType),
                   const SizedBox(height: AppDimens.paddingX10),
                   _OptionStateView(
                     status: optionsState.status,
@@ -326,7 +326,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
                     ),
                     child: Divider(height: 1),
                   ),
-                  const _FilterFieldLabel(title: StringConstants.courtType),
+                  _FilterFieldLabel(title: StringConstants.courtType),
                   const SizedBox(height: AppDimens.paddingX10),
                   _OptionStateView(
                     status: optionsState.status,
@@ -349,11 +349,13 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
             _FilterSectionCard(
               icon: Icons.star_outline_rounded,
               title: StringConstants.rating,
-              subtitle: 'Only show courts with your preferred rating',
+              subtitle: StringConstants.onlyShowCourtsWithPreferredRating,
               trailing: _SelectionPill(
                 label: _minRating == null
-                    ? 'Any rating'
-                    : '${_minRating!.toStringAsFixed(1)} & up',
+                    ? StringConstants.anyRating
+                    : StringConstants.ratingAndUp(
+                        _minRating!.toStringAsFixed(1),
+                      ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,7 +367,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
                   ),
                   const SizedBox(height: AppDimens.paddingX6),
                   Text(
-                    'Tap a star to set the minimum venue rating.',
+                    StringConstants.tapStarToSetMinimumRating,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.secondaryTextColor,
                       fontSize: AppDimens.fontBodySubTitle,
@@ -378,7 +380,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
             _FilterSectionCard(
               icon: Icons.schedule_outlined,
               title: StringConstants.timeSlots,
-              subtitle: 'Select one or more convenient play times',
+              subtitle: StringConstants.selectConvenientPlayTimes,
               child: Column(
                 children: List<Widget>.generate(_timeSlotOptions.length, (
                   int index,
@@ -462,7 +464,8 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
     );
   }
 
-  String _priceLabel(double value) => 'Rs ${value.round()}';
+  String _priceLabel(double value) =>
+      StringConstants.rsAmount(value.round().toString());
 }
 
 class _TimeSlotOption {
@@ -517,8 +520,8 @@ class _FilterOverview extends StatelessWidget {
               children: <Widget>[
                 Text(
                   hasFilters
-                      ? 'Your preferences are ready'
-                      : 'Refine your search',
+                      ? StringConstants.yourPreferencesAreReady
+                      : StringConstants.refineYourSearch,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w700,
@@ -527,8 +530,8 @@ class _FilterOverview extends StatelessWidget {
                 const SizedBox(height: AppDimens.sizeX2),
                 Text(
                   hasFilters
-                      ? 'Adjust selections or apply them to see matching courts.'
-                      : 'Choose a budget, court type, rating, or play time.',
+                      ? StringConstants.adjustSelectionsToSeeMatchingCourts
+                      : StringConstants.chooseBudgetCourtTypeRatingOrPlayTime,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryTextColor,
                     fontSize: AppDimens.fontBodySubTitle,
@@ -538,7 +541,10 @@ class _FilterOverview extends StatelessWidget {
               ],
             ),
           ),
-          if (hasFilters) _SelectionPill(label: '$activeFilterCount selected'),
+          if (hasFilters)
+            _SelectionPill(
+              label: StringConstants.countSelected(activeFilterCount),
+            ),
         ],
       ),
     );
@@ -755,7 +761,7 @@ class _OptionStateView extends StatelessWidget {
 
     if (status == PublicCourtOptionsStatus.failure && isEmpty) {
       return Text(
-        errorMessage ?? 'Could not load options.',
+        errorMessage ?? StringConstants.couldNotLoadOptions,
         style: textTheme.bodyTextSmall?.copyWith(
           color: LightColor.redColor,
           height: 1.4,
@@ -785,8 +791,8 @@ class _PillRowLoading extends StatelessWidget {
     return Shimmer.fromColors(
       baseColor: LightColor.skeletonBaseColor,
       highlightColor: LightColor.skeletonHighlightColor,
-      child: Row(
-        children: const <Widget>[
+      child: const Row(
+        children: <Widget>[
           _SkeletonBlock(width: AppDimens.sizeX70, height: AppDimens.sizeX38),
           SizedBox(width: AppDimens.paddingX8),
           _SkeletonBlock(width: AppDimens.sizeX90, height: AppDimens.sizeX38),
@@ -806,8 +812,8 @@ class _CourtTypeRowLoading extends StatelessWidget {
     return Shimmer.fromColors(
       baseColor: LightColor.skeletonBaseColor,
       highlightColor: LightColor.skeletonHighlightColor,
-      child: Row(
-        children: const <Widget>[
+      child: const Row(
+        children: <Widget>[
           Expanded(
             child: _SkeletonBlock(
               height: AppDimens.sizeX50,
@@ -877,7 +883,7 @@ class _RatingSelector extends StatelessWidget {
               itemSize: AppDimens.sizeX38,
               unratedColor: LightColor.dividerColor,
 
-              itemPadding: EdgeInsets.only(right: AppDimens.sizeX6),
+              itemPadding: const EdgeInsets.only(right: AppDimens.sizeX6),
               itemBuilder: (BuildContext context, int index) =>
                   Icon(Icons.star_rounded, color: LightColor.ratingColor),
               onRatingUpdate: (double rating) =>
@@ -1249,8 +1255,8 @@ class _BottomBar extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     activeFilterCount == 0
-                        ? 'Showing all courts'
-                        : '$activeFilterCount filter${activeFilterCount == 1 ? '' : 's'} selected',
+                        ? StringConstants.showingAllCourts
+                        : StringConstants.filtersSelected(activeFilterCount),
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.secondaryTextColor,
                       fontSize: AppDimens.fontBodySubTitle,
@@ -1301,7 +1307,7 @@ class _BottomBar extends StatelessWidget {
                             child: CustomButton(
                               minHeight: AppDimens.sizeX42,
                               text: activeFilterCount == 0
-                                  ? 'Show courts'
+                                  ? StringConstants.showCourts
                                   : StringConstants.applyFilters,
                               onPressed: onApply,
                             ),

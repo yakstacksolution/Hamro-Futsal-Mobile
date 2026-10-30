@@ -112,7 +112,7 @@ class CourtHostedBySection extends StatelessWidget {
                       ),
                       const SizedBox(height: AppDimens.sizeX4),
                       Text(
-                        'Hosting since $hostSince',
+                        StringConstants.hostingSince(hostSince),
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.secondaryTextColor,
                           fontWeight: FontWeight.w500,
@@ -150,8 +150,8 @@ class CourtHostedBySection extends StatelessWidget {
                   label: StringConstants.rating,
                   value: rating.toStringAsFixed(1),
                   detail: reviewCount == 1
-                      ? '1 review'
-                      : '$reviewCount reviews',
+                      ? StringConstants.oneReview
+                      : StringConstants.reviewsCount(reviewCount),
                 ),
               ],
             ),
@@ -171,8 +171,8 @@ class CourtHostedBySection extends StatelessWidget {
     String initial,
   ) {
     final String reviews = reviewCount == 1
-        ? '1 review'
-        : '$reviewCount reviews';
+        ? StringConstants.oneReview
+        : StringConstants.reviewsCount(reviewCount);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -219,7 +219,7 @@ class CourtHostedBySection extends StatelessWidget {
                   ),
                   const SizedBox(height: AppDimens.sizeX2),
                   Text(
-                    'Hosting since $hostSince',
+                    StringConstants.hostingSince(hostSince),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: textTheme.bodySubTitle?.copyWith(
@@ -327,7 +327,7 @@ class _HostChatPrompt extends StatelessWidget {
       key: const ValueKey<String>('host-chat-prompt'),
       onPressed: onTap,
       icon: const Icon(CupertinoIcons.chat_bubble_text_fill, size: 18),
-      label: const Text(StringConstants.messageHost),
+      label: Text(StringConstants.messageHost),
       style: FilledButton.styleFrom(
         backgroundColor: LightColor.secondaryColor,
         foregroundColor: LightColor.inverseTextColor,

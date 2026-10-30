@@ -12,14 +12,17 @@ import 'package:hamro_futsal/core/api/manager/authmanager/auth_manager.dart';
 import 'package:hamro_futsal/core/firebase/firebase_platform_support.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/routers/notification_redirection.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/firebase_options.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-const AndroidNotificationChannel _notificationChannel =
+// The channel id is fixed; only its user-visible name/description follow the
+// app language (re-registering the channel updates them on Android).
+AndroidNotificationChannel get _notificationChannel =>
     AndroidNotificationChannel(
       'high_importance_channel',
-      'High Importance Notifications',
-      description: 'Important updates from Hamro Futsal.',
+      StringConstants.highImportanceNotificationsChannel,
+      description: StringConstants.highImportanceNotificationsDescription,
       importance: Importance.max,
       showBadge: true,
     );
@@ -89,7 +92,7 @@ String _notificationTitle(RemoteMessage message) {
           ?.toString()
           .trim() ??
       '';
-  return value.isEmpty ? 'Hamro Futsal' : value;
+  return value.isEmpty ? StringConstants.hamroFutsal : value;
 }
 
 String _notificationBody(RemoteMessage message) {
@@ -100,7 +103,7 @@ String _notificationBody(RemoteMessage message) {
           ?.toString()
           .trim() ??
       '';
-  return value.isEmpty ? 'You have a new notification.' : value;
+  return value.isEmpty ? StringConstants.youHaveNewNotification : value;
 }
 
 class FcmHelper {

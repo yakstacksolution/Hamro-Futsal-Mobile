@@ -85,10 +85,12 @@ class _CourtAmenitiesSectionState extends State<CourtAmenitiesSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 VendorOnboardingSectionHeader(
-                  title: isFacilities ? 'Facilities' : 'Amenities',
+                  title: isFacilities
+                      ? StringConstants.facilities
+                      : StringConstants.amenities,
                   subtitle: isFacilities
-                      ? 'Player-facing facilities available at this court.'
-                      : 'Court-specific services and equipment.',
+                      ? StringConstants.playerFacingFacilitiesAtCourt
+                      : StringConstants.courtSpecificServicesAndEquipment,
                   icon: isFacilities
                       ? Icons.meeting_room_rounded
                       : Icons.chair_alt_rounded,
@@ -106,8 +108,7 @@ class _CourtAmenitiesSectionState extends State<CourtAmenitiesSection> {
                     options: state.facilities,
                     selectedIds: widget.court.facilities,
                     onTap: widget.cubit.toggleCourtFacility,
-                    emptyMessage:
-                        'No facilities available right now. Please try again later.',
+                    emptyMessage: StringConstants.noFacilitiesAvailableRightNow,
                   )
                 else
                   _CourtOptionGroup(
@@ -116,8 +117,7 @@ class _CourtAmenitiesSectionState extends State<CourtAmenitiesSection> {
                     options: state.amenities,
                     selectedIds: widget.court.amenities,
                     onTap: widget.cubit.toggleCourtAmenity,
-                    emptyMessage:
-                        'No amenities available right now. Please try again later.',
+                    emptyMessage: StringConstants.noAmenitiesAvailableRightNow,
                   ),
               ],
             ),
@@ -148,7 +148,10 @@ class _CourtOptionGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int selectedCount = selectedIds.length;
-    final String countLabel = '$selectedCount/${options.length} selected';
+    final String countLabel = StringConstants.selectedOfTotal(
+      selectedCount,
+      options.length,
+    );
 
     return VendorGroupedContentCard(
       title: title,

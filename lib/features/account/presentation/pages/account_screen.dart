@@ -50,7 +50,7 @@ class AccountView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.financeAndPayouts),
+      appBar: CustomAppBar(title: StringConstants.financeAndPayouts),
       body: SafeArea(
         top: false,
         // The settlement form now stays open until the request resolves, so
@@ -127,11 +127,10 @@ class AccountView extends StatelessWidget {
         final Widget activity = state.statementStatus == AccountStatus.loading
             ? const AccountListLoading(itemCount: 4)
             : recent.isEmpty
-            ? const AccountEmptyState(
+            ? AccountEmptyState(
                 icon: Icons.receipt_long_outlined,
-                title: 'No account activity yet',
-                body:
-                    'Booking income, platform commission and payouts will appear here.',
+                title: StringConstants.noAccountActivityYet,
+                body: StringConstants.accountActivityWillAppearHere,
               )
             : Column(
                 children: [
@@ -190,9 +189,9 @@ class AccountView extends StatelessWidget {
                 children: <Widget>[
                   Expanded(child: activityHeader),
                   const SizedBox(width: AppDimens.paddingX24),
-                  const SizedBox(
+                  SizedBox(
                     width: AppDimens.accountShortcutsColumnWidth,
-                    child: _SectionHeading('Manage'),
+                    child: _SectionHeading(StringConstants.manage),
                   ),
                 ],
               ),
@@ -209,7 +208,7 @@ class AccountView extends StatelessWidget {
                 ],
               ),
             ] else ...<Widget>[
-              const _SectionHeading('Manage'),
+              _SectionHeading(StringConstants.manage),
               const SizedBox(height: AppDimens.paddingX10),
               shortcuts,
               const SizedBox(height: AppDimens.paddingX24),
@@ -268,7 +267,7 @@ String settlementBlockedReason(AccountState state) {
   if (state.summary.totalCommission <= 0) {
     return StringConstants.noCommissionDue;
   }
-  return 'Commission payment is not available right now.';
+  return StringConstants.commissionPaymentNotAvailable;
 }
 
 bool _openingSettlementFlow = false;
@@ -325,18 +324,18 @@ class _ShortcutsCard extends StatelessWidget {
       if (summary.venues.isNotEmpty || venueCount > 0)
         AccountNavTile(
           icon: Icons.stadium_outlined,
-          title: 'Futsal breakdown',
-          subtitle: '$venueCount ${venueCount == 1 ? 'futsal' : 'futsals'}',
+          title: StringConstants.futsalBreakdown,
+          subtitle: StringConstants.futsalCount(venueCount),
           onTap: onFutsalBreakdown,
         ),
       AccountNavTile(
         icon: Icons.history_rounded,
         title: StringConstants.settlements,
         subtitle: settlementCount == 0
-            ? 'No settlements yet'
+            ? StringConstants.noSettlementsYet
             : inProgress > 0
-            ? '$inProgress in progress · $settlementCount total'
-            : '$settlementCount total',
+            ? StringConstants.settlementsInProgress(inProgress, settlementCount)
+            : StringConstants.settlementsTotal(settlementCount),
         iconColor: LightColor.blueColor,
         onTap: onSettlements,
       ),
@@ -354,7 +353,7 @@ class _ShortcutsCard extends StatelessWidget {
             for (int i = 0; i < tiles.length; i++) ...[
               if (i > 0)
                 Padding(
-                  padding: EdgeInsets.only(left: AppDimens.paddingX46),
+                  padding: const EdgeInsets.only(left: AppDimens.paddingX46),
                   child: Divider(
                     height: 1,
                     thickness: 0.5,
@@ -416,7 +415,7 @@ class _RecentActivityHeader extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(AppDimens.paddingX4),
             child: Text(
-              'View all',
+              StringConstants.viewAll,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.brandTextColor,
                 fontWeight: FontWeight.w700,
@@ -448,7 +447,7 @@ class _VenueBreakdownPageState extends State<_VenueBreakdownPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Futsal Breakdown'),
+      appBar: CustomAppBar(title: StringConstants.futsalBreakdownTitle),
       body: SafeArea(
         top: false,
         child: BlocBuilder<AccountBloc, AccountState>(
@@ -479,10 +478,10 @@ class _VenueBreakdownPageState extends State<_VenueBreakdownPage> {
               );
             }
             if (venues.isEmpty) {
-              return const AccountEmptyState(
+              return AccountEmptyState(
                 icon: Icons.stadium_outlined,
-                title: 'No futsals yet',
-                body: 'Balances for each of your futsals will appear here.',
+                title: StringConstants.noFutsalsYet,
+                body: StringConstants.futsalBalancesWillAppearHere,
               );
             }
             return RefreshIndicator(
@@ -523,8 +522,8 @@ class _VenueBreakdownPageState extends State<_VenueBreakdownPage> {
                     disabledReason: canSettle
                         ? null
                         : venue.totalCommission <= 0
-                        ? 'No commission due for this futsal yet.'
-                        : 'Settlement is not available for this futsal yet.',
+                        ? StringConstants.noCommissionDueForFutsal
+                        : StringConstants.settlementNotAvailableForFutsal,
                   );
                 },
               ),
@@ -558,7 +557,7 @@ class _BreakdownError extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX12),
             Text(
-              message ?? 'Could not load the futsal breakdown.',
+              message ?? StringConstants.couldNotLoadFutsalBreakdown,
               textAlign: TextAlign.center,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
@@ -806,7 +805,7 @@ class _StatementPageState extends State<_StatementPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.recentActivity),
+      appBar: CustomAppBar(title: StringConstants.recentActivity),
       body: SafeArea(
         top: false,
         child: BlocBuilder<AccountBloc, AccountState>(
@@ -840,11 +839,10 @@ class _StatementPageState extends State<_StatementPage> {
               );
             }
             if (entries.isEmpty) {
-              return const AccountEmptyState(
+              return AccountEmptyState(
                 icon: Icons.receipt_long_outlined,
-                title: 'No account activity yet',
-                body:
-                    'Booking income, platform commission and payouts will appear here.',
+                title: StringConstants.noAccountActivityYet,
+                body: StringConstants.accountActivityWillAppearHere,
               );
             }
 
@@ -983,7 +981,7 @@ class _SettlementsPageState extends State<_SettlementsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.settlements),
+      appBar: CustomAppBar(title: StringConstants.settlements),
       body: SafeArea(
         top: false,
         child: BlocBuilder<AccountBloc, AccountState>(
@@ -1022,13 +1020,12 @@ class _SettlementsPageState extends State<_SettlementsPage> {
                   physics: const AlwaysScrollableScrollPhysics(
                     parent: BouncingScrollPhysics(),
                   ),
-                  children: const [
-                    SizedBox(height: AppDimens.paddingX50),
+                  children: [
+                    const SizedBox(height: AppDimens.paddingX50),
                     AccountEmptyState(
                       icon: Icons.account_balance_outlined,
-                      title: 'No settlements yet',
-                      body:
-                          'Request a settlement and Hamro Futsal will pay your balance out to you.',
+                      title: StringConstants.noSettlementsYet,
+                      body: StringConstants.requestSettlementEmptyMessage,
                     ),
                   ],
                 ),

@@ -208,7 +208,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       AppUtils().showSnackBar(
         context,
         MsgType.info,
-        'A message can contain at most 5 files.',
+        StringConstants.messageMaxFiles,
       );
     }
   }
@@ -224,12 +224,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         children: [
           ListTile(
             leading: const Icon(Icons.attach_file_rounded),
-            title: const Text(StringConstants.attachFiles),
+            title: Text(StringConstants.attachFiles),
             onTap: () => Navigator.of(sheetContext).pop('files'),
           ),
           ListTile(
             leading: const Icon(Icons.location_on_outlined),
-            title: const Text(StringConstants.shareCurrentLocation),
+            title: Text(StringConstants.shareCurrentLocation),
             onTap: () => Navigator.of(sheetContext).pop('location'),
           ),
         ],
@@ -251,7 +251,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'Location is unavailable. Check location permission and services.',
+        StringConstants.locationUnavailableCheckPermission,
       );
       return;
     }
@@ -259,7 +259,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       SendMessageEvent(
         widget.conversation.id,
         ChatSendRequest(
-          body: 'Shared location',
+          body: kSharedLocationBody,
           type: 'location',
           metadata: <String, dynamic>{
             'latitude': position.latitude,
@@ -280,13 +280,13 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         children: [
           ListTile(
             leading: const Icon(Icons.reply_rounded),
-            title: const Text(StringConstants.reply),
+            title: Text(StringConstants.reply),
             onTap: () => Navigator.of(sheetContext).pop('reply'),
           ),
           if (message.isMine(_bloc.state.currentUserId))
             ListTile(
               leading: const Icon(Icons.delete_outline_rounded),
-              title: const Text(StringConstants.deleteMessageAction),
+              title: Text(StringConstants.deleteMessageAction),
               textColor: LightColor.redColor,
               iconColor: LightColor.redColor,
               onTap: () => Navigator.of(sheetContext).pop('delete'),
@@ -333,7 +333,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           await _showImage(bytes);
         } else {
           await FilePicker.platform.saveFile(
-            dialogTitle: 'Save ${media.name}',
+            dialogTitle: StringConstants.saveFileNamed(media.name),
             fileName: media.name,
             bytes: bytes,
           );
@@ -594,7 +594,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     }
     if (state.chatStatus == MessageStatus.failure) {
       return _ThreadError(
-        message: state.errorMessage ?? 'Could not load messages.',
+        message: state.errorMessage ?? StringConstants.couldNotLoadMessages,
         onRetry: () => context.read<MessageBloc>().add(
           LoadChatEvent(
             widget.conversation.id,
@@ -926,15 +926,15 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
               : active.otherParticipant(state.currentUserId);
           final String subtitle;
           if (state.peerTyping) {
-            subtitle = 'typing…';
+            subtitle = StringConstants.typing;
           } else if (active.isGroup) {
             final n = active.participants.length;
-            subtitle = '$n ${n == 1 ? 'member' : 'members'}';
+            subtitle = StringConstants.memberCount(n);
           } else {
             subtitle = switch (peerOnline) {
-              true => 'Online',
-              false => 'Offline',
-              null => 'Checking presence…',
+              true => StringConstants.online,
+              false => StringConstants.offline,
+              null => StringConstants.checkingPresence,
             };
           }
 
@@ -1075,7 +1075,7 @@ class _ConversationActions extends StatelessWidget {
         if (conversation.isGroup)
           ListTile(
             leading: const Icon(Icons.info_outline_rounded),
-            title: const Text(StringConstants.groupInfo),
+            title: Text(StringConstants.groupInfo),
             onTap: () => Navigator.of(
               context,
             ).pop(const _ConversationAction(_ConversationActionType.groupInfo)),
@@ -1083,7 +1083,7 @@ class _ConversationActions extends StatelessWidget {
         if (conversation.isGroup)
           ListTile(
             leading: const Icon(Icons.person_add_alt_1_rounded),
-            title: const Text(StringConstants.addMembers),
+            title: Text(StringConstants.addMembers),
             onTap: () => Navigator.of(context).pop(
               const _ConversationAction(_ConversationActionType.addMembers),
             ),

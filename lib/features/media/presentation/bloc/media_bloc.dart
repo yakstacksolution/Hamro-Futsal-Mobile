@@ -7,6 +7,7 @@ import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/features/media/data/model/media_model.dart';
 import 'package:hamro_futsal/features/media/domain/usecase/media_use_case.dart';
 import 'package:hamro_futsal/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 part 'media_event.dart';
 part 'media_state.dart';
@@ -76,7 +77,7 @@ class MediaBloc extends Bloc<MediaEvent, MediaState> {
         state.copyWith(
           createStatus: MediaStatus.success,
           items: <MediaModel>[...items, ...state.items],
-          successMessage: 'Media uploaded successfully.',
+          successMessage: StringConstants.mediaUploadedSuccessfully,
           clearErrorMessage: true,
         ),
       ),

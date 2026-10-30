@@ -12,6 +12,7 @@ import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_uti
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_chart_widgets.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_common.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_summary_widgets.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 const double kExpenseDashboardMaxWidth = 1280;
 
@@ -86,7 +87,7 @@ class ExpenseDashboard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            'Expenses',
+                            StringConstants.expenses,
                             style: textTheme.headingSmall?.copyWith(
                               color: LightColor.primaryTextColor,
                               fontWeight: FontWeight.w800,
@@ -101,7 +102,7 @@ class ExpenseDashboard extends StatelessWidget {
                     SizedBox(
                       height: AppDimens.sizeX48,
                       child: CustomButton(
-                        text: 'New expense',
+                        text: StringConstants.newExpenseTitle,
                         icon: Icons.add_rounded,
                         minWidth: 150,
                         onPressed: onAdd,
@@ -114,7 +115,7 @@ class ExpenseDashboard extends StatelessWidget {
                 gap,
 
                 // ── Snapshot: the four figures in one row ──
-                const DashboardSectionLabel('Snapshot'),
+                DashboardSectionLabel(StringConstants.snapshot),
                 ExpenseKpiGrid(report: report, columns: 4),
                 gap,
 
@@ -122,13 +123,13 @@ class ExpenseDashboard extends StatelessWidget {
                 if (report.byCourt.isNotEmpty)
                   DashboardPair(
                     stacked: !desktop,
-                    leftLabel: 'Total spend',
+                    leftLabel: StringConstants.totalSpend,
                     left: ExpenseHeroCard(report: report),
-                    rightLabel: 'By court',
+                    rightLabel: StringConstants.byCourt,
                     right: ExpenseCourtCard(report: report),
                   )
                 else ...<Widget>[
-                  const DashboardSectionLabel('Total spend'),
+                  DashboardSectionLabel(StringConstants.totalSpend),
                   ExpenseHeroCard(report: report),
                 ],
                 gap,
@@ -136,9 +137,9 @@ class ExpenseDashboard extends StatelessWidget {
                 // ── Trend beside the category split, equal heights ──
                 DashboardPair(
                   stacked: !desktop,
-                  leftLabel: 'Trend',
+                  leftLabel: StringConstants.trend,
                   left: ExpenseTrendCard(report: report),
-                  rightLabel: 'By category',
+                  rightLabel: StringConstants.byCategory,
                   right: ExpenseCategoryCard(
                     report: report,
                     selectedCategory: selectedCategory,
@@ -150,20 +151,20 @@ class ExpenseDashboard extends StatelessWidget {
                 // ── Records ──
                 DashboardSectionLabel(
                   categoryLabel == null
-                      ? 'Records'
-                      : 'Records · $categoryLabel',
+                      ? StringConstants.records
+                      : StringConstants.recordsForCategory(categoryLabel!),
                 ),
                 records.isEmpty
                     ? ExpenseEmptyState(
                         title: hasFilters
-                            ? 'No matching records'
-                            : 'No records yet',
+                            ? StringConstants.noMatchingRecords
+                            : StringConstants.noRecordsYet,
                         message: hasFilters
-                            ? 'Try a different period, venue or category.'
-                            : 'Expenses you add will show up here.',
+                            ? StringConstants.tryDifferentPeriodVenueOrCategory
+                            : StringConstants.expensesYouAddWillShowUpHere,
                         actionLabel: hasFilters
-                            ? 'Clear filters'
-                            : 'Add expense',
+                            ? StringConstants.clearFilters
+                            : StringConstants.addExpense,
                         onAction: hasFilters ? onClearFilters : onAdd,
                       )
                     : _RecordsTable(
@@ -271,12 +272,16 @@ class _RecordsTable extends StatelessWidget {
             ),
             child: Row(
               children: <Widget>[
-                headCell('Date', _fDate),
-                headCell('Category', _fCategory),
-                headCell('Description', _fDescription),
-                headCell('Venue · Court', _fWhere),
-                headCell('Method', _fMethod),
-                headCell('Amount', _fAmount, align: TextAlign.end),
+                headCell(StringConstants.date, _fDate),
+                headCell(StringConstants.category, _fCategory),
+                headCell(StringConstants.description, _fDescription),
+                headCell(StringConstants.venueCourt, _fWhere),
+                headCell(StringConstants.method, _fMethod),
+                headCell(
+                  StringConstants.amount,
+                  _fAmount,
+                  align: TextAlign.end,
+                ),
               ],
             ),
           ),

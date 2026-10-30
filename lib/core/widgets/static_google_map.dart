@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/config/app_environment.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 bool get supportsNativeGoogleMap =>
     kIsWeb ||
@@ -110,7 +111,7 @@ class StaticGoogleMap extends StatelessWidget {
                           ),
                           const SizedBox(height: AppDimens.sizeX6),
                           Text(
-                            'Map preview unavailable',
+                            StringConstants.mapPreviewUnavailable,
                             style: TextStyle(
                               color: LightColor.secondaryTextColor,
                               fontSize: 12,

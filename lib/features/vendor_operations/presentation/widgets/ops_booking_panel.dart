@@ -20,6 +20,7 @@ import 'package:hamro_futsal/features/bookings/data/model/candidate_model.dart';
 import 'package:hamro_futsal/features/vendor_operations/data/manual_group_booking_service.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/bloc/vendor_ops_bloc.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 enum _Step { selection, details, review, result }
 
@@ -178,7 +179,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
       setState(() {
         _candidatesLoading = false;
         _candidatesLoadingMore = false;
-        _candidateError = 'Could not read candidates from the server.';
+        _candidateError = StringConstants.couldNotReadCandidates;
       });
     }
   }
@@ -264,7 +265,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
   }
 
   static String _methodLabel(String method) =>
-      method == 'online' ? 'Online' : 'Cash';
+      method == 'online' ? StringConstants.online : StringConstants.cash;
 
   void _addPayment(double total) {
     if (_payments.length >= _maxPayments) return;
@@ -309,11 +310,13 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
         final OpsBookingRange? conflict = outcome.conflict;
         _conflictKey = conflict?.key;
         _error = conflict == null
-            ? '${outcome.message} Nothing was booked.'
-            : '${conflict.courtName}, '
-                  '${formatMinuteOfDay(conflict.start)}–'
-                  '${formatMinuteOfDay(conflict.end)}: ${outcome.message} '
-                  'Nothing was booked.';
+            ? StringConstants.nothingWasBookedReason(outcome.message)
+            : StringConstants.slotConflictNothingBooked(
+                conflict.courtName,
+                formatMinuteOfDay(conflict.start),
+                formatMinuteOfDay(conflict.end),
+                outcome.message,
+              );
       });
       context.read<VendorOpsBloc>().add(const VendorOpsRefreshed(silent: true));
       return;
@@ -345,12 +348,14 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
   String? _paymentProblem(double payable) {
     if (_payments.length > 1 &&
         _payments.any((_PaymentLineField p) => p.value <= 0)) {
-      return 'Enter an amount for every payment, or remove it.';
+      return StringConstants.enterAmountForEveryPayment;
     }
     final double r = _received;
     if (payable > 0 && r > payable + 0.5) {
-      return 'Received (${Money.npr(r)}) is more than the payable total '
-          '(${Money.npr(payable)}).';
+      return StringConstants.receivedMoreThanPayable(
+        Money.npr(r),
+        Money.npr(payable),
+      );
     }
     return null;
   }
@@ -391,9 +396,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
         _tickets = <OpsRangeTicket>[
           for (final OpsRangeTicket t in result) t.copyWith(clearError: true),
         ];
-        _error =
-            'Nothing was booked${reason == null ? '.' : ': $reason'} '
-            'The slots are still held — confirm again to retry.';
+        _error = StringConstants.nothingBookedSlotsStillHeld(reason);
       }
     });
     if (allCreated) {
@@ -426,23 +429,21 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
       final bool? release = await showDialog<bool>(
         context: context,
         builder: (BuildContext context) => AlertDialog(
-          title: const Text('Release held slots?'),
+          title: Text(StringConstants.releaseHeldSlotsTitle),
           content: Text(
             held == 1
-                ? 'The slot held for this booking goes back on sale. Your '
-                      'selection is kept.'
-                : 'The $held slots held for this booking go back on sale. '
-                      'Your selection is kept.',
+                ? StringConstants.releaseOneHeldSlotMessage
+                : StringConstants.releaseHeldSlotsMessage(held),
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Keep reviewing'),
+              child: Text(StringConstants.keepReviewing),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(foregroundColor: LightColor.redColor),
-              child: const Text('Release & close'),
+              child: Text(StringConstants.releaseAndClose),
             ),
           ],
         ),
@@ -460,16 +461,16 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
       final bool? clear = await showDialog<bool>(
         context: context,
         builder: (BuildContext context) => AlertDialog(
-          title: Text('Remove all $count slots?'),
+          title: Text(StringConstants.removeAllSlotsTitle(count)),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(StringConstants.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(foregroundColor: LightColor.redColor),
-              child: const Text('Remove all'),
+              child: Text(StringConstants.removeAll),
             ),
           ],
         ),
@@ -550,11 +551,11 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
 
   Widget _header(BuildContext context, VendorOpsState state) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    const Map<_Step, String> titles = <_Step, String>{
-      _Step.selection: 'Manual booking',
-      _Step.details: 'Customer & payment',
-      _Step.review: 'Review booking',
-      _Step.result: 'Booking confirmed',
+    final Map<_Step, String> titles = <_Step, String>{
+      _Step.selection: StringConstants.manualBookingSentence,
+      _Step.details: StringConstants.customerAndPayment,
+      _Step.review: StringConstants.reviewBooking,
+      _Step.result: StringConstants.bookingConfirmed,
     };
     final int slots = state.selection.length;
     final int courts = state.selection.values
@@ -563,10 +564,8 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
         .length;
     final String? subtitle = switch (_step) {
       _Step.result => null,
-      _ when slots == 0 => 'Pick free slots on the board',
-      _ =>
-        '$slots ${slots == 1 ? 'slot' : 'slots'} · '
-            '$courts ${courts == 1 ? 'court' : 'courts'}',
+      _ when slots == 0 => StringConstants.pickFreeSlotsOnBoard,
+      _ => StringConstants.slotsAndCourtsCount(slots, courts),
     };
     final bool canGoBack = _step == _Step.details || _step == _Step.review;
     return Container(
@@ -582,7 +581,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
               if (canGoBack)
                 // The app's back button, as in [CustomAppBar].
                 IconButton(
-                  tooltip: 'Back',
+                  tooltip: StringConstants.back,
                   visualDensity: VisualDensity.compact,
                   onPressed: _busy
                       ? null
@@ -627,7 +626,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                 ),
               ),
               IconButton(
-                tooltip: 'Close panel',
+                tooltip: StringConstants.closePanel,
                 visualDensity: VisualDensity.compact,
                 onPressed: _busy ? null : _requestClose,
                 icon: Icon(
@@ -668,7 +667,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                 minimumSize: const Size.fromHeight(42),
               ),
               icon: const Icon(Icons.today_rounded, size: 18),
-              label: const Text('Book for today'),
+              label: Text(StringConstants.bookForToday),
             ),
           ),
         if (ranges.isEmpty)
@@ -752,7 +751,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          _SectionLabel('Customer'),
+          _SectionLabel(StringConstants.customer),
           const SizedBox(height: AppDimens.paddingX6),
           AutofillGroup(
             child: Column(
@@ -760,8 +759,8 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
               children: <Widget>[
                 CustomTextField(
                   controller: _name,
-                  labelText: 'Customer name',
-                  hintText: 'Full name',
+                  labelText: StringConstants.customerName,
+                  hintText: StringConstants.fullNameSentenceCase,
                   icon: Icons.person_rounded,
                   textCapitalization: TextCapitalization.words,
                   textInputAction: TextInputAction.next,
@@ -770,14 +769,14 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   ensureVisibleOnFocus: true,
                   validator: (String? v) => (v?.trim().isEmpty ?? true)
-                      ? 'Enter the customer\'s name'
+                      ? StringConstants.enterCustomerName
                       : null,
                 ),
                 gap,
                 CustomTextField(
                   controller: _phone,
-                  labelText: 'Phone number',
-                  hintText: '98XXXXXXXX',
+                  labelText: StringConstants.phoneNumberSentenceCase,
+                  hintText: StringConstants.text98xxxxxxxx,
                   icon: Icons.phone_rounded,
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
@@ -791,9 +790,11 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                   ],
                   validator: (String? v) {
                     final String t = v?.trim() ?? '';
-                    if (t.isEmpty) return 'Enter the customer\'s phone number';
+                    if (t.isEmpty) return StringConstants.enterCustomerPhone;
                     final String digits = t.replaceAll('+', '');
-                    if (digits.length < 7) return 'Enter a valid phone number';
+                    if (digits.length < 7) {
+                      return StringConstants.enterValidPhoneNumber;
+                    }
                     return null;
                   },
                 ),
@@ -802,7 +803,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
             ),
           ),
           const SizedBox(height: AppDimens.paddingX20),
-          _SectionLabel('Payment'),
+          _SectionLabel(StringConstants.payment),
           const SizedBox(height: AppDimens.paddingX6),
           for (int i = 0; i < _payments.length; i++) ...<Widget>[
             if (i > 0) const SizedBox(height: AppDimens.paddingX10),
@@ -813,8 +814,10 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
               // online.
               locked: _payments.length > 1,
               label: _payments.length == 1
-                  ? 'Amount received (NPR)'
-                  : '${_methodLabel(_payments[i].method)} received (NPR)',
+                  ? StringConstants.amountReceivedNpr
+                  : StringConstants.methodReceivedNpr(
+                      _methodLabel(_payments[i].method),
+                    ),
               onMethodChanged: (String m) =>
                   setState(() => _payments[i].method = m),
               onAmountChanged: () => setState(() {}),
@@ -822,14 +825,14 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
               validator: (String? v) {
                 final double r = double.tryParse(v?.trim() ?? '') ?? 0;
                 if (_payments.length > 1 && r <= 0) {
-                  return 'Enter an amount, or remove this payment';
+                  return StringConstants.enterAmountOrRemovePayment;
                 }
                 // The total, once, under the last payment.
                 if (i == _payments.length - 1 &&
                     !unpriced &&
                     estimate > 0 &&
                     received > estimate + 0.5) {
-                  return 'More than the total (${Money.npr(estimate)})';
+                  return StringConstants.moreThanTheTotal(Money.npr(estimate));
                 }
                 return null;
               },
@@ -839,12 +842,11 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
           Row(
             children: <Widget>[
               if (estimate > 0)
-                for (final (String label, double share)
-                    in const <(String, double)>[
-                      ('25%', 0.25),
-                      ('50%', 0.5),
-                      ('Full', 1),
-                    ]) ...<Widget>[
+                for (final (String label, double share) in <(String, double)>[
+                  ('25%', 0.25),
+                  ('50%', 0.5),
+                  (StringConstants.full, 1),
+                ]) ...<Widget>[
                   Expanded(
                     child: CustomButton(
                       text: label,
@@ -866,8 +868,11 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
               // what is still owed. Gone once both are there.
               if (_payments.length < _maxPayments)
                 _AddPaymentButton(
-                  label:
-                      'Add ${_methodLabel(_otherMethod(_payments.first.method)).toLowerCase()}',
+                  label: StringConstants.addPaymentMethod(
+                    _methodLabel(
+                      _otherMethod(_payments.first.method),
+                    ).toLowerCase(),
+                  ),
                   onPressed: () => _addPayment(estimate),
                 ),
             ],
@@ -881,7 +886,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
           gap,
           CustomDropdownField<OpsBookingStatus>(
             key: const Key('ops-booking-status'),
-            labelText: 'Booking status',
+            labelText: StringConstants.bookingStatus,
             icon: Icons.event_available_outlined,
             initialValue: _bookingStatus,
             isRequired: true,
@@ -899,8 +904,8 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
           gap,
           CustomTextField(
             controller: _note,
-            labelText: 'Payment note',
-            hintText: 'Add a payment remark',
+            labelText: StringConstants.paymentNote,
+            hintText: StringConstants.addPaymentRemark,
             isRequired: false,
             icon: Icons.notes_rounded,
             textCapitalization: TextCapitalization.sentences,
@@ -912,20 +917,20 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
           _MoneyBox(
             rows: <(String, String, bool)>[
               (
-                unpriced ? 'Subtotal (estimate, from)' : 'Subtotal (estimate)',
+                unpriced
+                    ? StringConstants.subtotalEstimateFrom
+                    : StringConstants.subtotalEstimate,
                 Money.npr(estimate),
                 false,
               ),
-              ('Received', Money.npr(received), false),
+              (StringConstants.received, Money.npr(received), false),
               (
-                'Remaining',
+                StringConstants.remaining,
                 Money.npr((estimate - received).clamp(0, double.infinity)),
                 true,
               ),
             ],
-            footnote:
-                'Final prices come from the server when the slots are held '
-                'on the next step.',
+            footnote: StringConstants.finalPricesFromServerFootnote,
           ),
         ],
       ),
@@ -968,7 +973,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                   const SizedBox(width: AppDimens.paddingX8),
                   Expanded(
                     child: Text(
-                      'Existing candidates',
+                      StringConstants.existingCandidates,
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.primaryTextColor,
                         fontWeight: FontWeight.w800,
@@ -977,7 +982,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                   ),
                   IconButton(
                     visualDensity: VisualDensity.compact,
-                    tooltip: 'Hide candidates',
+                    tooltip: StringConstants.hideCandidates,
                     onPressed: () =>
                         setState(() => _showCandidatePicker = false),
                     icon: Icon(
@@ -1024,7 +1029,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                   AppDimens.paddingX12,
                 ),
                 child: Text(
-                  'No matching candidate. Continue with these details to create a new customer.',
+                  StringConstants.noMatchingCandidate,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryTextColor,
                     height: 1.3,
@@ -1057,7 +1062,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                                 ),
                               )
                             : const Icon(Icons.expand_more_rounded),
-                        label: const Text('Load more candidates'),
+                        label: Text(StringConstants.loadMoreCandidates),
                       );
                     }
                     final CandidateModel candidate = _candidates[index];
@@ -1074,7 +1079,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                       ),
                       title: Text(
                         candidate.name.isEmpty
-                            ? 'Unnamed customer'
+                            ? StringConstants.unnamedCustomer
                             : candidate.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1124,7 +1129,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         if (expiry != null) _HoldCountdown(expiresAt: expiry),
-        _SectionLabel('Slots'),
+        _SectionLabel(StringConstants.slots),
         for (final OpsRangeTicket t in _tickets) _TicketLine(ticket: t),
         if (anyChanged) ...<Widget>[
           const SizedBox(height: 8),
@@ -1144,8 +1149,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                 controlAffinity: ListTileControlAffinity.leading,
                 activeColor: LightColor.warningColor,
                 title: Text(
-                  'The server priced some slots differently from the board. '
-                  'I have reviewed the revised prices.',
+                  StringConstants.reviewedRevisedPrices,
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
@@ -1157,7 +1161,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
           ),
         ],
         const SizedBox(height: 14),
-        _SectionLabel('Customer'),
+        _SectionLabel(StringConstants.customer),
         _InfoCard(
           lines: <(IconData, String, bool)>[
             (Icons.person_rounded, _name.text.trim(), true),
@@ -1165,22 +1169,22 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
           ],
         ),
         const SizedBox(height: 14),
-        _SectionLabel('Payment'),
+        _SectionLabel(StringConstants.payment),
         _InfoCard(
           lines: <(IconData, String, bool)>[
             (
               Icons.account_balance_wallet_outlined,
-              'Payment method · $_methodsLabel',
+              StringConstants.paymentMethodLine(_methodsLabel),
               false,
             ),
             (
               Icons.verified_outlined,
-              'Payment status · ${_planFor(payable).label}',
+              StringConstants.paymentStatusLine(_planFor(payable).label),
               false,
             ),
             (
               Icons.event_available_outlined,
-              'Booking status · ${_bookingStatus.label}',
+              StringConstants.bookingStatusLine(_bookingStatus.label),
               false,
             ),
             if (_note.text.trim().isNotEmpty)
@@ -1190,25 +1194,23 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
         const SizedBox(height: 14),
         _MoneyBox(
           rows: <(String, String, bool)>[
-            ('Payable', Money.npr(payable), true),
+            (StringConstants.payable, Money.npr(payable), true),
             if (paid.isEmpty)
-              ('Received now', Money.npr(0), false)
+              (StringConstants.receivedNow, Money.npr(0), false)
             else
               for (final _PaymentLineField p in paid)
                 (
-                  'Received now (${_methodLabel(p.method)})',
+                  StringConstants.receivedNowBy(_methodLabel(p.method)),
                   Money.npr(p.value),
                   false,
                 ),
             (
-              'Remaining balance',
+              StringConstants.remainingBalance,
               Money.npr((payable - received).clamp(0, double.infinity)),
               false,
             ),
           ],
-          footnote:
-              'Source: Manual / Vendor. Discounts and fees are applied by the '
-              'server where configured.',
+          footnote: StringConstants.manualSourceFootnote,
         ),
       ],
     );
@@ -1246,8 +1248,8 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
         const SizedBox(height: 12),
         Text(
           _tickets.length == 1
-              ? 'Booked for ${_name.text.trim()}'
-              : '${_tickets.length} bookings for ${_name.text.trim()}',
+              ? StringConstants.bookedFor(_name.text.trim())
+              : StringConstants.bookingsFor(_tickets.length, _name.text.trim()),
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
@@ -1258,11 +1260,13 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
         const SizedBox(height: 4),
         Text(
           paid <= 0
-              ? 'Payment pending · ${Money.npr(payable)} to collect'
+              ? StringConstants.paymentPendingToCollect(Money.npr(payable))
               : paid >= payable
-              ? 'Paid in full · $_methodsLabel'
-              : '${Money.npr(paid)} paid · '
-                    '${Money.npr(payable - paid)} to collect',
+              ? StringConstants.paidInFullBy(_methodsLabel)
+              : StringConstants.paidAndToCollect(
+                  Money.npr(paid),
+                  Money.npr(payable - paid),
+                ),
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 12.5,
@@ -1275,10 +1279,10 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
         const SizedBox(height: 12),
         _MoneyBox(
           rows: <(String, String, bool)>[
-            ('Total', Money.npr(payable), true),
-            ('Paid', Money.npr(paid), false),
+            (StringConstants.total, Money.npr(payable), true),
+            (StringConstants.paid, Money.npr(paid), false),
             (
-              'Balance due',
+              StringConstants.balanceDue,
               Money.npr((payable - paid).clamp(0, double.infinity)),
               false,
             ),
@@ -1296,10 +1300,14 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
     final int minutes = state.selectedMinutes;
     final double estimate = _estimateTotal(ranges);
     final Widget summary = Text(
-      '${state.selection.length} '
-      '${state.selection.length == 1 ? 'slot' : 'slots'} · '
-      '${formatHours(minutes)} court-h · '
-      '${_hasUnpriced(ranges) ? 'from ' : ''}${Money.npr(estimate)}',
+      StringConstants.selectionFooterSummary(
+        state.selection.length,
+        formatHours(minutes),
+        StringConstants.maybeFromPrice(
+          Money.npr(estimate),
+          from: _hasUnpriced(ranges),
+        ),
+      ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
@@ -1316,12 +1324,12 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
         // The first step has nothing to go back to: Back leaves the booking,
         // as the close button does. The selection is kept on the board.
         secondary = _SecondaryButton(
-          label: 'Back',
+          label: StringConstants.back,
           icon: Icons.arrow_back_ios,
           onPressed: _busy ? null : _requestClose,
         );
         primary = _PrimaryButton(
-          label: 'Continue',
+          label: StringConstants.continueText,
           onPressed: ranges.isEmpty
               ? null
               : () => setState(() {
@@ -1331,7 +1339,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
         );
       case _Step.details:
         secondary = _SecondaryButton(
-          label: 'Back',
+          label: StringConstants.back,
           icon: Icons.arrow_back_ios,
           onPressed: _busy
               ? null
@@ -1341,7 +1349,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                 }),
         );
         primary = _PrimaryButton(
-          label: 'Hold slots & review',
+          label: StringConstants.holdSlotsAndReview,
           busy: _busy,
           onPressed: ranges.isEmpty ? null : () => _review(ranges),
         );
@@ -1352,18 +1360,24 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
         // All or nothing: nothing is booked until confirming succeeds, so
         // going back is always safe.
         secondary = _SecondaryButton(
-          label: 'Back',
+          label: StringConstants.back,
           icon: Icons.arrow_back_ios,
           onPressed: _busy ? null : _backToDetails,
         );
         primary = _PrimaryButton(
-          label: 'Confirm booking',
+          label: StringConstants.confirmBookingSentence,
           busy: _busy,
           onPressed: blocked ? null : _confirm,
         );
       case _Step.result:
-        secondary = _SecondaryButton(label: 'Done', onPressed: _requestClose);
-        primary = _PrimaryButton(label: 'New booking', onPressed: _startOver);
+        secondary = _SecondaryButton(
+          label: StringConstants.done,
+          onPressed: _requestClose,
+        );
+        primary = _PrimaryButton(
+          label: StringConstants.newBooking,
+          onPressed: _startOver,
+        );
     }
 
     // The sheet is already lifted above the keyboard, and the keyboard covers
@@ -1397,7 +1411,7 @@ class _OpsBookingPanelState extends State<OpsBookingPanel> {
                       foregroundColor: LightColor.redColor,
                       visualDensity: VisualDensity.compact,
                     ),
-                    child: const Text('Clear all'),
+                    child: Text(StringConstants.clearAllSentence),
                   ),
               ],
             ),
@@ -1432,7 +1446,7 @@ class _EmptySelection extends StatelessWidget {
           Icon(Icons.touch_app_rounded, size: 36, color: LightColor.iconGrey),
           const SizedBox(height: 10),
           Text(
-            'Tap free slots on the board',
+            StringConstants.tapFreeSlotsOnBoard,
             style: TextStyle(
               fontWeight: FontWeight.w800,
               color: LightColor.primaryTextColor,
@@ -1440,8 +1454,7 @@ class _EmptySelection extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Pick any mix of courts, venues and times. Separate times stay '
-            'separate — the gap is never booked.',
+            StringConstants.pickAnyMixOfSlots,
             textAlign: TextAlign.center,
             style: TextStyle(color: LightColor.secondaryTextColor),
           ),
@@ -1491,7 +1504,7 @@ class _SelectionLine extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${formatDuration(item.minutes)} · '
-                  '${item.price == null ? 'Priced on hold' : Money.npr(item.price!)}',
+                  '${item.price == null ? StringConstants.pricedOnHold : Money.npr(item.price!)}',
                   style: TextStyle(
                     fontSize: 12,
                     color: LightColor.secondaryTextColor,
@@ -1501,7 +1514,9 @@ class _SelectionLine extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Remove ${formatMinuteOfDay(item.start)}',
+            tooltip: StringConstants.removeSlotAt(
+              formatMinuteOfDay(item.start),
+            ),
             onPressed: onRemove,
             icon: Icon(
               Icons.remove_circle_outline_rounded,
@@ -1565,10 +1580,13 @@ class _TicketLine extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${date == null ? r.date : DateFmt.date(date)} · '
-                  '${formatMinuteOfDay(r.start)} – ${formatMinuteOfDay(r.end)} '
-                  '(${formatDuration(r.minutes)}, ${r.items.length} '
-                  '${r.items.length == 1 ? 'slot' : 'slots'})',
+                  StringConstants.ticketRangeLine(
+                    date == null ? r.date : DateFmt.date(date),
+                    formatMinuteOfDay(r.start),
+                    formatMinuteOfDay(r.end),
+                    formatDuration(r.minutes),
+                    r.items.length,
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     color: LightColor.secondaryTextColor,
@@ -1576,7 +1594,7 @@ class _TicketLine extends StatelessWidget {
                 ),
                 if (ticket.isCreated && (ticket.bookingId ?? -1) > 0)
                   Text(
-                    'Booking #${ticket.bookingId}',
+                    StringConstants.bookingNumber(ticket.bookingId),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -1606,7 +1624,7 @@ class _TicketLine extends StatelessWidget {
               ),
               if (ticket.priceChanged && r.estimate != null)
                 Text(
-                  'was ${Money.npr(r.estimate!)}',
+                  StringConstants.wasPrice(Money.npr(r.estimate!)),
                   style: TextStyle(
                     fontSize: 11,
                     color: LightColor.warningColor,
@@ -1631,9 +1649,11 @@ class _HoldCountdown extends StatelessWidget {
     final Duration left = expiresAt.difference(DateTime.now());
     final bool expired = left.isNegative;
     final String text = expired
-        ? 'Hold expired — confirming will recheck availability.'
-        : 'Slots held for ${left.inMinutes}:'
-              '${(left.inSeconds % 60).toString().padLeft(2, '0')}';
+        ? StringConstants.holdExpired
+        : StringConstants.slotsHeldFor(
+            left.inMinutes,
+            (left.inSeconds % 60).toString().padLeft(2, '0'),
+          );
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -1855,7 +1875,7 @@ class _PaymentLineRow extends StatelessWidget {
           SizedBox(
             height: _MethodToggle.height,
             child: IconButton(
-              tooltip: 'Remove this payment',
+              tooltip: StringConstants.removeThisPayment,
               visualDensity: VisualDensity.compact,
               onPressed: onRemove,
               icon: Icon(
@@ -1886,7 +1906,7 @@ class _MethodToggle extends StatelessWidget {
         child: Semantics(
           button: true,
           selected: selected,
-          label: 'Paid by $label',
+          label: StringConstants.paidBy(label),
           child: ExcludeSemantics(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -1946,9 +1966,9 @@ class _MethodToggle extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          option('cash', 'Cash', Icons.payments_outlined),
+          option('cash', StringConstants.cash, Icons.payments_outlined),
           const SizedBox(width: 3),
-          option('online', 'Online', Icons.qr_code_2_rounded),
+          option('online', StringConstants.online, Icons.qr_code_2_rounded),
         ],
       ),
     );
@@ -1963,9 +1983,9 @@ class _MethodChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool cash = method == 'cash';
-    final String label = cash ? 'Cash' : 'Online';
+    final String label = cash ? StringConstants.cash : StringConstants.online;
     return Semantics(
-      label: 'Paid by $label',
+      label: StringConstants.paidBy(label),
       child: ExcludeSemantics(
         child: Container(
           width: 112,
@@ -2064,7 +2084,7 @@ class _PaymentStatusLine extends StatelessWidget {
           Icon(icon, size: 18, color: fg),
           const SizedBox(width: 8),
           Text(
-            'Payment status',
+            StringConstants.paymentStatus,
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
@@ -2142,7 +2162,11 @@ class _Stepper extends StatelessWidget {
 
   final int step;
 
-  static const List<String> _labels = <String>['Slots', 'Customer', 'Review'];
+  static List<String> get _labels => <String>[
+    StringConstants.slots,
+    StringConstants.customer,
+    StringConstants.review,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -2187,7 +2211,7 @@ class _Stepper extends StatelessWidget {
 
     return Semantics(
       container: true,
-      label: 'Step ${step + 1} of 3, ${_labels[step.clamp(0, 2)]}',
+      label: StringConstants.stepOfThree(step + 1, _labels[step.clamp(0, 2)]),
       child: ExcludeSemantics(
         child: Row(
           children: <Widget>[
@@ -2244,8 +2268,8 @@ class _CourtGroup extends StatelessWidget {
       (double s, OpsSelectionItem i) => s + (i.price ?? 0),
     );
     final String total = unpriced && subtotal == 0
-        ? 'Priced on hold'
-        : '${unpriced ? 'from ' : ''}${Money.npr(subtotal)}';
+        ? StringConstants.pricedOnHold
+        : StringConstants.maybeFromPrice(Money.npr(subtotal), from: unpriced);
     final bool conflict = ranges.any(
       (OpsBookingRange r) => r.key == conflictKey,
     );
@@ -2263,7 +2287,7 @@ class _CourtGroup extends StatelessWidget {
               d == null
                   ? r.date
                   : KathmanduClock.isToday(d)
-                  ? 'Today · ${DateFmt.date(d)}'
+                  ? StringConstants.todayWithDate(DateFmt.date(d))
                   : DateFmt.date(d),
               style: TextStyle(
                 fontSize: 11.5,
@@ -2315,8 +2339,7 @@ class _CourtGroup extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${items.length} ${items.length == 1 ? 'slot' : 'slots'} · '
-                  '$total',
+                  StringConstants.slotsCountWithTotal(items.length, total),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,

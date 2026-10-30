@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -59,7 +60,7 @@ class _InAppWebViewPageState extends State<InAppWebViewPage> {
             if (!mounted || error.isForMainFrame == false) return;
             setState(() {
               _errorMessage = error.description.trim().isEmpty
-                  ? 'Could not load this page.'
+                  ? StringConstants.couldNotLoadThisPage
                   : error.description.trim();
             });
           },
@@ -81,7 +82,7 @@ class _InAppWebViewPageState extends State<InAppWebViewPage> {
         title: widget.title,
         actions: <Widget>[
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: StringConstants.refresh,
             onPressed: () => _controller.reload(),
             icon: const Icon(Icons.refresh_rounded),
           ),
@@ -143,7 +144,7 @@ class _WebViewError extends StatelessWidget {
           TextButton.icon(
             onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Retry'),
+            label: Text(StringConstants.retry),
           ),
         ],
       ),

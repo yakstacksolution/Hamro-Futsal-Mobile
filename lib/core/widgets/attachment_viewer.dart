@@ -193,10 +193,10 @@ class _FileBody extends StatelessWidget {
               color: Colors.white70,
             ),
             const SizedBox(height: AppDimens.paddingX16),
-            const Text(
+            Text(
               StringConstants.proofIsAFile,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: AppDimens.paddingX20),
             AttachmentDownloadAction(

@@ -17,6 +17,7 @@ import 'package:hamro_futsal/features/products/data/repositories/products_reposi
 import 'package:hamro_futsal/features/products/domain/repository/products_repository.dart';
 import 'package:hamro_futsal/features/products/domain/usecase/products_usecase.dart';
 import 'package:hamro_futsal/features/products/presentation/bloc/products_bloc.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class ProductsScreen extends StatelessWidget {
   const ProductsScreen({super.key, this.repository});
@@ -44,7 +45,11 @@ class _ProductsView extends StatelessWidget {
     final ProductsState state = context.read<ProductsBloc>().state;
     final ProductVenueModel? venue = state.selectedVenue;
     if (venue == null) {
-      AppUtils().showSnackBar(context, MsgType.info, 'Select a venue first.');
+      AppUtils().showSnackBar(
+        context,
+        MsgType.info,
+        StringConstants.selectVenueFirst,
+      );
       return;
     }
     // Phone: a bottom sheet. Tablet / desktop: a centred dialog — a sheet
@@ -101,14 +106,14 @@ class _ProductsView extends StatelessWidget {
           backgroundColor: LightColor.cardColor,
           surfaceTintColor: LightColor.transparentColor,
           title: Text(
-            'Delete product?',
+            StringConstants.deleteProductQuestion,
             style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w800,
             ),
           ),
           content: Text(
-            'This will remove ${product.name} from your products.',
+            StringConstants.removeProductConfirmation(product.name),
             style: FutsalTheme.getTextTheme(
               context,
             ).bodyTextSmall?.copyWith(color: LightColor.secondaryTextColor),
@@ -117,7 +122,7 @@ class _ProductsView extends StatelessWidget {
             SizedBox(
               width: AppDimens.sizeX100,
               child: CustomButton(
-                text: 'Cancel',
+                text: StringConstants.cancel,
                 isOutlined: true,
                 foregroundColor: LightColor.secondaryTextColor,
                 borderColor: LightColor.dividerColor,
@@ -127,7 +132,7 @@ class _ProductsView extends StatelessWidget {
             SizedBox(
               width: AppDimens.sizeX100,
               child: CustomButton(
-                text: 'Delete',
+                text: StringConstants.delete,
                 backgroundColor: LightColor.redColor,
                 onPressed: () => Navigator.of(context).pop(true),
               ),
@@ -172,7 +177,7 @@ class _ProductsView extends StatelessWidget {
         return Scaffold(
           backgroundColor: LightColor.background,
           appBar: CustomAppBar(
-            title: 'Products',
+            title: StringConstants.products,
             actions: <Widget>[
               IconButton(
                 onPressed: hasVenue && state.status != ProductsStatus.loading
@@ -316,7 +321,7 @@ class _ProductsSummary extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  '$count products',
+                  StringConstants.productsCount(count),
                   style: FutsalTheme.getTextTheme(context).bodyTextLarge
                       ?.copyWith(
                         color: LightColor.inverseTextColor,
@@ -325,7 +330,7 @@ class _ProductsSummary extends StatelessWidget {
                 ),
                 const SizedBox(height: AppDimens.paddingX4),
                 Text(
-                  'Manage product name, price and active status per venue.',
+                  StringConstants.manageProductsSubtitle,
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall
                       ?.copyWith(
                         color: LightColor.inverseTextColor.withValues(
@@ -351,8 +356,10 @@ class _VenueSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomDropdownField<int>(
-      labelText: 'Venue',
-      hintText: state.venues.isEmpty ? 'No venues found' : 'Select venue',
+      labelText: StringConstants.venue,
+      hintText: state.venues.isEmpty
+          ? StringConstants.noVenuesFound
+          : StringConstants.selectVenue,
       icon: Icons.stadium_outlined,
       initialValue: state.selectedVenue?.id,
       enabled: state.venues.isNotEmpty,
@@ -383,7 +390,7 @@ class _ProductsHeader extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: Text(
-            'Product list',
+            StringConstants.productList,
             style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w800,
@@ -488,7 +495,9 @@ class _ProductTile extends StatelessWidget {
                     ),
                     const SizedBox(width: AppDimens.paddingX8),
                     Text(
-                      active ? 'Active' : 'Inactive',
+                      active
+                          ? StringConstants.active
+                          : StringConstants.inactive,
                       style: FutsalTheme.getTextTheme(context).bodyTextSmall
                           ?.copyWith(
                             color: statusColor,
@@ -502,7 +511,7 @@ class _ProductTile extends StatelessWidget {
           ),
           const SizedBox(width: AppDimens.paddingX4),
           IconButton(
-            tooltip: 'Edit product',
+            tooltip: StringConstants.editProduct,
             onPressed: onEdit,
             visualDensity: VisualDensity.compact,
             icon: Icon(
@@ -512,7 +521,7 @@ class _ProductTile extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Delete product',
+            tooltip: StringConstants.deleteProduct,
             onPressed: onDelete,
             visualDensity: VisualDensity.compact,
             icon: Icon(
@@ -633,7 +642,9 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                     children: <Widget>[
                       Expanded(
                         child: Text(
-                          _isEditing ? 'Update product' : 'Create product',
+                          _isEditing
+                              ? StringConstants.updateProduct
+                              : StringConstants.createProduct,
                           style: FutsalTheme.getTextTheme(context).bodyTextLarge
                               ?.copyWith(
                                 color: LightColor.primaryTextColor,
@@ -643,7 +654,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                       ),
                       if (widget.asDialog)
                         IconButton(
-                          tooltip: 'Close',
+                          tooltip: StringConstants.close,
                           onPressed: () => Navigator.of(context).pop(),
                           icon: Icon(
                             Icons.close_rounded,
@@ -655,15 +666,15 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                   const SizedBox(height: AppDimens.paddingX18),
                   CustomTextField(
                     controller: _nameController,
-                    labelText: 'Product name',
-                    hintText: 'Water bottle',
+                    labelText: StringConstants.productName,
+                    hintText: StringConstants.productNameHint,
                     icon: Icons.shopping_bag_outlined,
                     textInputAction: TextInputAction.next,
                     textCapitalization: TextCapitalization.words,
                     ensureVisibleOnFocus: true,
                     validator: (String? value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Enter product name';
+                        return StringConstants.enterProductName;
                       }
                       return null;
                     },
@@ -671,7 +682,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                   const SizedBox(height: AppDimens.paddingX14),
                   CustomTextField(
                     controller: _priceController,
-                    labelText: 'Price',
+                    labelText: StringConstants.price,
                     hintText: '50',
                     icon: Icons.payments_outlined,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -689,7 +700,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                         value?.trim() ?? '',
                       );
                       if (price == null || price <= 0) {
-                        return 'Enter valid price';
+                        return StringConstants.enterValidPrice;
                       }
                       return null;
                     },
@@ -703,7 +714,9 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                   ),
                   const SizedBox(height: AppDimens.paddingX22),
                   CustomButton(
-                    text: _isEditing ? 'Update product' : 'Create product',
+                    text: _isEditing
+                        ? StringConstants.updateProduct
+                        : StringConstants.createProduct,
                     icon: _isEditing ? Icons.check_rounded : Icons.add_rounded,
                     onPressed: _submit,
                   ),
@@ -739,7 +752,7 @@ class _ActiveSwitchTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Active product',
+                  StringConstants.activeProduct,
                   style: FutsalTheme.getTextTheme(context).bodyTextMedium
                       ?.copyWith(
                         color: LightColor.primaryTextColor,
@@ -748,7 +761,9 @@ class _ActiveSwitchTile extends StatelessWidget {
                 ),
                 const SizedBox(height: AppDimens.paddingX2),
                 Text(
-                  value ? 'Visible for sale' : 'Hidden from sale',
+                  value
+                      ? StringConstants.visibleForSale
+                      : StringConstants.hiddenFromSale,
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall
                       ?.copyWith(color: LightColor.secondaryTextColor),
                 ),
@@ -807,7 +822,7 @@ class _ProductsError extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX12),
           Text(
-            'Could not load products',
+            StringConstants.couldNotLoadProducts,
             style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w800,
@@ -815,7 +830,7 @@ class _ProductsError extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX14),
           CustomButton(
-            text: 'Retry',
+            text: StringConstants.retry,
             icon: Icons.refresh_rounded,
             onPressed: onRetry,
           ),
@@ -853,7 +868,7 @@ class _EmptyProducts extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX12),
           Text(
-            'No products yet',
+            StringConstants.noProductsYet,
             style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w800,
@@ -861,7 +876,7 @@ class _EmptyProducts extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX4),
           Text(
-            'Tap Create to add your first product.',
+            StringConstants.tapCreateToAddFirstProduct,
             textAlign: TextAlign.center,
             style: FutsalTheme.getTextTheme(
               context,
@@ -958,7 +973,7 @@ class _ProductsDashboardState extends State<_ProductsDashboard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            'Products',
+                            StringConstants.products,
                             style: textTheme.headingSmall?.copyWith(
                               color: LightColor.primaryTextColor,
                               fontWeight: FontWeight.w800,
@@ -967,8 +982,10 @@ class _ProductsDashboardState extends State<_ProductsDashboard> {
                           const SizedBox(height: AppDimens.paddingX4),
                           Text(
                             state.selectedVenue == null
-                                ? 'Select a venue to manage its products'
-                                : 'Items you sell at ${state.selectedVenue!.name}',
+                                ? StringConstants.selectVenueToManageProducts
+                                : StringConstants.itemsYouSellAt(
+                                    state.selectedVenue!.name,
+                                  ),
                             style: textTheme.bodyTextSmall?.copyWith(
                               color: LightColor.secondaryTextColor,
                             ),
@@ -985,7 +1002,7 @@ class _ProductsDashboardState extends State<_ProductsDashboard> {
                     SizedBox(
                       height: AppDimens.sizeX48,
                       child: CustomButton(
-                        text: 'New product',
+                        text: StringConstants.newProduct,
                         icon: Icons.add_rounded,
                         minWidth: 150,
                         onPressed: widget.onCreate,
@@ -1001,25 +1018,25 @@ class _ProductsDashboardState extends State<_ProductsDashboard> {
                     for (final (int i, (String, String, IconData, Color) s)
                         in <(String, String, IconData, Color)>[
                           (
-                            'Total products',
+                            StringConstants.totalProducts,
                             '${products.length}',
                             Icons.inventory_2_outlined,
                             LightColor.secondaryColor,
                           ),
                           (
-                            'Active',
+                            StringConstants.active,
                             '$active',
                             Icons.check_circle_outline_rounded,
                             LightColor.secondaryColor,
                           ),
                           (
-                            'Inactive',
+                            StringConstants.inactive,
                             '${products.length - active}',
                             Icons.pause_circle_outline_rounded,
                             LightColor.warningColor,
                           ),
                           (
-                            'Average price',
+                            StringConstants.averagePrice,
                             Money.npr(avg),
                             Icons.payments_outlined,
                             LightColor.secondaryColor,
@@ -1065,7 +1082,7 @@ class _ProductsDashboardState extends State<_ProductsDashboard> {
                                     color: LightColor.primaryTextColor,
                                   ),
                                   decoration: InputDecoration(
-                                    hintText: 'Search products',
+                                    hintText: StringConstants.searchProducts,
                                     hintStyle: textTheme.bodyTextSmall
                                         ?.copyWith(
                                           color: LightColor.hintTextColor,
@@ -1164,7 +1181,7 @@ class _ProductsDashboardState extends State<_ProductsDashboard> {
           padding: const EdgeInsets.all(AppDimens.paddingX32),
           child: Center(
             child: Text(
-              'No products match your search.',
+              StringConstants.noProductsMatchSearch,
               style: FutsalTheme.getTextTheme(
                 context,
               ).bodyTextSmall?.copyWith(color: LightColor.secondaryTextColor),
@@ -1217,12 +1234,16 @@ class _TableHeader extends StatelessWidget {
       child: Row(
         children: <Widget>[
           cell('#', _kColNumber),
-          cell('Product', _kColName),
-          cell('Price', _kColPrice),
-          cell('Status', _kColStatus),
+          cell(StringConstants.product, _kColName),
+          cell(StringConstants.price, _kColPrice),
+          cell(StringConstants.status, _kColStatus),
           SizedBox(
             width: _kColActions,
-            child: Text('ACTIONS', textAlign: TextAlign.end, style: style),
+            child: Text(
+              StringConstants.actionsUpper,
+              textAlign: TextAlign.end,
+              style: style,
+            ),
           ),
         ],
       ),
@@ -1343,7 +1364,7 @@ class _ProductRowState extends State<_ProductRow> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: <Widget>[
                       IconButton(
-                        tooltip: 'Edit product',
+                        tooltip: StringConstants.editProduct,
                         visualDensity: VisualDensity.compact,
                         onPressed: widget.onEdit,
                         icon: Icon(
@@ -1353,7 +1374,7 @@ class _ProductRowState extends State<_ProductRow> {
                         ),
                       ),
                       IconButton(
-                        tooltip: 'Delete product',
+                        tooltip: StringConstants.deleteProduct,
                         visualDensity: VisualDensity.compact,
                         onPressed: widget.onDelete,
                         icon: Icon(
@@ -1403,7 +1424,7 @@ class _StatusPill extends StatelessWidget {
           ),
           const SizedBox(width: AppDimens.paddingX6),
           Text(
-            active ? 'Active' : 'Inactive',
+            active ? StringConstants.active : StringConstants.inactive,
             style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
               color: color,
               fontWeight: FontWeight.w700,
@@ -1496,7 +1517,11 @@ class _FilterTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    const List<String> labels = <String>['All', 'Active', 'Inactive'];
+    final List<String> labels = <String>[
+      StringConstants.all,
+      StringConstants.active,
+      StringConstants.inactive,
+    ];
     return Container(
       height: 42,
       padding: const EdgeInsets.all(3),

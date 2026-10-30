@@ -107,7 +107,11 @@ class ExpenseContextLine extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: AppDimens.paddingX4),
       child: Text(
-        '$label · $count entries · ${ExpenseFmt.npr(total)}',
+        StringConstants.rangeEntriesSummary(
+          label,
+          count,
+          ExpenseFmt.npr(total),
+        ),
         style: textTheme.bodyTextSmall?.copyWith(
           color: LightColor.secondaryTextColor,
         ),
@@ -137,7 +141,7 @@ class ExpenseFilterDropdownRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final periodLabel = period == ExpensePeriod.custom && customRange != null
-        ? 'Custom · ${customRange!.duration.inDays + 1}d'
+        ? StringConstants.customDays(customRange!.duration.inDays + 1)
         : period.label;
     return Row(
       children: [
@@ -167,10 +171,10 @@ class ExpenseFilterDropdownRow extends StatelessWidget {
               PaymentMethod.online => Icons.credit_card_outlined,
               null => Icons.account_balance_wallet_outlined,
             },
-            label: paymentMethod?.label ?? 'All methods',
+            label: paymentMethod?.label ?? StringConstants.allMethods,
             active: paymentMethod != null,
             options: [
-              ('All methods', paymentMethod == null),
+              (StringConstants.allMethods, paymentMethod == null),
               for (final m in PaymentMethod.values)
                 (m.label, m == paymentMethod),
             ],

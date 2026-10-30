@@ -142,7 +142,7 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
     AppUtils().showSnackBar(
       context,
       MsgType.success,
-      '${created.name} created — you can send your acceptance now.',
+      StringConstants.teamCreatedSendAcceptance(created.name),
     );
   }
 
@@ -177,7 +177,7 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
       // longer captains — either way there is nothing left to accept here.
       403 ||
       404 => state.errorMessage ?? StringConstants.invitationNoLongerAvailable,
-      _ => state.errorMessage ?? 'Something went wrong. Please try again.',
+      _ => state.errorMessage ?? StringConstants.somethingWentWrongTryAgain,
     };
     final bool terminal = const <int>{
       403,
@@ -200,7 +200,7 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
       AppUtils().showSnackBar(
         context,
         MsgType.info,
-        'This requester cannot be messaged yet.',
+        StringConstants.requesterCannotBeMessagedYet,
       );
       return Future<void>.value();
     }
@@ -217,7 +217,7 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
         _remaining.inSeconds > 0;
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Accept request'),
+      appBar: CustomAppBar(title: StringConstants.acceptRequest),
       body: SafeArea(
         top: false,
         child: BlocConsumer<AcceptOpponentRequestBloc, AcceptRequestState>(
@@ -227,7 +227,7 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
               AppUtils().showSnackBar(
                 context,
                 MsgType.success,
-                'Acceptance sent — the requester will confirm the opponent.',
+                StringConstants.acceptanceSentRequesterWillConfirm,
               );
               Navigator.of(context).pop(state.result);
               return;
@@ -255,15 +255,11 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
                           bottom: AppDimens.paddingX20,
                         ),
                         children: [
-                          const OpponentGuidanceCard(
+                          OpponentGuidanceCard(
                             icon: Icons.handshake_outlined,
-                            title: 'Accept this challenge — no payment needed',
-                            message:
-                                'Choose the team that will play and send your '
-                                'acceptance — you can message the requester '
-                                'from the team section first. They may receive '
-                                'several acceptances and pick one opponent. '
-                                'The court fee is settled at the venue.',
+                            title:
+                                StringConstants.acceptChallengeNoPaymentNeeded,
+                            message: StringConstants.acceptChallengeGuidance,
                           ),
                           if (showCountdown) ...[
                             const SizedBox(height: AppDimens.paddingX14),
@@ -276,10 +272,10 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
                             const _AcceptClosedNotice(),
                           ],
                           const SizedBox(height: AppDimens.paddingX18),
-                          const OpponentSectionLabel('Match details'),
+                          OpponentSectionLabel(StringConstants.matchDetails),
                           _RequestSummaryCard(request: widget.request),
                           const SizedBox(height: AppDimens.paddingX18),
-                          const OpponentSectionLabel(
+                          OpponentSectionLabel(
                             StringConstants.whichTeamWillPlay,
                           ),
                           // Squad questions come up right here — "can you field
@@ -327,15 +323,15 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
                               ),
                             ),
                           const SizedBox(height: AppDimens.paddingX8),
-                          const OpponentSectionLabel(
-                            'Message to the requester',
+                          OpponentSectionLabel(
+                            StringConstants.messageToTheRequester,
                           ),
                           OpponentCard(
                             child: CustomTextField(
                               controller: _noteCtrl,
                               labelText: StringConstants.message,
-                              hintText:
-                                  'Anything the other captain should know…',
+                              hintText: StringConstants
+                                  .anythingOtherCaptainShouldKnow,
                               maxLines: 3,
                               minLines: 3,
                               textInputAction: TextInputAction.newline,
@@ -351,7 +347,7 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
                     _BottomAction(
                       text: closed
                           ? StringConstants.closedAcceptWindowExpired
-                          : 'Send Acceptance',
+                          : StringConstants.sendAcceptance,
                       icon: closed
                           ? Icons.hourglass_disabled_rounded
                           : Icons.send_rounded,
@@ -413,7 +409,9 @@ class _RequesterChatCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  enabled ? 'Chat with $name' : 'Chat unavailable',
+                  enabled
+                      ? StringConstants.chatWith(name)
+                      : StringConstants.chatUnavailable,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyTextSmall?.copyWith(
@@ -424,9 +422,8 @@ class _RequesterChatCard extends StatelessWidget {
                 const SizedBox(height: AppDimens.sizeX2),
                 Text(
                   enabled
-                      ? 'Confirm the squad size and timing before you commit '
-                            'a team.'
-                      : 'This request did not carry a contact to message.',
+                      ? StringConstants.confirmSquadSizeBeforeCommit
+                      : StringConstants.requestHasNoContactToMessage,
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: LightColor.secondaryTextColor,
                     height: 1.3,
@@ -442,7 +439,7 @@ class _RequesterChatCard extends StatelessWidget {
             height: AppDimens.sizeX36,
             width: AppDimens.sizeX90,
             child: CustomButton(
-              text: 'Chat',
+              text: StringConstants.chat,
               icon: Icons.chat_bubble_outline_rounded,
               minWidth: AppDimens.sizeX80,
               fontSize: AppDimens.fontBodySubTitle,
@@ -533,7 +530,7 @@ class _CreateFirstTeamSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Create your team first',
+                      StringConstants.createYourTeamFirst,
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.primaryTextColor,
                         fontWeight: FontWeight.w700,
@@ -541,8 +538,7 @@ class _CreateFirstTeamSection extends StatelessWidget {
                     ),
                     const SizedBox(height: AppDimens.sizeX2),
                     Text(
-                      'You need a team to accept this challenge. Name it now '
-                      'and add players later.',
+                      StringConstants.needTeamToAcceptChallenge,
                       style: textTheme.bodyMiniSubTitle?.copyWith(
                         color: LightColor.secondaryTextColor,
                         height: 1.3,
@@ -556,8 +552,8 @@ class _CreateFirstTeamSection extends StatelessWidget {
           const SizedBox(height: AppDimens.paddingX12),
           CustomTextField(
             controller: controller,
-            labelText: 'Team name',
-            hintText: 'e.g. Thamel Tigers',
+            labelText: StringConstants.teamName,
+            hintText: StringConstants.teamNameExampleHint,
             icon: Icons.groups_2_outlined,
             enabled: !busy,
             textCapitalization: TextCapitalization.words,
@@ -566,7 +562,7 @@ class _CreateFirstTeamSection extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX12),
           CustomButton(
-            text: 'Create Team',
+            text: StringConstants.createTeam,
             icon: Icons.add_rounded,
             isLoading: busy,
             minHeight: AppDimens.sizeX44,
@@ -655,25 +651,33 @@ class _RequestSummaryCard extends StatelessWidget {
 }
 
 String _feeLine(OpponentRequestModel request) {
-  final String fee = '${OpponentFmt.npr(request.totalFee)} court fee';
+  final String fee = StringConstants.amountCourtFee(
+    OpponentFmt.npr(request.totalFee),
+  );
   if (request.isResultCost) {
     final int? loser = request.resolvedLoserAmount;
     final int? pct = request.resolvedLoserPercent;
-    if (loser == null) return '$fee · the loser pays';
-    return '$fee · lose and you pay ${OpponentFmt.npr(loser)}'
+    if (loser == null) return StringConstants.feeTheLoserPays(fee);
+    return '${StringConstants.feeLoseAndYouPay(fee, OpponentFmt.npr(loser))}'
         '${pct == null ? '' : ' ($pct%)'}';
   }
   if (request.myPct == null) {
-    return '$fee · loser pays ${OpponentFmt.npr(request.yourShare)}';
+    return StringConstants.feeLoserPaysAmount(
+      fee,
+      OpponentFmt.npr(request.yourShare),
+    );
   }
-  return '$fee · your share ${OpponentFmt.npr(request.yourShare)} '
-      '(${request.myPct}%)';
+  return StringConstants.feeYourShare(
+    fee,
+    OpponentFmt.npr(request.yourShare),
+    request.myPct!,
+  );
 }
 
 ({String label, int amount}) _accepterStake(OpponentRequestModel request) =>
     request.isResultCost
     ? (
-        label: 'If you lose',
+        label: StringConstants.ifYouLose,
         amount: request.resolvedLoserAmount ?? request.totalFee,
       )
     : (label: StringConstants.yourTeamShare, amount: request.yourShare);
@@ -752,7 +756,7 @@ class _TeamOption extends StatelessWidget {
               ),
               const SizedBox(height: AppDimens.paddingX4),
               Text(
-                '${team.players.length} players'
+                '${StringConstants.playersCount(team.players.length)}'
                 '${team.positionSummary.isEmpty ? '' : ' · ${team.positionSummary}'}',
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
@@ -793,8 +797,8 @@ class _TeamOption extends StatelessWidget {
               Text(
                 team.players.isEmpty
                     ? '${stake.label}: ${OpponentFmt.npr(stake.amount)}'
-                    : '${stake.label}: ${OpponentFmt.npr(stake.amount)} '
-                          '· ${OpponentFmt.npr(cost.perPlayerShare)} / player',
+                    : '${stake.label}: ${OpponentFmt.npr(stake.amount)} · '
+                          '${StringConstants.amountPerPlayer(OpponentFmt.npr(cost.perPlayerShare))}',
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryColor,
                   fontWeight: FontWeight.w700,
@@ -802,9 +806,8 @@ class _TeamOption extends StatelessWidget {
               ),
               Text(
                 request.isResultCost
-                    ? 'Win and you pay nothing. Settled with the venue on '
-                          'match day.'
-                    : 'Settled with the venue on match day.',
+                    ? StringConstants.winAndPayNothingSettledAtVenue
+                    : StringConstants.settledWithVenueOnMatchDay,
                 style: textTheme.bodyMiniSubTitle?.copyWith(
                   color: LightColor.hintTextColor,
                 ),
@@ -812,8 +815,7 @@ class _TeamOption extends StatelessWidget {
               if (tooSmall) ...[
                 const SizedBox(height: AppDimens.paddingX6),
                 Text(
-                  'This roster has fewer than $formatSize players for the '
-                  'requested format.',
+                  StringConstants.rosterTooSmallForFormat(formatSize),
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: LightColor.warningColor,
                     fontWeight: FontWeight.w600,
@@ -841,31 +843,25 @@ class _NextStepsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'What happens next',
+            StringConstants.whatHappensNext,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: AppDimens.paddingX10),
-          const _StepLine(
-            index: 1,
-            text:
-                '${'Your acceptance reaches'} '
-                'the requester as an invitation.',
-          ),
+          _StepLine(index: 1, text: StringConstants.acceptanceReachesRequester),
           const SizedBox(height: AppDimens.paddingX8),
-          const _StepLine(
+          _StepLine(
             index: 2,
-            text: 'They may wait for other teams, then select one opponent.',
+            text: StringConstants.mayWaitForOtherTeamsThenSelect,
           ),
           const SizedBox(height: AppDimens.paddingX8),
           _StepLine(
             index: 3,
-            text:
-                'If your team is picked, the match is created at '
-                '${request.venue.isEmpty ? 'the venue' : request.venue} and a '
-                'chat room opens for both teams.',
+            text: StringConstants.ifTeamPickedMatchCreatedAt(
+              request.venue.isEmpty ? StringConstants.theVenue : request.venue,
+            ),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:hamro_futsal/core/utils/kathmandu_time.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 abstract final class CourtAvailabilitySlotsModel {
   static const List<String> _dayListKeys = <String>[
@@ -66,9 +67,12 @@ abstract final class CourtAvailabilitySlotsModel {
         OpsCourt(
           id: courtId,
           venueId: venueId,
-          venueName: _string(court['venue_name']) ?? 'Venue $venueId',
+          venueName:
+              _string(court['venue_name']) ??
+              StringConstants.venueNumber(venueId),
           name:
-              _string(court['name'] ?? court['court_name']) ?? 'Court $courtId',
+              _string(court['name'] ?? court['court_name']) ??
+              StringConstants.courtNumber(courtId),
           slotMinutes:
               _int(court['slot_duration_minutes']) ?? kDefaultSlotMinutes,
           basePrice: _double(court['base_price']),

@@ -1,16 +1,17 @@
 import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_utils.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 enum ExpensePeriod { today, week, month, year, custom }
 
 extension ExpensePeriodLabel on ExpensePeriod {
   String get label => switch (this) {
-    ExpensePeriod.today => 'Today',
-    ExpensePeriod.week => 'Week',
-    ExpensePeriod.month => 'Month',
-    ExpensePeriod.year => 'Year',
-    ExpensePeriod.custom => 'Custom',
+    ExpensePeriod.today => StringConstants.today,
+    ExpensePeriod.week => StringConstants.periodWeek,
+    ExpensePeriod.month => StringConstants.periodMonth,
+    ExpensePeriod.year => StringConstants.periodYear,
+    ExpensePeriod.custom => StringConstants.periodCustom,
   };
 }
 
@@ -189,19 +190,19 @@ class ExpenseAnalytics {
       );
       if (idx >= 0) values[idx] += e.amount;
     }
-    const monthLabels = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+    final monthLabels = [
+      StringConstants.monthJan,
+      StringConstants.monthFeb,
+      StringConstants.monthMar,
+      StringConstants.monthApr,
+      StringConstants.monthMay,
+      StringConstants.monthJun,
+      StringConstants.monthJul,
+      StringConstants.monthAug,
+      StringConstants.monthSep,
+      StringConstants.monthOct,
+      StringConstants.monthNov,
+      StringConstants.monthDec,
     ];
     return [
       for (int i = 0; i < months.length; i++)

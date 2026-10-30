@@ -3,14 +3,15 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 
 Future<bool> showDeleteDialog({
   required BuildContext context,
   required String title,
   required String message,
-  String confirmText = 'Delete',
-  String cancelText = 'Cancel',
+  String? confirmText,
+  String? cancelText,
   IconData icon = Icons.delete_outline_rounded,
   Color? confirmColor,
 }) async {
@@ -41,8 +42,8 @@ class _DeleteDialog extends StatelessWidget {
 
   final String title;
   final String message;
-  final String confirmText;
-  final String cancelText;
+  final String? confirmText;
+  final String? cancelText;
   final IconData icon;
   final Color confirmColor;
 
@@ -95,7 +96,7 @@ class _DeleteDialog extends StatelessWidget {
               children: <Widget>[
                 Expanded(
                   child: CustomButton(
-                    text: cancelText,
+                    text: cancelText ?? StringConstants.cancel,
                     isOutlined: true,
                     backgroundColor: LightColor.elevatedCardColor,
                     foregroundColor: LightColor.primaryTextColor,
@@ -107,7 +108,7 @@ class _DeleteDialog extends StatelessWidget {
                 const SizedBox(width: AppDimens.sizeX12),
                 Expanded(
                   child: CustomButton(
-                    text: confirmText,
+                    text: confirmText ?? StringConstants.delete,
                     backgroundColor: confirmColor,
                     minHeight: AppDimens.sizeX46,
                     onPressed: () => Navigator.of(context).pop(true),

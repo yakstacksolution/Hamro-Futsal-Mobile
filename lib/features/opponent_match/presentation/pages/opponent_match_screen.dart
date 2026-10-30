@@ -94,7 +94,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
     if (bloc.state.teams.isEmpty) {
       if (bloc.state.teamsStatus == OpponentMatchStatus.loading ||
           bloc.state.teamsStatus == OpponentMatchStatus.initial) {
-        _showSnack('Your teams are still loading — try again in a moment.');
+        _showSnack(StringConstants.teamsStillLoading);
         return;
       }
       final bool create = await showConfirmDialog(
@@ -173,12 +173,12 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
   String _subtitle(OpponentMatchState state) {
     if (_tabCtrl.index == 1) {
       final total = state.teams.length;
-      return '$total ${total == 1 ? 'team' : 'teams'}';
+      return StringConstants.teamCount(total);
     }
     final total = state.requests.length;
     final open = state.openRequestCount;
-    return '$total ${total == 1 ? 'request' : 'requests'}'
-        '${open > 0 ? ' · $open open' : ''}';
+    return '${StringConstants.requestCount(total)}'
+        '${open > 0 ? ' · ${StringConstants.openCount(open)}' : ''}';
   }
 
   Widget _tabBar(OpponentMatchState state) {
@@ -281,7 +281,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.opponentMatch),
+      appBar: CustomAppBar(title: StringConstants.opponentMatch),
       // Requests tab only: "Find an Opponent" starts a request, which is not
       // what the Teams tab is for — there the bottom bar below adds a team.
       // Tablet / desktop carry it in the page header instead, inside the
@@ -299,7 +299,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
                 shape: const StadiumBorder(),
                 icon: const Icon(Icons.add_rounded, size: 18),
                 label: Text(
-                  'Find an Opponent',
+                  StringConstants.findAnOpponent,
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall
                       ?.copyWith(
                         fontWeight: FontWeight.w700,
@@ -406,7 +406,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
                                 ),
                                 icon: const Icon(Icons.add_rounded, size: 18),
                                 label: Text(
-                                  'Find an Opponent',
+                                  StringConstants.findAnOpponent,
                                   style: FutsalTheme.getTextTheme(context)
                                       .bodyTextSmall
                                       ?.copyWith(
@@ -522,7 +522,8 @@ class _RequestsTabBody extends StatelessWidget {
         state.requestsFor(tab).isEmpty &&
         state.errorFor(tab) == null) {
       return _LoadError(
-        message: state.errorMessage ?? 'Could not load opponent requests.',
+        message:
+            state.errorMessage ?? StringConstants.couldNotLoadOpponentRequests,
         onRetry: () => context.read<OpponentMatchBloc>().add(
           LoadOpponentRequestsEvent(tab: tab, force: true),
         ),
@@ -552,7 +553,7 @@ class _TeamsTabBody extends StatelessWidget {
     if (state.teamsStatus == OpponentMatchStatus.failure &&
         state.teams.isEmpty) {
       return _LoadError(
-        message: state.errorMessage ?? 'Could not load your teams.',
+        message: state.errorMessage ?? StringConstants.couldNotLoadYourTeams,
         onRetry: () => context.read<OpponentMatchBloc>()
           ..add(const LoadTeamsEvent())
           ..add(const LoadVenuesEvent()),

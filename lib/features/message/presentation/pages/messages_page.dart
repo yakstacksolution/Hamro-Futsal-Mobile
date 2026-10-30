@@ -309,9 +309,9 @@ class _MessagesViewState extends State<_MessagesView>
       final bool confirmed = await showConfirmDialog(
         context: context,
         title: StringConstants.groupInvitation,
-        message:
-            'Decline the invitation to '
-            '"${conversation.displayTitle(_bloc.state.currentUserId)}"?',
+        message: StringConstants.declineInvitationTo(
+          conversation.displayTitle(_bloc.state.currentUserId),
+        ),
         confirmText: StringConstants.decline,
         cancelText: StringConstants.cancel,
         confirmColor: LightColor.redColor,
@@ -477,7 +477,8 @@ class _MessagesViewState extends State<_MessagesView>
     if (state.conversationsStatus == MessageStatus.failure &&
         state.conversations.isEmpty) {
       return _LoadError(
-        message: state.errorMessage ?? 'Could not load conversations.',
+        message:
+            state.errorMessage ?? StringConstants.couldNotLoadConversations,
         onRetry: () => context.read<MessageBloc>().add(
           LoadConversationsEvent(archived: state.showingArchived, force: true),
         ),
@@ -661,7 +662,7 @@ class _NoChatSelected extends StatelessWidget {
               ),
               const SizedBox(height: AppDimens.paddingX16),
               Text(
-                'Select a conversation',
+                StringConstants.selectAConversation,
                 style: textTheme.bodyTextLarge?.copyWith(
                   color: LightColor.primaryTextColor,
                   fontWeight: FontWeight.w700,
@@ -669,7 +670,7 @@ class _NoChatSelected extends StatelessWidget {
               ),
               const SizedBox(height: AppDimens.paddingX6),
               Text(
-                'Pick a chat from the list to read and reply here.',
+                StringConstants.pickAChatToReadAndReply,
                 textAlign: TextAlign.center,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
@@ -714,7 +715,7 @@ class _ConversationListFooter extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
-          error ?? 'Could not load more conversations.',
+          error ?? StringConstants.couldNotLoadMoreConversations,
           textAlign: TextAlign.center,
           style: FutsalTheme.getTextTheme(
             context,
@@ -723,7 +724,7 @@ class _ConversationListFooter extends StatelessWidget {
         TextButton.icon(
           onPressed: onRetry,
           icon: const Icon(Icons.refresh_rounded),
-          label: const Text(StringConstants.retry),
+          label: Text(StringConstants.retry),
         ),
       ],
     );
@@ -783,8 +784,10 @@ class _Header extends StatelessWidget {
                 if (conversationCount > 0) ...[
                   const SizedBox(height: AppDimens.paddingX4),
                   Text(
-                    '$conversationCount conversations'
-                    '${unreadTotal > 0 ? ' · $unreadTotal unread' : ''}',
+                    StringConstants.conversationsUnreadSummary(
+                      conversationCount,
+                      unreadTotal,
+                    ),
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.secondaryTextColor,
                     ),
@@ -803,7 +806,9 @@ class _Header extends StatelessWidget {
                     )
                   : const Icon(Icons.group_add_rounded, size: 14),
               label: Text(
-                isCreatingGroup ? 'Creating...' : 'Create group',
+                isCreatingGroup
+                    ? StringConstants.creatingEllipsis
+                    : StringConstants.createGroupAction,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryColor,
                   fontWeight: FontWeight.w500,

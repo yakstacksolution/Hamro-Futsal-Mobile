@@ -143,14 +143,14 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
               AppUtils().showSnackBar(
                 context,
                 MsgType.success,
-                'Vendor onboarding is complete.',
+                StringConstants.vendorOnboardingComplete,
               );
               _returnToYourVenues(context);
             } else if (state.saveStatus == DraftSaveStatus.failure) {
               AppUtils().showSnackBar(
                 context,
                 MsgType.error,
-                'Draft save failed. Try again.',
+                StringConstants.draftSaveFailedTryAgain,
               );
             }
           },
@@ -236,7 +236,9 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
               hasPrevious: cubit.canGoPrevious,
               isSubmitting: state.isSubmitting,
 
-              nextLabel: isCourtListFinal ? 'Finish' : cubit.nextButtonLabel,
+              nextLabel: isCourtListFinal
+                  ? StringConstants.finish
+                  : cubit.nextButtonLabel,
               onPrevious: cubit.previous,
               onNext: () =>
                   unawaited(isCourtListFinal ? _finish(context) : cubit.next()),

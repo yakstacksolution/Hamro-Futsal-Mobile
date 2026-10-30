@@ -406,7 +406,7 @@ class AppRouters {
           path: AppRouterParams.yourVenues.path,
           builder: (context, state) => Scaffold(
             backgroundColor: LightColor.background,
-            appBar: const CustomAppBar(title: StringConstants.yourVenues),
+            appBar: CustomAppBar(title: StringConstants.yourVenues),
             body: const SafeArea(top: false, child: VenueCourtsListPage()),
           ),
         ),
@@ -698,7 +698,7 @@ class _MissingSlotsSelectionArgsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.selectMatchDateTime),
+      appBar: CustomAppBar(title: StringConstants.selectMatchDateTime),
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -723,7 +723,7 @@ class _MissingSlotsSelectionArgsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: AppDimens.sizeX8),
                 Text(
-                  'Please choose a venue again to view available slots.',
+                  StringConstants.chooseVenueAgainToViewSlots,
                   textAlign: TextAlign.center,
                   style: FutsalTheme.getTextTheme(
                     context,
@@ -754,7 +754,7 @@ class _MissingBookingCheckoutArgsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.checkout),
+      appBar: CustomAppBar(title: StringConstants.checkout),
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -769,7 +769,7 @@ class _MissingBookingCheckoutArgsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: AppDimens.sizeX12),
                 Text(
-                  'This booking is no longer available.',
+                  StringConstants.bookingNoLongerAvailable,
                   textAlign: TextAlign.center,
                   style: FutsalTheme.getTextTheme(context).bodyTextMedium
                       ?.copyWith(
@@ -779,7 +779,7 @@ class _MissingBookingCheckoutArgsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: AppDimens.sizeX8),
                 Text(
-                  'Please pick your slot again to continue.',
+                  StringConstants.pickYourSlotAgainToContinue,
                   textAlign: TextAlign.center,
                   style: FutsalTheme.getTextTheme(
                     context,

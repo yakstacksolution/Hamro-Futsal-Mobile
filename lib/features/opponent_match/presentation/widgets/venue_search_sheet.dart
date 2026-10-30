@@ -125,7 +125,8 @@ class _VenueSearchSheetState extends State<_VenueSearchSheet> {
                         ),
                         icon: const Icon(Icons.refresh_rounded),
                         label: Text(
-                          state.errorMessage ?? 'Could not load venues. Retry',
+                          state.errorMessage ??
+                              StringConstants.couldNotLoadVenuesRetry,
                         ),
                       ),
                     );
@@ -134,7 +135,7 @@ class _VenueSearchSheetState extends State<_VenueSearchSheet> {
                   if (venues.isEmpty) {
                     return Center(
                       child: Text(
-                        'No venues match "$_query".',
+                        StringConstants.noVenuesMatch(_query),
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.secondaryTextColor,
                         ),

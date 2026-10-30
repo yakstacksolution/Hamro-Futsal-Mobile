@@ -15,9 +15,9 @@ enum _Tab { equipment, active, history }
 
 extension on _Tab {
   String get label => switch (this) {
-    _Tab.equipment => 'Equipment',
-    _Tab.active => 'Active',
-    _Tab.history => 'History',
+    _Tab.equipment => StringConstants.equipment,
+    _Tab.active => StringConstants.active,
+    _Tab.history => StringConstants.history,
   };
 }
 
@@ -35,27 +35,27 @@ enum _EquipKind {
 
 extension on _EquipKind {
   String get defaultName => switch (this) {
-    _EquipKind.football => 'Football',
-    _EquipKind.bib => 'Training bibs',
-    _EquipKind.gloves => 'Goalkeeper gloves',
-    _EquipKind.cones => 'Cones (set of 10)',
-    _EquipKind.shinGuards => 'Shin guards',
-    _EquipKind.boots => 'Futsal boots',
-    _EquipKind.bottle => 'Water bottle',
-    _EquipKind.towel => 'Towel',
-    _EquipKind.tacticBoard => 'Tactic board',
+    _EquipKind.football => StringConstants.football,
+    _EquipKind.bib => StringConstants.trainingBibs,
+    _EquipKind.gloves => StringConstants.goalkeeperGloves,
+    _EquipKind.cones => StringConstants.conesSetOf10,
+    _EquipKind.shinGuards => StringConstants.shinGuards,
+    _EquipKind.boots => StringConstants.futsalBoots,
+    _EquipKind.bottle => StringConstants.waterBottle,
+    _EquipKind.towel => StringConstants.towel,
+    _EquipKind.tacticBoard => StringConstants.tacticBoard,
   };
 
   String get label => switch (this) {
-    _EquipKind.football => 'Football',
-    _EquipKind.bib => 'Bibs',
-    _EquipKind.gloves => 'Gloves',
-    _EquipKind.cones => 'Cones',
-    _EquipKind.shinGuards => 'Shin guards',
-    _EquipKind.boots => 'Boots',
-    _EquipKind.bottle => 'Bottle',
-    _EquipKind.towel => 'Towel',
-    _EquipKind.tacticBoard => 'Tactic board',
+    _EquipKind.football => StringConstants.football,
+    _EquipKind.bib => StringConstants.bibs,
+    _EquipKind.gloves => StringConstants.gloves,
+    _EquipKind.cones => StringConstants.cones,
+    _EquipKind.shinGuards => StringConstants.shinGuards,
+    _EquipKind.boots => StringConstants.boots,
+    _EquipKind.bottle => StringConstants.bottle,
+    _EquipKind.towel => StringConstants.towel,
+    _EquipKind.tacticBoard => StringConstants.tacticBoard,
   };
 
   IconData get icon => switch (this) {
@@ -107,10 +107,10 @@ enum _RentalStatus { active, overdue, returned, cancelled }
 
 extension on _RentalStatus {
   String get label => switch (this) {
-    _RentalStatus.active => 'Active',
-    _RentalStatus.overdue => 'Overdue',
-    _RentalStatus.returned => 'Returned',
-    _RentalStatus.cancelled => 'Cancelled',
+    _RentalStatus.active => StringConstants.active,
+    _RentalStatus.overdue => StringConstants.overdue,
+    _RentalStatus.returned => StringConstants.returned,
+    _RentalStatus.cancelled => StringConstants.cancelled,
   };
 }
 
@@ -415,12 +415,12 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
     );
     if (!mounted || created == null) return;
     setState(() => _repo.equipment.add(created));
-    _toast('Equipment added · ${created.name}');
+    _toast(StringConstants.equipmentAdded(created.name));
   }
 
   Future<void> _openNewRental() async {
     if (_repo.equipment.isEmpty) {
-      _toast('Add equipment first');
+      _toast(StringConstants.addEquipmentFirst);
       return;
     }
     final created = await Navigator.of(context).push<_Rental>(
@@ -431,7 +431,7 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
       _repo.rentals.insert(0, created);
       _tab = _Tab.active;
     });
-    _toast('Rental started for ${created.customer}');
+    _toast(StringConstants.rentalStartedFor(created.customer));
   }
 
   void _returnRental(_Rental r) {
@@ -439,7 +439,7 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
       r.status = _RentalStatus.returned;
       r.returnedAt = DateTime.now();
     });
-    _toast('Marked returned · ${r.customer}');
+    _toast(StringConstants.markedReturned(r.customer));
   }
 
   void _toast(String msg) {
@@ -469,7 +469,7 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.rentalServices),
+      appBar: CustomAppBar(title: StringConstants.rentalServices),
       floatingActionButton: _tab == _Tab.history
           ? null
           : FloatingActionButton.extended(
@@ -481,7 +481,9 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
               elevation: 2,
               icon: const Icon(Icons.add_rounded, size: 18),
               label: Text(
-                _tab == _Tab.equipment ? 'Add equipment' : 'New rental',
+                _tab == _Tab.equipment
+                    ? StringConstants.addEquipment
+                    : StringConstants.newRental,
                 style: FutsalTheme.getTextTheme(context).bodyTextSmall
                     ?.copyWith(
                       fontWeight: FontWeight.w700,
@@ -782,10 +784,10 @@ class _EquipmentList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (repo.equipment.isEmpty) {
-      return const _Empty(
+      return _Empty(
         icon: Icons.inventory_2_outlined,
         title: StringConstants.noEquipmentYet,
-        body: 'Add items to start renting them out.',
+        body: StringConstants.addItemsToStartRenting,
       );
     }
     return ListView.separated(
@@ -878,7 +880,11 @@ class _EquipmentTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${equipment.kind.label} · ${_Fmt.npr(equipment.hourlyRate)}/hr · Deposit ${_Fmt.npr(equipment.deposit)}',
+                      StringConstants.equipmentRateAndDeposit(
+                        equipment.kind.label,
+                        _Fmt.npr(equipment.hourlyRate),
+                        _Fmt.npr(equipment.deposit),
+                      ),
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.hintTextColor,
                         fontSize: AppDimens.fontBodySubTitle,
@@ -897,7 +903,9 @@ class _EquipmentTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppDimens.radiusX20),
                 ),
                 child: Text(
-                  outOfStock ? 'Out of stock' : '$available available',
+                  outOfStock
+                      ? StringConstants.outOfStock
+                      : StringConstants.availableCount(available),
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: outOfStock ? LightColor.redColor : color,
                     fontWeight: FontWeight.w700,
@@ -939,7 +947,7 @@ class _EquipmentTile extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX4),
           Text(
-            '${(utilisation * 100).round()}% of stock currently rented',
+            StringConstants.percentOfStockRented((utilisation * 100).round()),
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.hintTextColor,
               fontSize: AppDimens.fontBodySubTitle,
@@ -1013,10 +1021,12 @@ class _RentalList extends StatelessWidget {
     if (rentals.isEmpty) {
       return _Empty(
         icon: onlyOpen ? Icons.outbox_rounded : Icons.history_rounded,
-        title: onlyOpen ? 'No active rentals' : 'No history yet',
+        title: onlyOpen
+            ? StringConstants.noActiveRentals
+            : StringConstants.noHistoryYet,
         body: onlyOpen
-            ? 'Start a new rental from the button below.'
-            : 'Returned rentals will appear here.',
+            ? StringConstants.startNewRentalFromButtonBelow
+            : StringConstants.returnedRentalsWillAppearHere,
       );
     }
 
@@ -1143,7 +1153,10 @@ class _RentalTileState extends State<_RentalTile> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${eq?.name ?? 'Equipment'} · ×${r.qty}',
+                      StringConstants.equipmentWithQty(
+                        eq?.name ?? StringConstants.equipment,
+                        r.qty,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextMedium?.copyWith(
@@ -1194,7 +1207,9 @@ class _RentalTileState extends State<_RentalTile> {
                   ),
                   const SizedBox(width: AppDimens.paddingX6),
                   Text(
-                    overdue ? 'Overdue by' : 'Returns in',
+                    overdue
+                        ? StringConstants.overdueBy
+                        : StringConstants.returnsIn,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: overdue
                           ? LightColor.redColor
@@ -1227,7 +1242,7 @@ class _RentalTileState extends State<_RentalTile> {
               const SizedBox(width: AppDimens.paddingX10),
               _RentalMeta(
                 icon: Icons.stop_circle_outlined,
-                label: settled ? 'Returned' : 'Due',
+                label: settled ? StringConstants.returned : StringConstants.due,
                 value: settled
                     ? _Fmt.timeAt(r.returnedAt!)
                     : _Fmt.timeAt(r.dueAt),
@@ -1290,8 +1305,10 @@ class _RentalTileState extends State<_RentalTile> {
                   const SizedBox(width: AppDimens.paddingX6),
                   Text(
                     r.status == _RentalStatus.returned
-                        ? 'Returned · ${_Fmt.timeAt(r.returnedAt ?? r.dueAt)}'
-                        : 'Cancelled',
+                        ? StringConstants.returnedAt(
+                            _Fmt.timeAt(r.returnedAt ?? r.dueAt),
+                          )
+                        : StringConstants.cancelled,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.hintTextColor,
                       fontWeight: FontWeight.w500,
@@ -1619,7 +1636,7 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
             ),
             const SizedBox(height: AppDimens.paddingX18),
 
-            const _SectionLabel('Item type'),
+            _SectionLabel(StringConstants.itemType),
             _SurfaceCard(
               child: CustomDropdownField<_EquipKind>(
                 labelText: StringConstants.type,
@@ -1629,7 +1646,7 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
                 autovalidateMode: _submitted
                     ? AutovalidateMode.always
                     : AutovalidateMode.disabled,
-                validator: (v) => v == null ? 'Pick a type' : null,
+                validator: (v) => v == null ? StringConstants.pickAType : null,
                 onChanged: (v) {
                   setState(() {
                     _kind = v;
@@ -1667,7 +1684,7 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
             ),
             const SizedBox(height: AppDimens.paddingX18),
 
-            const _SectionLabel('Details'),
+            _SectionLabel(StringConstants.details),
             _SurfaceCard(
               padding: EdgeInsets.zero,
               child: Column(
@@ -1889,7 +1906,7 @@ class _NewRentalPageState extends State<_NewRentalPage> {
             ),
             const SizedBox(height: AppDimens.paddingX18),
 
-            const _SectionLabel('Equipment'),
+            _SectionLabel(StringConstants.equipment),
             _SurfaceCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1902,7 +1919,8 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                     autovalidateMode: _submitted
                         ? AutovalidateMode.always
                         : AutovalidateMode.disabled,
-                    validator: (v) => v == null ? 'Pick an item' : null,
+                    validator: (v) =>
+                        v == null ? StringConstants.pickAnItem : null,
                     onChanged: (v) => setState(() {
                       _equipment = v;
                       final av = _availableForSelected;
@@ -1913,7 +1931,10 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                           (e) => DropdownMenuItem<_Equipment>(
                             value: e,
                             child: Text(
-                              '${e.name} · ${_Fmt.npr(e.hourlyRate)}/hr',
+                              StringConstants.nameWithHourlyRate(
+                                e.name,
+                                _Fmt.npr(e.hourlyRate),
+                              ),
                             ),
                           ),
                         )
@@ -1940,8 +1961,8 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                           ),
                           child: Text(
                             available > 0
-                                ? '$available available'
-                                : 'Out of stock',
+                                ? StringConstants.availableCount(available)
+                                : StringConstants.outOfStock,
                             style: textTheme.bodyTextSmall?.copyWith(
                               fontWeight: FontWeight.w700,
                               fontSize: AppDimens.fontBodySubTitle,
@@ -1953,7 +1974,9 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                         ),
                         const SizedBox(width: AppDimens.paddingX8),
                         Text(
-                          'Deposit ${_Fmt.npr(_equipment!.deposit)} / unit',
+                          StringConstants.depositPerUnit(
+                            _Fmt.npr(_equipment!.deposit),
+                          ),
                           style: textTheme.bodyTextSmall?.copyWith(
                             color: LightColor.hintTextColor,
                             fontSize: AppDimens.fontBodySubTitle,
@@ -1967,7 +1990,7 @@ class _NewRentalPageState extends State<_NewRentalPage> {
             ),
             const SizedBox(height: AppDimens.paddingX18),
 
-            const _SectionLabel('Quantity & duration'),
+            _SectionLabel(StringConstants.quantityAndDuration),
             _SurfaceCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2010,7 +2033,7 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                   if (qtyTooHigh) ...[
                     const SizedBox(height: AppDimens.paddingX8),
                     Text(
-                      'Only $available unit${available == 1 ? '' : 's'} available.',
+                      StringConstants.onlyUnitsAvailable(available),
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.redColor,
                         fontWeight: FontWeight.w600,
@@ -2023,7 +2046,7 @@ class _NewRentalPageState extends State<_NewRentalPage> {
             ),
             const SizedBox(height: AppDimens.paddingX18),
 
-            const _SectionLabel('Customer'),
+            _SectionLabel(StringConstants.customer),
             _SurfaceCard(
               padding: EdgeInsets.zero,
               child: Column(
@@ -2065,14 +2088,18 @@ class _NewRentalPageState extends State<_NewRentalPage> {
             ),
             const SizedBox(height: AppDimens.paddingX18),
 
-            const _SectionLabel('Summary'),
+            _SectionLabel(StringConstants.summary),
             _SurfaceCard(
               child: Column(
                 children: [
                   _SumRow(
                     label: _equipment == null
-                        ? 'Rate'
-                        : '${_Fmt.npr(_equipment!.hourlyRate)} × $_qty × ${_hours}h',
+                        ? StringConstants.rate
+                        : StringConstants.rateBreakdown(
+                            _Fmt.npr(_equipment!.hourlyRate),
+                            _qty,
+                            _hours,
+                          ),
                     value: _Fmt.npr(_charge),
                   ),
                   const SizedBox(height: AppDimens.paddingX8),
@@ -2237,19 +2264,23 @@ class _Fmt {
       if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
       buf.write(s[i]);
     }
-    return '${v < 0 ? '-' : ''}NPR ${buf.toString()}';
+    return '${v < 0 ? '-' : ''}${StringConstants.npr} ${buf.toString()}';
   }
 
   static String nprShort(int v) {
-    if (v >= 100000) return 'NPR ${(v / 1000).toStringAsFixed(1)}k';
-    if (v >= 1000) return 'NPR ${(v / 1000).toStringAsFixed(1)}k';
-    return 'NPR $v';
+    if (v >= 100000) {
+      return '${StringConstants.npr} ${(v / 1000).toStringAsFixed(1)}k';
+    }
+    if (v >= 1000) {
+      return '${StringConstants.npr} ${(v / 1000).toStringAsFixed(1)}k';
+    }
+    return '${StringConstants.npr} $v';
   }
 
   static String timeAt(DateTime d) {
     final h12 = d.hour == 0 ? 12 : (d.hour > 12 ? d.hour - 12 : d.hour);
     final m = d.minute.toString().padLeft(2, '0');
-    final p = d.hour < 12 ? 'AM' : 'PM';
+    final p = d.hour < 12 ? StringConstants.am : StringConstants.pm;
     final now = DateTime.now();
     final sameDay =
         d.year == now.year && d.month == now.month && d.day == now.day;

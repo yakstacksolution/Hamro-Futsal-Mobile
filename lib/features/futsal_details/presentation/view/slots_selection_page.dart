@@ -10,6 +10,7 @@ import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/scroll_behavior.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/features/bookings/data/model/manual_booking_details.dart';
@@ -28,7 +29,6 @@ import 'package:hamro_futsal/features/futsal_details/presentation/widgets/compac
 import 'package:hamro_futsal/features/futsal_details/presentation/widgets/court_slot_card.dart';
 import 'package:hamro_futsal/features/futsal_details/presentation/widgets/loading/available_courts_loading.dart';
 import 'package:hamro_futsal/features/futsal_details/presentation/widgets/loading/selection_time_loading.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class SlotsSelectionPage extends StatefulWidget {
   const SlotsSelectionPage({
@@ -101,7 +101,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
         AppUtils().showSnackBar(
           context,
           MsgType.success,
-          'Booking confirmed successfully.',
+          StringConstants.bookingConfirmedSuccessfully,
           key: 'manual_booking_success',
         );
         Navigator.of(context).pop(true);
@@ -217,7 +217,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
               title: StringConstants.availabilityCheckFailed,
               message:
                   state.recurringAvailabilityError ??
-                  'Could not check availability for the selected dates.',
+                  StringConstants.couldNotCheckAvailabilityForSelectedDates,
               onRetry: () {
                 context.read<SlotsSelectionBloc>().add(
                   const CheckRecurringAvailabilityRequested(),
@@ -315,7 +315,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                     title: StringConstants.slotsUnavailable,
                     message:
                         state.errorMessage ??
-                        'Could not load slots for this date.',
+                        StringConstants.couldNotLoadSlotsForThisDate,
                     onRetry: () {
                       context.read<SlotsSelectionBloc>().add(
                         const RefreshSlotsAvailabilityEvent(),
@@ -325,7 +325,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                 ] else if (!state.isLoading &&
                     state.timeSlots.isEmpty) ...<Widget>[
                   const SizedBox(height: AppDimens.sizeX12),
-                  const _AvailabilityMessage(
+                  _AvailabilityMessage(
                     title: StringConstants.noSlotsFound,
                     message: StringConstants.noTimeSlotsAreAvailableForThisDate,
                   ),
@@ -355,8 +355,8 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             children: <Widget>[
               _CourtsSectionHeader(
                 subtitle: state.hasSlotSelection
-                    ? (state.slotLabel ?? 'For the selected time')
-                    : 'All courts for this date',
+                    ? (state.slotLabel ?? StringConstants.forTheSelectedTime)
+                    : StringConstants.allCourtsForThisDate,
                 availableCount: state.availableCourtCount,
                 totalCount: state.totalCourtCount,
               ),
@@ -376,8 +376,8 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                 _AvailabilityMessage(
                   title: StringConstants.noCourtsAvailable,
                   message: state.hasSlotSelection
-                      ? 'No courts are available for this date and time.'
-                      : 'No courts are available for this date.',
+                      ? StringConstants.noCourtsAvailableForDateAndTime
+                      : StringConstants.noCourtsAvailableForDate,
                   onRetry: state.status == SlotsSelectionStatus.failure
                       ? () {
                           context.read<SlotsSelectionBloc>().add(
@@ -473,7 +473,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'None of these dates are available. Please choose another date or time slot.',
+        StringConstants.noneOfTheseDatesAreAvailable,
         key: 'recurring_no_dates_available',
       );
       return null;
@@ -640,8 +640,10 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                                           canBook &&
                                               widget.manualBooking != null
                                           ? (_isConfirmingManualBooking
-                                                ? 'Confirming…'
-                                                : 'Confirm Booking')
+                                                ? StringConstants
+                                                      .confirmingEllipsis
+                                                : StringConstants
+                                                      .confirmBooking)
                                           : state.buttonText,
                                       isLoading: _isConfirmingManualBooking,
                                       onPressed: canPressAction
@@ -703,7 +705,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Text(
-                'Booking summary',
+                StringConstants.bookingSummary,
                 style: FutsalTheme.getTextTheme(context).bodyTextMedium
                     ?.copyWith(
                       color: LightColor.primaryTextColor,
@@ -723,8 +725,8 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
               CustomButton(
                 text: canBook && widget.manualBooking != null
                     ? (_isConfirmingManualBooking
-                          ? 'Confirming…'
-                          : 'Confirm Booking')
+                          ? StringConstants.confirmingEllipsis
+                          : StringConstants.confirmBooking)
                     : state.buttonText,
                 isLoading: _isConfirmingManualBooking,
                 onPressed: canPressAction
@@ -1106,8 +1108,7 @@ class _FallbackAvailabilityNotice extends StatelessWidget {
           const SizedBox(width: AppDimens.sizeX6),
           Expanded(
             child: Text(
-              'Showing the nearest availability we could find'
-              '${fallbackType.isEmpty ? '' : ' ($fallbackType)'}.',
+              StringConstants.showingNearestAvailability(fallbackType),
               style: textTheme.bodyMiniSubTitle?.copyWith(
                 color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w600,
@@ -1190,8 +1191,8 @@ class _CourtsSectionHeader extends StatelessWidget {
           ),
           child: Text(
             totalCount == 0
-                ? '0 courts'
-                : '$availableCount of $totalCount available',
+                ? StringConstants.zeroCourts
+                : StringConstants.availableOfTotal(availableCount, totalCount),
             style: textTheme.bodyMiniSubTitle?.copyWith(
               color: accent,
               fontWeight: FontWeight.w700,
@@ -1233,8 +1234,8 @@ class _LiveViewersBadge extends StatelessWidget {
           const SizedBox(width: AppDimens.sizeX6),
           Text(
             count == 1
-                ? '1 other person viewing this date'
-                : '$count others viewing this date',
+                ? StringConstants.oneOtherPersonViewingThisDate
+                : StringConstants.othersViewingThisDate(count),
             style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
               color: LightColor.secondaryColor,
               fontWeight: FontWeight.w700,
@@ -1300,10 +1301,7 @@ class _AvailabilityMessage extends StatelessWidget {
           ),
           if (onRetry != null) ...<Widget>[
             const SizedBox(width: AppDimens.sizeX8),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text(StringConstants.retry),
-            ),
+            TextButton(onPressed: onRetry, child: Text(StringConstants.retry)),
           ],
         ],
       ),
@@ -1332,46 +1330,56 @@ class _RecurringAvailabilityResult extends StatelessWidget {
       count == 1 ? '1 $noun' : '$count ${noun}s';
 
   String get _title {
-    if (model.isUnconfirmed) return 'Some sessions are unavailable';
+    if (model.isUnconfirmed) return StringConstants.someSessionsAreUnavailable;
     final int total = model.totalCount;
     final int taken = model.unavailableCount;
     if (taken == 0) {
-      return total == 1 ? 'Slot is available' : 'All $total sessions available';
+      return total == 1
+          ? StringConstants.slotIsAvailable
+          : StringConstants.allSessionsAvailable(total);
     }
-    if (total == 1) return 'Slot is not available';
+    if (total == 1) return StringConstants.slotIsNotAvailable;
     if (model.availableCount == 0) {
-      return 'None of the $total sessions are available';
+      return StringConstants.noneOfTheSessionsAvailable(total);
     }
-    return '${_plural(taken, 'session')} unavailable · ${model.availableCount} of $total available';
+    return StringConstants.sessionsUnavailableSummary(
+      _plural(taken, StringConstants.sessionNoun),
+      model.availableCount,
+      total,
+    );
   }
 
   String get _message {
-    final String at = (selectedTime ?? '').isEmpty ? '' : ' at $selectedTime';
+    final String at = (selectedTime ?? '').isEmpty
+        ? ''
+        : StringConstants.atTimeSuffix(selectedTime!);
     final List<AvailabilitySession> taken = model.unavailableSessions;
     final int free = model.availableCount;
 
     if (model.isUnconfirmed) {
-      return 'One or more dates in this schedule are already taken$at. Please pick another date or time.';
+      return StringConstants.scheduleDatesAlreadyTaken(at);
     }
     if (taken.isEmpty) {
       return model.totalCount == 1
-          ? 'This date is free$at.'
-          : 'Every date in this schedule is free$at.';
+          ? StringConstants.thisDateIsFree(at)
+          : StringConstants.everyDateInScheduleIsFree(at);
     }
     if (free == 0) {
       return model.totalCount == 1
-          ? 'This slot is already taken$at. Please pick another date or time.'
-          : 'This slot is taken$at on every date in the schedule. Please pick another date or time.';
+          ? StringConstants.thisSlotIsAlreadyTaken(at)
+          : StringConstants.slotTakenOnEveryScheduleDate(at);
     }
 
     final String which = taken.length == 1
-        ? '${_sessionLabel(taken.single)} is'
-        : '${taken.length} dates are';
+        ? StringConstants.sessionLabelIs(_sessionLabel(taken.single))
+        : StringConstants.datesCountAre(taken.length);
     final String rest = free == 1
-        ? 'the other session'
-        : 'the other $free sessions';
-    final String them = taken.length == 1 ? 'it' : 'them';
-    return '$which already taken$at. Skip $them and book $rest, or pick another date or time.';
+        ? StringConstants.theOtherSession
+        : StringConstants.theOtherSessions(free);
+    final String them = taken.length == 1
+        ? StringConstants.pronounIt
+        : StringConstants.pronounThem;
+    return StringConstants.alreadyTakenSkipAndBook(which, at, them, rest);
   }
 
   static String _sessionLabel(AvailabilitySession s) =>
@@ -1444,7 +1452,9 @@ class _RecurringAvailabilityResult extends StatelessWidget {
             if (model.unavailableSessions.isNotEmpty) ...<Widget>[
               const SizedBox(height: AppDimens.sizeX12),
               _AvailabilityGroupLabel(
-                label: 'Unavailable · ${model.unavailableCount}',
+                label: StringConstants.unavailableWithCount(
+                  model.unavailableCount,
+                ),
                 color: LightColor.redColor,
               ),
               const SizedBox(height: AppDimens.sizeX8),
@@ -1458,7 +1468,7 @@ class _RecurringAvailabilityResult extends StatelessWidget {
             if (available.isNotEmpty) ...<Widget>[
               const SizedBox(height: AppDimens.sizeX4),
               _AvailabilityGroupLabel(
-                label: 'Available · ${model.availableCount}',
+                label: StringConstants.availableWithCount(model.availableCount),
                 color: LightColor.secondaryColor,
               ),
               const SizedBox(height: AppDimens.sizeX8),
@@ -1474,7 +1484,12 @@ class _RecurringAvailabilityResult extends StatelessWidget {
                   ),
               if (hiddenAvailable > 0)
                 Text(
-                  '+ ${_plural(hiddenAvailable, 'more available date')}',
+                  StringConstants.plusMore(
+                    _plural(
+                      hiddenAvailable,
+                      StringConstants.moreAvailableDateNoun,
+                    ),
+                  ),
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: LightColor.hintTextColor,
                     fontWeight: FontWeight.w600,
@@ -1488,7 +1503,7 @@ class _RecurringAvailabilityResult extends StatelessWidget {
               children: <Widget>[
                 Expanded(
                   child: CustomButton(
-                    text: 'Pick another date',
+                    text: StringConstants.pickAnotherDate,
                     onPressed: onPickAnother,
                     isOutlined: true,
                     borderColor: LightColor.dividerColor,
@@ -1500,7 +1515,7 @@ class _RecurringAvailabilityResult extends StatelessWidget {
                   const SizedBox(width: AppDimens.sizeX8),
                   Expanded(
                     child: CustomButton(
-                      text: 'Skip & book ${model.availableCount}',
+                      text: StringConstants.skipAndBook(model.availableCount),
                       onPressed: onSkipUnavailable,
                       backgroundColor: LightColor.secondaryColor,
                       foregroundColor: LightColor.inverseTextColor,
@@ -1628,8 +1643,10 @@ class _UnavailableDatesSheet extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       unavailableDates.length == 1
-                          ? '1 date is unavailable'
-                          : '${unavailableDates.length} dates are unavailable',
+                          ? StringConstants.oneDateIsUnavailable
+                          : StringConstants.datesAreUnavailable(
+                              unavailableDates.length,
+                            ),
                       style: textTheme.bodyTextLarge?.copyWith(
                         color: LightColor.primaryTextColor,
                         fontWeight: FontWeight.w800,
@@ -1637,7 +1654,7 @@ class _UnavailableDatesSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: AppDimens.sizeX2),
                     Text(
-                      'Continue without these dates, or choose another date and slot.',
+                      StringConstants.continueWithoutTheseDates,
                       style: textTheme.bodySubTitle?.copyWith(
                         color: LightColor.hintTextColor,
                         fontWeight: FontWeight.w600,
@@ -1694,7 +1711,7 @@ class _UnavailableDatesSheet extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Unavailable',
+                        StringConstants.unavailable,
                         style: textTheme.bodyMiniSubTitle?.copyWith(
                           color: LightColor.redColor,
                           fontWeight: FontWeight.w700,
@@ -1711,8 +1728,8 @@ class _UnavailableDatesSheet extends StatelessWidget {
             width: double.infinity,
             child: CustomButton(
               text: availableCount == 1
-                  ? 'Continue with 1 date'
-                  : 'Continue with $availableCount dates',
+                  ? StringConstants.continueWithOneDate
+                  : StringConstants.continueWithDates(availableCount),
               onPressed: () => Navigator.of(context).pop(true),
               backgroundColor: LightColor.secondaryColor,
               foregroundColor: LightColor.inverseTextColor,
@@ -1723,7 +1740,7 @@ class _UnavailableDatesSheet extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: CustomButton(
-              text: 'Choose another date & slot',
+              text: StringConstants.chooseAnotherDateAndSlot,
               onPressed: () => Navigator.of(context).pop(false),
               backgroundColor: LightColor.cardColor,
               foregroundColor: LightColor.primaryTextColor,

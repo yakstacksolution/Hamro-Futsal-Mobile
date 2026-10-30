@@ -141,7 +141,7 @@ class StepCursor {
   }
 }
 
-const List<VendorSectionDefinition> futsalSectionDefinitions =
+List<VendorSectionDefinition> get futsalSectionDefinitions =>
     <VendorSectionDefinition>[
       VendorSectionDefinition(
         id: 'futsal_information',
@@ -220,7 +220,7 @@ const List<VendorSectionDefinition> futsalSectionDefinitions =
       ),
     ];
 
-const List<VendorSectionDefinition> courtSectionDefinitions =
+List<VendorSectionDefinition> get courtSectionDefinitions =>
     <VendorSectionDefinition>[
       VendorSectionDefinition(
         id: 'court_information',
@@ -312,6 +312,8 @@ List<VendorSectionDefinition> sectionsForCategory(VendorCategory category) {
       : courtSectionDefinitions;
 }
 
+// Wire values: these strings are persisted and sent to the API; never
+// translate them. Display them through [vendorOptionLabel].
 const List<String> futsalAmenityOptions = <String>[
   'Floodlights',
   'Parking',
@@ -385,6 +387,39 @@ const Map<String, IconData> courtFacilityIcons = <String, IconData>{
 };
 
 const List<String> courtTypeOptions = <String>['Indoor', 'Outdoor'];
+
+/// The option lists above hold fixed English wire values (stored in drafts and
+/// sent to the API). Use this to get the localized display label.
+String vendorOptionLabel(String wireValue) {
+  return switch (wireValue) {
+    'Floodlights' => StringConstants.floodlights,
+    'Parking' => StringConstants.parking,
+    'Changing Room' => StringConstants.changingRoom,
+    'Shower' => StringConstants.shower,
+    'Wi-Fi' => StringConstants.wiFi,
+    'First Aid' => StringConstants.firstAid,
+    'Live Scoreboard' => StringConstants.liveScoreboard,
+    'Warm-Up Zone' => StringConstants.warmUpZone,
+    'Cafeteria' => StringConstants.cafeteria,
+    'Spectator Seating' => StringConstants.spectatorSeating,
+    'Equipment Rental' => StringConstants.equipmentRental,
+    'Locker Storage' => StringConstants.lockerStorage,
+    'Goal Nets' => StringConstants.goalNets,
+    'Scoreboard' => StringConstants.scoreboard,
+    'Ball Stand' => StringConstants.ballStand,
+    'Benches' => StringConstants.benches,
+    'Drinking Water' => StringConstants.drinkingWater,
+    'Lighting' => StringConstants.lighting,
+    'Indoor' => StringConstants.indoor,
+    'Roofed' => StringConstants.roofed,
+    'Changing Area' => StringConstants.changingArea,
+    'Washroom Access' => StringConstants.washroomAccess,
+    'Parking Access' => StringConstants.parkingAccess,
+    'Spectator Zone' => StringConstants.spectatorZone,
+    'Outdoor' => StringConstants.outdoor,
+    _ => wireValue,
+  };
+}
 
 const List<String> matchFormatOptions = <String>['5v5', '6v6', '7v7'];
 

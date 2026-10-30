@@ -37,7 +37,7 @@ String _displayTime(String value) {
   if (time == null) return value.trim();
   final int hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
   final String minute = time.minute.toString().padLeft(2, '0');
-  return '$hour:$minute ${time.period == DayPeriod.am ? 'AM' : 'PM'}';
+  return '$hour:$minute ${time.period == DayPeriod.am ? StringConstants.am : StringConstants.pm}';
 }
 
 class CourtSlotsSection extends StatelessWidget {
@@ -326,7 +326,8 @@ class _SlotListTile extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     final List<String> days = weekdayOptions.where(slot.days.contains).toList();
     final String detailText =
-        infoText ?? (days.isEmpty ? 'No booking days' : days.join(' · '));
+        infoText ??
+        (days.isEmpty ? StringConstants.noBookingDays : days.join(' · '));
 
     return Container(
       decoration: BoxDecoration(
@@ -575,15 +576,15 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
     FocusScope.of(context).unfocus();
     final String label = _labelController.text.trim();
     if (label.isEmpty) {
-      setState(() => _error = 'Enter a slot label.');
+      setState(() => _error = StringConstants.enterSlotLabel);
       return;
     }
     if (_days.isEmpty) {
-      setState(() => _error = 'Select at least one booking day.');
+      setState(() => _error = StringConstants.selectAtLeastOneBookingDay);
       return;
     }
     if (_startTime.trim().isEmpty || _endTime.trim().isEmpty) {
-      setState(() => _error = 'Select both start and end time.');
+      setState(() => _error = StringConstants.selectBothStartAndEndTime);
       return;
     }
 
@@ -654,7 +655,9 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
                 Row(
                   children: <Widget>[
                     Text(
-                      isEdit ? 'Edit Slot' : 'Add Slot',
+                      isEdit
+                          ? StringConstants.editSlot
+                          : StringConstants.addSlot,
                       style: textTheme.bodyTextLarge?.copyWith(
                         color: LightColor.primaryTextColor,
                         fontWeight: FontWeight.w800,
@@ -683,7 +686,7 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
                   },
                 ),
                 const SizedBox(height: AppDimens.sizeX16),
-                const VendorFieldLabel('Booking days'),
+                VendorFieldLabel(StringConstants.bookingDays),
                 const SizedBox(height: AppDimens.sizeX10),
                 Wrap(
                   spacing: AppDimens.sizeX8,
@@ -767,7 +770,9 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
                     const SizedBox(width: AppDimens.sizeX12),
                     Expanded(
                       child: CustomButton(
-                        text: isEdit ? 'Update Slot' : 'Add Slot',
+                        text: isEdit
+                            ? StringConstants.updateSlot
+                            : StringConstants.addSlot,
                         icon: Icons.check_rounded,
                         isLoading: _isSaving,
                         minHeight: AppDimens.sizeX44,
@@ -787,8 +792,9 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
   }
 }
 
-String _slotDisplayTitle(SlotPricingDraft slot) =>
-    slot.label.trim().isEmpty ? 'Untitled slot' : slot.label.trim();
+String _slotDisplayTitle(SlotPricingDraft slot) => slot.label.trim().isEmpty
+    ? StringConstants.untitledSlot
+    : slot.label.trim();
 
 String _discountAmountLabel(SlotPricingDraft slot) {
   final double? value = slot.discountPrice;
@@ -833,7 +839,7 @@ class _SlotTag extends StatelessWidget {
 String _slotTimeSummary(SlotPricingDraft slot) {
   final String start = slot.startTime.trim();
   final String end = slot.endTime.trim();
-  if (start.isEmpty && end.isEmpty) return 'Time not set';
+  if (start.isEmpty && end.isEmpty) return StringConstants.timeNotSet;
   return '$start - $end';
 }
 
@@ -841,8 +847,8 @@ String _slotDaysSummary(SlotPricingDraft slot) {
   final List<String> ordered = weekdayOptions
       .where(slot.days.contains)
       .toList();
-  if (ordered.isEmpty) return 'No booking days';
-  if (ordered.length == weekdayOptions.length) return 'Every day';
+  if (ordered.isEmpty) return StringConstants.noBookingDays;
+  if (ordered.length == weekdayOptions.length) return StringConstants.everyDay;
   return ordered.join(', ');
 }
 
@@ -894,7 +900,7 @@ class _SlotFilterDropdown extends StatelessWidget {
                 menuMaxHeight: AppDimens.sizeX320,
                 padding: AppUtils().getPadding(vertical: AppDimens.paddingX12),
                 selectedItemBuilder: (BuildContext context) => <Widget>[
-                  _filterButtonLabel('All slots', textTheme),
+                  _filterButtonLabel(StringConstants.allSlots, textTheme),
                   ...slots.map(
                     (SlotPricingDraft slot) =>
                         _filterButtonLabel(_slotDisplayTitle(slot), textTheme),
@@ -1101,7 +1107,7 @@ class _WeekendHolidayView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const VendorOnboardingSectionHeader(
+        VendorOnboardingSectionHeader(
           title: StringConstants.weekendHolidaysAndClosures,
           subtitle: StringConstants.specialDaysForPricingAndBookingAvailability,
           icon: Icons.event_repeat_rounded,
@@ -1135,7 +1141,7 @@ class _WeekendHolidayView extends StatelessWidget {
           icon: Icons.celebration_rounded,
           dates: court.holidayDates,
           emptyText: StringConstants.noHolidayDatesAdded,
-          actionLabel: 'Add Holiday',
+          actionLabel: StringConstants.addHoliday,
           onAdd: () => _pickHolidayDates(context),
           onRemove: cubit.removeCourtHolidayDate,
           isHighlighted: true,
@@ -1148,7 +1154,7 @@ class _WeekendHolidayView extends StatelessWidget {
           icon: Icons.event_busy_rounded,
           dates: court.closedDates,
           emptyText: StringConstants.noClosedDatesAdded,
-          actionLabel: 'Add Closed Date',
+          actionLabel: StringConstants.addClosedDate,
           onAdd: () => _pickClosedDate(context),
           onRemove: cubit.removeCourtClosedDate,
         ),
@@ -1212,22 +1218,28 @@ class _SlotPricingViewState extends State<_SlotPricingView> {
     final List<String> parts = <String>[];
     final double? basePrice = slot.price ?? widget.court.basePrice;
     if (basePrice != null) {
-      parts.add('Base ${Money.npr(basePrice)}');
+      parts.add(StringConstants.basePriceLabel(Money.npr(basePrice)));
     }
     if (slot.weekendPrice != null) {
-      parts.add('Weekend ${Money.npr(slot.weekendPrice!)}');
+      parts.add(
+        StringConstants.weekendPriceLabel(Money.npr(slot.weekendPrice!)),
+      );
     }
     if (slot.holidayPrice != null) {
-      parts.add('Holiday ${Money.npr(slot.holidayPrice!)}');
+      parts.add(
+        StringConstants.holidayPriceLabel(Money.npr(slot.holidayPrice!)),
+      );
     }
     if (slot.hasDiscount && slot.discountPrice != null) {
-      parts.add('Discount ${_discountAmountLabel(slot)}');
+      parts.add(StringConstants.discountPriceLabel(_discountAmountLabel(slot)));
     }
     if (slot.customDatePrices.isNotEmpty) {
       final int count = slot.customDatePrices.length;
-      parts.add('$count custom ${count == 1 ? 'date' : 'dates'}');
+      parts.add(StringConstants.customDatesCount(count));
     }
-    return parts.isEmpty ? 'No special pricing set' : parts.join(' · ');
+    return parts.isEmpty
+        ? StringConstants.noSpecialPricingSet
+        : parts.join(' · ');
   }
 
   @override
@@ -1245,7 +1257,7 @@ class _SlotPricingViewState extends State<_SlotPricingView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const VendorOnboardingSectionHeader(
+        VendorOnboardingSectionHeader(
           title: StringConstants.slotPricing,
           subtitle: StringConstants.weekendHolidayAndDiscountPricing,
           icon: Icons.attach_money_rounded,
@@ -1561,8 +1573,8 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                   const SizedBox(height: AppDimens.sizeX16),
                   _MoneyField(
                     label: _slot.discountType == 'Percent'
-                        ? 'Discount %'
-                        : 'Discount price',
+                        ? StringConstants.discountPercentLabel
+                        : StringConstants.discountPrice,
                     value: _slot.discountPrice,
                     onChanged: (String value) => _update(
                       _slot.copyWith(
@@ -1771,8 +1783,8 @@ class _DiscountTypeSelector extends StatelessWidget {
     return VendorDropdownField<String>(
       label: StringConstants.discountType,
       initialValue: value == 'Percent' ? 'Percent' : 'Flat',
-      items: const <DropdownMenuItem<String>>[
-        DropdownMenuItem<String>(value: 'Percent', child: Text('%')),
+      items: <DropdownMenuItem<String>>[
+        const DropdownMenuItem<String>(value: 'Percent', child: Text('%')),
         DropdownMenuItem<String>(
           value: 'Flat',
           child: Text(StringConstants.flat),
@@ -2494,7 +2506,7 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
                 ),
               ),
               const SizedBox(height: AppDimens.sizeX16),
-              const VendorFieldLabel('Closure type'),
+              VendorFieldLabel(StringConstants.closureType),
               const SizedBox(height: AppDimens.sizeX10),
               SegmentedButton<bool>(
                 style: ButtonStyle(
@@ -2529,15 +2541,15 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
                     return BorderSide(color: LightColor.greyBorderColor);
                   }),
                 ),
-                segments: const <ButtonSegment<bool>>[
+                segments: <ButtonSegment<bool>>[
                   ButtonSegment<bool>(
                     value: true,
-                    icon: Icon(Icons.event_busy_rounded),
+                    icon: const Icon(Icons.event_busy_rounded),
                     label: Text(StringConstants.fullDay),
                   ),
                   ButtonSegment<bool>(
                     value: false,
-                    icon: Icon(Icons.schedule_rounded),
+                    icon: const Icon(Icons.schedule_rounded),
                     label: Text(StringConstants.hourly),
                   ),
                 ],
@@ -2786,7 +2798,7 @@ class _CustomCalendarDatePickerDialogState
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '${_selectedDates.length} selected',
+                StringConstants.selectedCount(_selectedDates.length),
                 style: textTheme.bodySubTitle?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w700,
@@ -3107,19 +3119,19 @@ List<DateTime?> _monthCells(DateTime visibleMonth) {
 }
 
 String _formatMonthLabel(DateTime date) {
-  const List<String> months = <String>[
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+  final List<String> months = <String>[
+    StringConstants.january,
+    StringConstants.february,
+    StringConstants.march,
+    StringConstants.april,
+    StringConstants.may,
+    StringConstants.june,
+    StringConstants.july,
+    StringConstants.august,
+    StringConstants.september,
+    StringConstants.october,
+    StringConstants.november,
+    StringConstants.december,
   ];
   return '${months[date.month - 1]} ${date.year}';
 }

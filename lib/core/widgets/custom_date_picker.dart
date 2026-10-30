@@ -12,15 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:scroll_datetime_picker/scroll_datetime_picker.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-enum CustomDatePickerType {
-  dateOfBirth,
-
-  pastDate,
-
-  futureDate,
-
-  anyDate,
-}
+enum CustomDatePickerType { dateOfBirth, pastDate, futureDate, anyDate }
 
 Future<DateTime?> showCustomDatePicker(
   BuildContext context, {
@@ -30,7 +22,7 @@ Future<DateTime?> showCustomDatePicker(
   DateTime? minDate,
   DateTime? maxDate,
   DateFormat? dateFormat,
-  String confirmText = 'Select',
+  String? confirmText,
   AppCalendar? calendar,
 }) {
   final _DatePickerSpec spec = _resolveSpec(type);
@@ -56,7 +48,7 @@ Future<DateTime?> showCustomDatePicker(
     minDate: resolvedMin,
     maxDate: resolvedMax,
     dateFormat: dateFormat ?? spec.dateFormat,
-    confirmText: confirmText,
+    confirmText: confirmText ?? StringConstants.select,
   );
 }
 

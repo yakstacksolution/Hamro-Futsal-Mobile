@@ -1,9 +1,10 @@
 import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class OpponentFmt {
   static String npr(int v) =>
-      '${v < 0 ? '-' : ''}NPR ${group(v.abs().toString())}';
+      '${v < 0 ? '-' : ''}${StringConstants.npr} ${group(v.abs().toString())}';
 
   static String group(String digits) {
     final buf = StringBuffer();
@@ -19,7 +20,9 @@ class OpponentFmt {
   static String time(TimeOfDay t) {
     final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
     final m = t.minute.toString().padLeft(2, '0');
-    final p = t.period == DayPeriod.am ? 'AM' : 'PM';
+    final p = t.period == DayPeriod.am
+        ? StringConstants.am
+        : StringConstants.pm;
     return '$h:$m $p';
   }
 
@@ -43,8 +46,10 @@ class OpponentFmt {
     final now = DateTime.now();
     final day = DateTime(d.year, d.month, d.day);
     final today = DateTime(now.year, now.month, now.day);
-    if (day == today) return 'Today';
-    if (day == today.add(const Duration(days: 1))) return 'Tomorrow';
+    if (day == today) return StringConstants.today;
+    if (day == today.add(const Duration(days: 1))) {
+      return StringConstants.tomorrow;
+    }
     return shortDate(d);
   }
 
@@ -53,8 +58,10 @@ class OpponentFmt {
     final day = DateTime(d.year, d.month, d.day);
     final today = DateTime(now.year, now.month, now.day);
     final t = time(TimeOfDay.fromDateTime(d));
-    if (day == today) return 'Today, $t';
-    if (day == today.add(const Duration(days: 1))) return 'Tomorrow, $t';
+    if (day == today) return '${StringConstants.today}, $t';
+    if (day == today.add(const Duration(days: 1))) {
+      return '${StringConstants.tomorrow}, $t';
+    }
     return '${shortDate(d)} · $t';
   }
 }

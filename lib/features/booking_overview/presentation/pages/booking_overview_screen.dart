@@ -210,7 +210,8 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
             }
             if (state.status == BookingOverviewStatus.failure) {
               return _LoadError(
-                message: state.errorMessage ?? 'Could not load bookings.',
+                message:
+                    state.errorMessage ?? StringConstants.couldNotLoadBookings,
                 onRetry: _reload,
               );
             }
@@ -373,7 +374,7 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
                 unselectedLabelStyle: FutsalTheme.getTextTheme(
                   context,
                 ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w500),
-                tabs: const [
+                tabs: [
                   Tab(text: StringConstants.overview, height: 40),
                   Tab(text: StringConstants.analytics, height: 40),
                   Tab(text: StringConstants.rankings, height: 40),
@@ -472,7 +473,7 @@ class _LoadError extends StatelessWidget {
                 foregroundColor: LightColor.secondaryColor,
                 side: const BorderSide(color: LightColor.secondaryColor),
               ),
-              child: const Text(StringConstants.retry),
+              child: Text(StringConstants.retry),
             ),
           ],
         ),

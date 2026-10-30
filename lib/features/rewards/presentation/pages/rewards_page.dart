@@ -153,7 +153,7 @@ class RewardsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.rewards),
+      appBar: CustomAppBar(title: StringConstants.rewards),
       body: SafeArea(
         top: false,
         child: BlocConsumer<RewardsBloc, RewardsState>(

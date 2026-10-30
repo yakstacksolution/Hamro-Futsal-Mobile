@@ -171,8 +171,8 @@ class _WishlistPageState extends State<WishlistPage> {
               const SizedBox(height: AppDimens.paddingX4),
               Text(
                 venues.isEmpty
-                    ? 'Venues you save for later'
-                    : '${venues.length} saved ${venues.length == 1 ? 'venue' : 'venues'}',
+                    ? StringConstants.venuesYouSaveForLater
+                    : StringConstants.savedVenuesCount(venues.length),
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                 ),
@@ -194,12 +194,12 @@ class _WishlistPageState extends State<WishlistPage> {
         icon: Icons.wifi_off_rounded,
         title: StringConstants.unableToLoadWishlist,
         message: _error!,
-        actionLabel: 'Retry',
+        actionLabel: StringConstants.retry,
         onAction: _fetch,
       );
     }
     if (venues.isEmpty) {
-      return const AppMessageView(
+      return AppMessageView(
         icon: Icons.favorite_outline_rounded,
         title: StringConstants.noFavouritesYet,
         message: StringConstants.tapTheHeartOnAVenueToSaveItHereForQuickBooking,

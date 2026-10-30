@@ -126,7 +126,7 @@ class LogoPickerCard extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onPick,
                   icon: const Icon(Icons.file_open_rounded, size: 18),
-                  label: const Text(StringConstants.chooseFile),
+                  label: Text(StringConstants.chooseFile),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: LightColor.secondaryColor,
                     side: BorderSide(
@@ -144,7 +144,7 @@ class LogoPickerCard extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onRemove,
                     icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                    label: const Text(StringConstants.remove),
+                    label: Text(StringConstants.remove),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: LightColor.redColor,
                       side: BorderSide(

@@ -28,10 +28,10 @@ enum RequestFilter { open, mine, invitations, settled }
 
 extension RequestFilterX on RequestFilter {
   String get label => switch (this) {
-    RequestFilter.open => 'Need Opponent',
-    RequestFilter.mine => 'My Requests',
-    RequestFilter.invitations => 'Invitations',
-    RequestFilter.settled => 'Settled',
+    RequestFilter.open => StringConstants.needOpponent,
+    RequestFilter.mine => StringConstants.myRequests,
+    RequestFilter.invitations => StringConstants.invitations,
+    RequestFilter.settled => StringConstants.totalSettled,
   };
 
   OpponentRequestTab get tab => switch (this) {
@@ -428,7 +428,8 @@ class _RequestsTabGate extends StatelessWidget {
     }
     if (status == OpponentMatchStatus.failure) {
       return _MyRequestsError(
-        message: state.errorFor(tab) ?? 'Could not load these requests.',
+        message:
+            state.errorFor(tab) ?? StringConstants.couldNotLoadTheseRequests,
         onRetry: () => context.read<OpponentMatchBloc>().add(
           LoadOpponentRequestsEvent(tab: tab, force: true),
         ),
@@ -597,25 +598,26 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
 
   String _invitationsLabel(OpponentRequestModel request) {
     final int count = request.invitationCount;
-    if (count == 0) return 'Awaiting Invitations';
-    return count == 1 ? 'Review Invitation' : 'Review $count Invitations';
+    if (count == 0) return StringConstants.awaitingInvitations;
+    return count == 1
+        ? StringConstants.reviewInvitation
+        : StringConstants.reviewInvitations(count);
   }
 
   String _draftProgressLabel(OpponentRequestModel request) {
     final String next = switch (request.mainStep) {
-      <= 1 => 'match details',
-      2 => 'the venue',
-      _ => 'the cost split',
+      <= 1 => StringConstants.matchDetailsLower,
+      2 => StringConstants.theVenue,
+      _ => StringConstants.theCostSplit,
     };
-    return 'Draft — not published yet. Finish $next to send it out.';
+    return StringConstants.draftNotPublishedFinishStep(next);
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
     final bool confirmed = await showDeleteDialog(
       context: context,
       title: StringConstants.removeRequest,
-      message:
-          'This will remove the request from ${widget.request.team}. You can\'t undo this.',
+      message: StringConstants.removeRequestConfirmation(widget.request.team),
       confirmText: StringConstants.remove,
     );
     if (confirmed) widget.onDelete();
@@ -631,8 +633,8 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
       // Nothing is split until the request is published, so a draft only ever
       // shows the court fee its venue step captured (if it got that far).
       return request.totalFee > 0
-          ? '$total court fee · split not set yet'
-          : 'Court fee not set yet';
+          ? StringConstants.courtFeeSplitNotSetYet(total)
+          : StringConstants.courtFeeNotSetYetMessage;
     }
 
     if (request.isResultCost) {
@@ -641,18 +643,25 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
       if (loser == null) {
         // The rule is set but the server has not quantified the sides yet.
         return request.totalFee > 0
-            ? 'Loser pays · $total total'
-            : 'Decided by match result';
+            ? StringConstants.loserPaysTotal(total)
+            : StringConstants.decidedByMatchResult;
       }
-      return 'Loser pays ${OpponentFmt.npr(loser)}'
-          '${pct == null ? '' : ' ($pct%)'} · $total total';
+      return '${StringConstants.loserPaysAmount(OpponentFmt.npr(loser))}'
+          '${pct == null ? '' : ' ($pct%)'} · '
+          '${StringConstants.amountTotal(total)}';
     }
 
     if (request.myPct == null) {
-      return '${OpponentFmt.npr(request.yourShare)} if loser · $total total';
+      return StringConstants.ifLoserTotal(
+        OpponentFmt.npr(request.yourShare),
+        total,
+      );
     }
-    return '${OpponentFmt.npr(request.yourShare)} · '
-        '${request.myPct}% of $total';
+    return StringConstants.sharePercentOfTotal(
+      OpponentFmt.npr(request.yourShare),
+      request.myPct!,
+      total,
+    );
   }
 
   @override
@@ -825,14 +834,14 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                     icon: Icons.event_outlined,
                     label: request.slot.isNotEmpty
                         ? request.slot
-                        : 'Kick-off time not set yet',
+                        : StringConstants.kickOffTimeNotSetYet,
                   ),
                   const SizedBox(height: AppDimens.paddingX6),
                   _InfoMini(
                     icon: Icons.location_on_outlined,
                     label: request.venue.isNotEmpty
                         ? request.venue
-                        : 'Venue not chosen yet',
+                        : StringConstants.venueNotChosenYet,
                   ),
                   const SizedBox(height: AppDimens.paddingX6),
                   _InfoMini(
@@ -847,10 +856,13 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                     _InfoMini(
                       icon: Icons.groups_2_outlined,
                       label: request.isMatchConfirmed
-                          ? 'Opponent: ${request.selectedInvitation?.teamName ?? request.acceptedByTeamName}'
-                          : '${request.invitationCount} '
-                                '${request.invitationCount == 1 ? 'team wants' : 'teams want'} '
-                                'to play — pick one',
+                          ? StringConstants.opponentNamed(
+                              request.selectedInvitation?.teamName ??
+                                  request.acceptedByTeamName,
+                            )
+                          : StringConstants.teamsWantToPlayPickOne(
+                              request.invitationCount,
+                            ),
                       emphasised: true,
                     ),
                   ],
@@ -908,9 +920,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                     ),
                     _FooterNote(
                       icon: Icons.hourglass_top_rounded,
-                      label:
-                          'Submitted — waiting for approval before teams can see '
-                          'it.',
+                      label: StringConstants.submittedWaitingForApproval,
                       color: LightColor.warningColor,
                     ),
                     Padding(
@@ -934,7 +944,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                       ),
                       child: _ActionButton(
                         icon: Icons.emoji_events_outlined,
-                        label: 'View Match Details',
+                        label: StringConstants.viewMatchDetailsTitle,
                         foreground: LightColor.inverseTextColor,
                         background: LightColor.secondaryColor,
                         glow: true,
@@ -947,7 +957,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                       thickness: 1,
                       color: LightColor.dividerColor,
                     ),
-                    const _FooterNote(
+                    _FooterNote(
                       icon: Icons.hourglass_disabled_rounded,
                       label: StringConstants.closedAcceptWindowExpired,
                     ),
@@ -960,7 +970,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                       ),
                       child: _ActionButton(
                         icon: Icons.emoji_events_outlined,
-                        label: 'View Match Details',
+                        label: StringConstants.viewMatchDetailsTitle,
                         foreground: LightColor.inverseTextColor,
                         background: LightColor.secondaryColor,
                         glow: true,
@@ -990,11 +1000,9 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                         thickness: 1,
                         color: LightColor.dividerColor,
                       ),
-                      const _FooterNote(
+                      _FooterNote(
                         icon: Icons.hourglass_top_rounded,
-                        label:
-                            'Acceptance sent — waiting for the requester to '
-                            'pick an opponent',
+                        label: StringConstants.acceptanceSentWaitingForPick,
                         color: LightColor.secondaryColor,
                       ),
                     ],
@@ -1008,7 +1016,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                       ),
                       child: _ActionButton(
                         icon: Icons.handshake_outlined,
-                        label: 'Accept Request',
+                        label: StringConstants.acceptRequestTitle,
                         foreground: LightColor.inverseTextColor,
                         background: LightColor.secondaryColor,
                         glow: true,
@@ -1264,21 +1272,20 @@ class _EmptyRequests extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     final (title, body) = switch (filter) {
       RequestFilter.open => (
-        'Nothing to act on',
-        'Open requests will appear here.',
+        StringConstants.nothingToActOn,
+        StringConstants.openRequestsWillAppearHere,
       ),
       RequestFilter.mine => (
-        'No requests sent',
-        'Requests you send to opponents will appear here while they wait for a reply.',
+        StringConstants.noRequestsSent,
+        StringConstants.noRequestsSentMessage,
       ),
       RequestFilter.invitations => (
-        'No invitations yet',
-        'Requests your team has accepted will appear here until the requester '
-            'picks an opponent.',
+        StringConstants.noInvitationsYet,
+        StringConstants.noInvitationsYetMessage,
       ),
       RequestFilter.settled => (
-        'No settled requests',
-        'Accepted, rejected and closed requests will show here.',
+        StringConstants.noSettledRequests,
+        StringConstants.noSettledRequestsMessage,
       ),
     };
 

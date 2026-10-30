@@ -1062,7 +1062,9 @@ class _SettlementQrCarouselCardState extends State<SettlementQrCarouselCard> {
               const SizedBox(width: AppDimens.paddingX6),
               Expanded(
                 child: Text(
-                  isSlider ? 'Scan any QR to pay' : 'Scan to pay',
+                  isSlider
+                      ? StringConstants.scanAnyQrToPay
+                      : StringConstants.scanToPay,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w700,
@@ -1303,7 +1305,7 @@ class SettlementRecipientCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Pay to',
+                      StringConstants.payTo,
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.hintTextColor,
                         fontSize: AppDimens.fontBodySubTitle,
@@ -1330,7 +1332,7 @@ class SettlementRecipientCard extends StatelessWidget {
           if (recipient.phone.isNotEmpty) ...[
             const SizedBox(height: AppDimens.paddingX12),
             _RecipientRow(
-              label: 'Phone',
+              label: StringConstants.phone,
               value: recipient.phone,
               // The number is what the transfer is sent to — make it copyable
               // rather than something to re-type by hand.
@@ -1340,7 +1342,7 @@ class SettlementRecipientCard extends StatelessWidget {
                 AppUtils().showSnackBar(
                   context,
                   MsgType.success,
-                  'Phone number copied.',
+                  StringConstants.phoneNumberCopied,
                 );
               },
             ),
@@ -1365,7 +1367,7 @@ class SettlementRecipientCard extends StatelessWidget {
           // The amount this request actually pays sits last and emphasised, so
           // the context rows above it can never be mistaken for the total due.
           _RecipientRow(
-            label: 'Commission payable',
+            label: StringConstants.commissionPayable,
             value: AccountFmt.npr(maximumPayable),
             emphasise: true,
           ),
@@ -1442,9 +1444,17 @@ class SettlementSummaryRow extends StatelessWidget {
     // or refused — what the vendor might act on. Paid settlements are done
     // with, and their cards are still in the list below.
     final entries = <(String, int, Color)>[
-      ('Pending', counts.pending, SettlementStatus.pending.color),
-      ('Approved', counts.approved, SettlementStatus.approved.color),
-      ('Rejected', counts.rejected, SettlementStatus.rejected.color),
+      (StringConstants.pending, counts.pending, SettlementStatus.pending.color),
+      (
+        StringConstants.approved,
+        counts.approved,
+        SettlementStatus.approved.color,
+      ),
+      (
+        StringConstants.rejected,
+        counts.rejected,
+        SettlementStatus.rejected.color,
+      ),
     ];
     final textTheme = FutsalTheme.getTextTheme(context);
     return Row(

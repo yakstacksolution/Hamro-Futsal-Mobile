@@ -45,7 +45,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   String get _maskedEmail {
     final String email = widget.email?.trim() ?? '';
-    if (email.isEmpty || !email.contains('@')) return 'your email';
+    if (email.isEmpty || !email.contains('@')) return StringConstants.yourEmail;
 
     final List<String> parts = email.split('@');
     final String name = parts.first;
@@ -190,7 +190,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             MsgType.success,
             state.successMessage.isNotEmpty
                 ? state.successMessage
-                : 'OTP resent successfully. Check your email.',
+                : StringConstants.otpResentSuccessfullyCheckEmail,
           );
         }
 
@@ -231,8 +231,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             context,
             MsgType.success,
             hasSessionToken
-                ? 'OTP verified successfully.'
-                : 'OTP verified successfully. Please sign in to continue.',
+                ? StringConstants.otpVerifiedSuccessfully
+                : StringConstants.otpVerifiedPleaseSignIn,
           );
 
           if (nextStep == 'vendor_onboarding') {
@@ -257,18 +257,22 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 return AuthScreenFrame(
                   isLoading: state.otpVerificationStatus == AuthStatus.loading,
                   title: StringConstants.otpVerification,
-                  subtitle:
-                      'Enter the $_otpLength-digit code sent to $_maskedEmail',
+                  subtitle: StringConstants.enterOtpCodeSentTo(
+                    _otpLength,
+                    _maskedEmail,
+                  ),
                   headerIcon: Icons.mark_email_read_rounded,
-                  primaryButtonLabel: 'Verify OTP',
+                  primaryButtonLabel: StringConstants.verifyOtp,
                   primaryButtonEnabled:
                       canVerify &&
                       state.otpVerificationStatus != AuthStatus.loading,
                   onPrimaryTap: _submit,
                   secondaryPrefixText: secondsLeft > 0
-                      ? 'Resend code in ${secondsLeft}s'
-                      : 'Didn\'t receive code',
-                  secondaryActionText: secondsLeft > 0 ? 'Wait' : 'Resend OTP',
+                      ? StringConstants.resendCodeIn(secondsLeft)
+                      : StringConstants.didntReceiveCode,
+                  secondaryActionText: secondsLeft > 0
+                      ? StringConstants.wait
+                      : StringConstants.resendOtp,
                   onSecondaryTap: _resendOtp,
                   formFields: <Widget>[
                     SizedBox(height: AppDimens.sizeX12),

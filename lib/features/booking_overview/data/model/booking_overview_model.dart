@@ -1,11 +1,13 @@
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+
 enum BookingStatus { completed, confirmed, pending, cancelled }
 
 extension BookingStatusLabel on BookingStatus {
   String get label => switch (this) {
-    BookingStatus.completed => 'Completed',
-    BookingStatus.confirmed => 'Confirmed',
-    BookingStatus.pending => 'Pending',
-    BookingStatus.cancelled => 'Cancelled',
+    BookingStatus.completed => StringConstants.completed,
+    BookingStatus.confirmed => StringConstants.confirmed,
+    BookingStatus.pending => StringConstants.pending,
+    BookingStatus.cancelled => StringConstants.cancelled,
   };
 
   static BookingStatus fromKey(String? key) {

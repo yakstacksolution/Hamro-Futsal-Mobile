@@ -516,7 +516,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
             itemBuilder: (context, index) {
               final item = futsalAmenityOptions[index];
               return VendorSelectableChip(
-                label: item,
+                label: vendorOptionLabel(item),
                 icon: futsalAmenityIcons[item],
                 isSelected: widget.draft.amenities.contains(item),
                 onTap: () => widget.cubit.toggleFutsalAmenity(item),
@@ -541,7 +541,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
             itemBuilder: (context, index) {
               final item = futsalFeatureOptions[index];
               return VendorSelectableChip(
-                label: item,
+                label: vendorOptionLabel(item),
                 icon: futsalFeatureIcons[item],
                 isSelected: widget.draft.features.contains(item),
                 onTap: () => widget.cubit.toggleFutsalFeature(item),
@@ -556,31 +556,31 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   _SectionMeta _sectionMeta(int index) {
     switch (index) {
       case 0:
-        return const _SectionMeta(
+        return _SectionMeta(
           title: StringConstants.basicInformation,
           subtitle: StringConstants.venueIdentityAndContactDetails,
           icon: Icons.storefront_rounded,
         );
       case 1:
-        return const _SectionMeta(
+        return _SectionMeta(
           title: StringConstants.description,
           subtitle: StringConstants.tellCustomersAboutYourFutsalSubtitle,
           icon: Icons.description_rounded,
         );
       case 2:
-        return const _SectionMeta(
+        return _SectionMeta(
           title: StringConstants.locationDetails,
           subtitle: StringConstants.addressAndMapCoordinates,
           icon: Icons.location_on_rounded,
         );
       case 3:
-        return const _SectionMeta(
+        return _SectionMeta(
           title: StringConstants.amenitiesAndFeatures,
           subtitle: StringConstants.highlightWhatYourFutsalOffers,
           icon: Icons.dashboard_customize_rounded,
         );
       default:
-        return const _SectionMeta(
+        return _SectionMeta(
           title: StringConstants.futsalInformation,
           subtitle: StringConstants.completeTheRequiredDetails,
           icon: Icons.info_rounded,

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/courts/data/repositories/venue_court_repository_impl.dart';
 import 'package:hamro_futsal/features/courts/domain/usecase/get_venue_court_use_case.dart';
 import 'package:hamro_futsal/features/media/utils/stable_media_file.dart';
@@ -103,8 +104,8 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   String get courtCategoryLockReason => state.remoteFutsalId == null
-      ? 'Create your futsal venue first — courts are added to a saved venue.'
-      : 'Finish every futsal step before setting up courts.';
+      ? StringConstants.createFutsalVenueFirst
+      : StringConstants.finishFutsalStepsBeforeCourts;
 
   bool get isCourtEditorVisible =>
       !state.isInCourtCategory || state.activeCourt != null;
@@ -137,20 +138,24 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       if (state.remoteFutsalId != null &&
           currentSectionIndex == 0 &&
           currentSubstepIndex == 0) {
-        return 'Next';
+        return StringConstants.next;
       }
       return isLastFutsalSection && isLastFutsalSubstep
-          ? 'Continue to Courts'
-          : 'Next';
+          ? StringConstants.continueToCourts
+          : StringConstants.next;
     }
 
     if (state.activeCourt == null) {
       // On the court list: once a court exists, the vendor is done adding and
       // the bar finishes onboarding; more courts come from the list itself.
-      return state.courts.isEmpty ? 'Add First Court' : 'Finish';
+      return state.courts.isEmpty
+          ? StringConstants.addFirstCourt
+          : StringConstants.finish;
     }
 
-    return isFinalStep ? 'Review & Publish' : 'Next';
+    return isFinalStep
+        ? StringConstants.reviewAndPublishTitle
+        : StringConstants.next;
   }
 
   int get completedSubstepCount {
@@ -436,7 +441,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
 
     if (state.activeCourtId == null) {
-      _emitError('Add a court before opening court steps.');
+      _emitError(StringConstants.addCourtBeforeOpeningCourtSteps);
       return;
     }
 
@@ -452,7 +457,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
 
     if (state.activeCourtId == null) {
-      _emitError('Add a court before opening court substeps.');
+      _emitError(StringConstants.addCourtBeforeOpeningCourtSubsteps);
       return;
     }
 
@@ -586,9 +591,9 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
     final CourtDraft? court = state.activeCourt;
     if (court == null) {
-      return const VendorValidationResult.invalid(
+      return VendorValidationResult.invalid(
         'court_missing',
-        'Add at least one court before continuing.',
+        StringConstants.addAtLeastOneCourtBeforeContinuing,
       );
     }
 
@@ -863,7 +868,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       id: courtId,
       name: name?.trim().isNotEmpty == true
           ? name!.trim()
-          : 'Court ${state.courts.length + 1}',
+          : StringConstants.defaultCourtName(state.courts.length + 1),
       description: _defaultCourtDescription,
     );
 
@@ -1103,7 +1108,9 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
           ...court.slotConfigs,
           SlotPricingDraft(
             id: _newSlotId(court.id),
-            label: 'Slot ${court.slotConfigs.length + 1}',
+            label: StringConstants.defaultSlotLabel(
+              court.slotConfigs.length + 1,
+            ),
           ),
         ],
       ),
@@ -1116,7 +1123,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         ? null
         : (court.remoteId ?? int.tryParse(court.id));
     if (court == null || courtId == null) {
-      const String message = 'Save the court before managing slots.';
+      final String message = StringConstants.saveCourtBeforeManagingSlots;
       emit(
         state.copyWith(
           errorMessage: message,
@@ -1167,7 +1174,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         ? null
         : (court.remoteId ?? int.tryParse(court.id));
     if (court == null || courtId == null || int.tryParse(slot.id) == null) {
-      const String message = 'Save the slot before setting prices.';
+      final String message = StringConstants.saveSlotBeforeSettingPrices;
       emit(
         state.copyWith(
           errorMessage: message,
@@ -1815,7 +1822,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
   Future<String?> saveProgressBeforeExit() async {
     if (state.isSubmitting) {
-      return 'Please wait for the current save to finish.';
+      return StringConstants.waitForCurrentSaveToFinish;
     }
     _flushActiveEditors();
     final String? failure = await _submitProgressIfNeeded();
@@ -1854,9 +1861,9 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
 
     if (state.courts.isEmpty) {
-      const VendorValidationResult result = VendorValidationResult.invalid(
+      final VendorValidationResult result = VendorValidationResult.invalid(
         'courts_required',
-        'Add at least one court before publishing.',
+        StringConstants.addAtLeastOneCourtBeforePublishing,
       );
       emit(
         state.copyWith(
@@ -1917,14 +1924,14 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     _flushActiveEditors();
 
     if (state.courts.isEmpty) {
-      return 'Add at least one court before finishing.';
+      return StringConstants.addAtLeastOneCourtBeforeFinishing;
     }
     for (final CourtDraft court in state.courts) {
       if (!_isCourtComplete(court)) {
         final String name = court.name.trim().isEmpty
-            ? 'A court'
+            ? StringConstants.aCourt
             : '"${court.name.trim()}"';
-        return '$name is not set up yet. Complete it before finishing.';
+        return StringConstants.courtNotSetUpYet(name);
       }
     }
 
@@ -2194,8 +2201,8 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
     final int? futsalId = state.remoteFutsalId;
     if (futsalId == null) {
-      const String message =
-          'Complete and save the futsal venue before adding courts.';
+      final String message =
+          StringConstants.completeAndSaveFutsalBeforeAddingCourts;
       emit(
         state.copyWith(
           errorMessage: message,

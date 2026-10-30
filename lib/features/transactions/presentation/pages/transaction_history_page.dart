@@ -200,7 +200,7 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
 
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.transactionHistory),
+      appBar: CustomAppBar(title: StringConstants.transactionHistory),
       body: SafeArea(
         top: false,
         child: BlocBuilder<TransactionHistoryBloc, TransactionHistoryState>(
@@ -605,8 +605,8 @@ class _ListFooter extends StatelessWidget {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
 
     if (state.isLoadingMore) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX20),
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppDimens.paddingX20),
         child: Center(
           child: SizedBox(
             width: AppDimens.sizeX24,

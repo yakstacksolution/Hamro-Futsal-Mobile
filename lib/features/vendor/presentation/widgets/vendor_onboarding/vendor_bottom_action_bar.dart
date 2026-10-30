@@ -35,7 +35,7 @@ class VendorBottomActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool canInteract = !isSubmitting;
-    final bool isAddFirstCourt = nextLabel == 'Add First Court';
+    final bool isAddFirstCourt = nextLabel == StringConstants.addFirstCourt;
     final Widget primary = _PrimaryActionButton(
       label: nextLabel,
       onTap: canInteract
@@ -279,7 +279,7 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
         ),
         const SizedBox(height: AppDimens.sizeX10),
         Text(
-          'Enter a name for your first court. You can change it later.\nMake sure to use a proper standard name for the court.',
+          StringConstants.enterFirstCourtNameHelper,
           style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
             color: LightColor.secondaryTextColor,
             fontWeight: FontWeight.w500,

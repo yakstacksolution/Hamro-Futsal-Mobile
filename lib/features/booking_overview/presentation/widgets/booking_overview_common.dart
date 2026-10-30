@@ -5,6 +5,7 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/utils/booking_ui_utils.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BookingSurface extends StatelessWidget {
   const BookingSurface({
@@ -114,7 +115,7 @@ class BookingContextLine extends StatelessWidget {
         // calendar the line is built here, from the same range, instead.
         summaryLine.isNotEmpty && !AppDateFormat.isBs
             ? summaryLine
-            : '$label · $count ${count == 1 ? 'booking' : 'bookings'} · '
+            : '$label · ${StringConstants.bookingCount(count)} · '
                   '${BookingFmt.npr(revenue)}',
         style: textTheme.bodyTextSmall?.copyWith(
           color: LightColor.secondaryTextColor,

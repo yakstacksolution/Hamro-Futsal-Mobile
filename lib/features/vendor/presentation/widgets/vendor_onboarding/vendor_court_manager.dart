@@ -261,8 +261,7 @@ class VendorCourtManager extends StatelessWidget {
     final bool confirmed = await showDeleteDialog(
       context: context,
       title: StringConstants.deleteCourtPrompt,
-      message:
-          'Are you sure you want to delete "$courtName"? This action cannot be undone.',
+      message: StringConstants.deleteCourtConfirmation(courtName),
       confirmText: StringConstants.delete,
       cancelText: StringConstants.cancel,
       icon: Icons.delete_outline_rounded,
@@ -311,7 +310,7 @@ class VendorCourtManager extends StatelessWidget {
     AppUtils().showSnackBar(
       context,
       MsgType.success,
-      '"$courtName" deleted successfully.',
+      StringConstants.courtDeletedSuccessfully(courtName),
     );
   }
 
@@ -387,7 +386,7 @@ class VendorCourtManager extends StatelessWidget {
                     context,
                     court,
                     court.name.trim().isEmpty
-                        ? 'Unnamed Court'
+                        ? StringConstants.unnamedCourt
                         : court.name.trim(),
                   ),
                 );
@@ -547,7 +546,7 @@ class _CourtListTile extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
 
     final String courtName = court.name.trim().isEmpty
-        ? 'Unnamed Court'
+        ? StringConstants.unnamedCourt
         : court.name.trim();
     final int progressPercent = (progress * 100).round();
     final bool isComplete = progressPercent == 100;
@@ -616,7 +615,7 @@ class _CourtListTile extends StatelessWidget {
                             if (courtType.isNotEmpty)
                               _InfoChip(
                                 icon: Icons.stadium_rounded,
-                                label: courtType,
+                                label: vendorOptionLabel(courtType),
                               ),
                             if (matchFormat.isNotEmpty)
                               _InfoChip(
@@ -625,8 +624,7 @@ class _CourtListTile extends StatelessWidget {
                               ),
                             _InfoChip(
                               icon: Icons.schedule_rounded,
-                              label:
-                                  '$slotCount ${slotCount == 1 ? 'slot' : 'slots'}',
+                              label: StringConstants.slotCountLabel(slotCount),
                             ),
                             _CourtStatusChip(isActive: court.isActive),
                           ],
@@ -641,14 +639,16 @@ class _CourtListTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
                   Text(
-                    price.isEmpty ? '—' : 'Rs $price',
+                    price.isEmpty ? '—' : StringConstants.rsAmount(price),
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.brandTextColor,
                     ),
                   ),
                   const Spacer(),
                   Text(
-                    isComplete ? 'Complete' : '$progressPercent%',
+                    isComplete
+                        ? StringConstants.completeSetup
+                        : '$progressPercent%',
                     style: textTheme.bodyMiniSubTitle?.copyWith(
                       color: isComplete
                           ? LightColor.brandTextColor
@@ -845,11 +845,10 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
   Future<void> _confirmExitToHome() async {
     final bool shouldExit = await showConfirmDialog(
       context: context,
-      title: 'Save changes & exit?',
-      message:
-          'Your current court setup progress will be saved before returning home.',
-      confirmText: 'Save & go home',
-      cancelText: 'Stay here',
+      title: StringConstants.saveChangesAndExit,
+      message: StringConstants.courtSetupProgressSavedBeforeHome,
+      confirmText: StringConstants.saveAndGoHome,
+      cancelText: StringConstants.stayHere,
       iconWidget: Padding(
         padding: EdgeInsets.all(8.0),
         child: CustomImageView(
@@ -877,7 +876,7 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
       builder: (BuildContext context, VendorOnboardingState state) {
         final CourtDraft? court = _visibleCourt(state);
         final String courtName = court == null || court.name.trim().isEmpty
-            ? 'Court Setup'
+            ? StringConstants.courtSetup
             : court.name.trim();
 
         return Scaffold(
@@ -905,7 +904,7 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
             foregroundColor: LightColor.primaryTextColor,
             actions: <Widget>[
               IconButton(
-                tooltip: 'Home',
+                tooltip: StringConstants.home,
                 onPressed: state.isSubmitting ? null : _confirmExitToHome,
                 icon: CustomImageView(
                   imagePath: ImageConstants.navHome,
@@ -957,7 +956,7 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
                     ),
                   )
                 : court == null
-                ? const Center(child: Text(StringConstants.courtNotFound))
+                ? Center(child: Text(StringConstants.courtNotFound))
                 : context.isDesktop
                 ? VendorWizardFrame(
                     rail: <Widget>[
@@ -1078,7 +1077,7 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
         ),
         const SizedBox(height: AppDimens.sizeX10),
         Text(
-          'Enter a name for the court. You can change it later. \nMake sure to use a proper standard name for the court.',
+          StringConstants.enterCourtNameHelper,
           style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
             color: LightColor.secondaryTextColor,
             fontWeight: FontWeight.w500,

@@ -69,8 +69,7 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
   @override
   void didUpdateWidget(CustomDropdownField<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // The parent owns the value: a rebuild with a different `initialValue`
-    // (a cleared form, a dependent list reset) must win over the local copy.
+
     if (widget.initialValue != oldWidget.initialValue &&
         widget.initialValue != _value) {
       _value = widget.initialValue;
@@ -163,8 +162,6 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
       validator: widget.validator,
       enabled: widget.enabled,
       builder: (FormFieldState<T> field) {
-        // FormField keeps its own copy of the value; a parent-driven reset
-        // arrives through didUpdateWidget, so mirror it back onto the field.
         if (field.value != _value) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && field.value != _value) field.didChange(_value);
@@ -283,8 +280,6 @@ class _MenuOverlay<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: <Widget>[
-        // Tapping anywhere outside the panel closes it, the same way the
-        // Material menu's barrier behaves.
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,

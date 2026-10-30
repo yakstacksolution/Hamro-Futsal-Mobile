@@ -132,7 +132,7 @@ class _HelpVideoPlayerPageState extends State<HelpVideoPlayerPage> {
     final List<HelpVideo> upNext = _upNext;
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.videos),
+      appBar: CustomAppBar(title: StringConstants.videos),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(

@@ -3,6 +3,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 typedef OpsBookingTap = void Function(BookingModel booking);
 
@@ -27,7 +28,7 @@ class OpsCellStyle {
 }
 
 OpsCellStyle opsAvailableStyle() => OpsCellStyle(
-  label: 'Available',
+  label: StringConstants.available,
   icon: Icons.add_rounded,
   background: LightColor.greenLightColor,
   border: LightColor.successColor.withValues(alpha: 0.55),
@@ -35,7 +36,7 @@ OpsCellStyle opsAvailableStyle() => OpsCellStyle(
 );
 
 OpsCellStyle opsSelectedStyle() => OpsCellStyle(
-  label: 'Selected',
+  label: StringConstants.selected,
   icon: Icons.check_rounded,
   background: LightColor.successColor,
   border: LightColor.successColor,
@@ -46,7 +47,7 @@ OpsCellStyle opsSelectedStyle() => OpsCellStyle(
 OpsCellStyle opsBookedStyle([OpsBookingPhase? phase]) {
   final OpsCellStyle? of = phase == null ? null : opsPhaseStyle(phase);
   return OpsCellStyle(
-    label: of?.label ?? 'Booked',
+    label: of?.label ?? StringConstants.booked,
     icon: of?.icon ?? Icons.event_busy_rounded,
     background: LightColor.redColor,
     border: LightColor.redColor,
@@ -56,7 +57,7 @@ OpsCellStyle opsBookedStyle([OpsBookingPhase? phase]) {
 }
 
 OpsCellStyle opsClosedStyle() => OpsCellStyle(
-  label: 'Closed',
+  label: StringConstants.closed,
   icon: Icons.block_rounded,
   background: LightColor.redLightColor,
   border: LightColor.redColor.withValues(alpha: 0.5),
@@ -64,7 +65,7 @@ OpsCellStyle opsClosedStyle() => OpsCellStyle(
 );
 
 OpsCellStyle opsPastStyle() => OpsCellStyle(
-  label: 'Past',
+  label: StringConstants.past,
   icon: Icons.history_rounded,
   background: LightColor.sunkenColor,
   border: LightColor.dividerColor,
@@ -75,7 +76,7 @@ OpsCellStyle opsPhaseStyle(OpsBookingPhase phase) {
   switch (phase) {
     case OpsBookingPhase.pending:
       return OpsCellStyle(
-        label: 'Pending',
+        label: StringConstants.pending,
         icon: Icons.hourglass_top_rounded,
         background: LightColor.warningLightColor,
         border: LightColor.warningColor.withValues(alpha: 0.6),
@@ -83,7 +84,7 @@ OpsCellStyle opsPhaseStyle(OpsBookingPhase phase) {
       );
     case OpsBookingPhase.confirmed:
       return OpsCellStyle(
-        label: 'Confirmed',
+        label: StringConstants.confirmed,
         icon: Icons.event_available_rounded,
         background: LightColor.blueLightColor,
         border: LightColor.blueColor.withValues(alpha: 0.55),
@@ -91,7 +92,7 @@ OpsCellStyle opsPhaseStyle(OpsBookingPhase phase) {
       );
     case OpsBookingPhase.inProgress:
       return OpsCellStyle(
-        label: 'In progress',
+        label: StringConstants.inProgress,
         icon: Icons.play_circle_fill_rounded,
         background: LightColor.purpleLightColor,
         border: LightColor.purpleColor.withValues(alpha: 0.6),
@@ -99,7 +100,7 @@ OpsCellStyle opsPhaseStyle(OpsBookingPhase phase) {
       );
     case OpsBookingPhase.completed:
       return OpsCellStyle(
-        label: 'Completed',
+        label: StringConstants.completed,
         icon: Icons.task_alt_rounded,
         background: LightColor.greenLightColor,
         border: LightColor.successColor.withValues(alpha: 0.55),
@@ -125,11 +126,11 @@ OpsCellStyle opsCellStyle(OpsCell cell, {required bool selected}) {
 String opsPaymentLabel(OpsPaymentState state) {
   switch (state) {
     case OpsPaymentState.paid:
-      return 'Paid';
+      return StringConstants.paid;
     case OpsPaymentState.partial:
-      return 'Partly paid';
+      return StringConstants.partlyPaid;
     case OpsPaymentState.unpaid:
-      return 'Unpaid';
+      return StringConstants.unpaid;
   }
 }
 
@@ -307,14 +308,14 @@ class OpsLiveSlotsNotice extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Live slots did not load — showing the court\'s schedule.',
+              StringConstants.liveSlotsDidNotLoad,
               style: TextStyle(
                 fontSize: 11.5,
                 color: LightColor.onWarningLightColor,
               ),
             ),
           ),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
+          TextButton(onPressed: onRetry, child: Text(StringConstants.retry)),
         ],
       ),
     );

@@ -10,10 +10,10 @@ enum MessageFilter { all, unread, active, bookings }
 
 extension on MessageFilter {
   String get label => switch (this) {
-    MessageFilter.all => 'All',
-    MessageFilter.unread => 'Unread',
-    MessageFilter.active => 'Active',
-    MessageFilter.bookings => 'Bookings',
+    MessageFilter.all => StringConstants.all,
+    MessageFilter.unread => StringConstants.unread,
+    MessageFilter.active => StringConstants.active,
+    MessageFilter.bookings => StringConstants.bookings,
   };
 }
 
@@ -43,7 +43,7 @@ class _MessagesPageState extends State<MessagesPage> {
     super.dispose();
   }
 
-  static const List<_MessageItem> _seed = <_MessageItem>[
+  static List<_MessageItem> get _seed => <_MessageItem>[
     _MessageItem(
       id: 'm1',
       name: 'Andy Robertson',
@@ -197,8 +197,10 @@ class _MessagesPageState extends State<MessagesPage> {
           if (_messages.isNotEmpty) ...[
             const SizedBox(height: AppDimens.paddingX4),
             Text(
-              '${_messages.length} conversations'
-              '${unreadTotal > 0 ? ' · $unreadTotal unread' : ''}',
+              StringConstants.conversationsUnreadSummary(
+                _messages.length,
+                unreadTotal,
+              ),
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
               ),
@@ -335,7 +337,9 @@ class _MessagesPageState extends State<MessagesPage> {
             ),
             const SizedBox(height: AppDimens.paddingX14),
             Text(
-              isFiltered ? 'No matching conversations' : 'No messages yet',
+              isFiltered
+                  ? StringConstants.noMatchingConversations
+                  : StringConstants.noMessagesYet,
               style: textTheme.bodyTextMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: LightColor.primaryTextColor,
@@ -344,8 +348,8 @@ class _MessagesPageState extends State<MessagesPage> {
             const SizedBox(height: AppDimens.paddingX6),
             Text(
               isFiltered
-                  ? 'Try a different filter or search term.'
-                  : 'Your conversations will appear here.',
+                  ? StringConstants.tryDifferentFilterOrSearch
+                  : StringConstants.yourConversationsWillAppearHere,
               textAlign: TextAlign.center,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
@@ -551,7 +555,9 @@ class _MessageCard extends StatelessWidget {
                   ),
                   const SizedBox(width: AppDimens.paddingX4),
                   Text(
-                    item.isActive ? 'Active now · ${item.time}' : item.time,
+                    item.isActive
+                        ? StringConstants.activeNowAt(item.time)
+                        : item.time,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.hintTextColor,
                       fontSize: AppDimens.fontBodySubTitle,
@@ -585,7 +591,7 @@ class _MessageCard extends StatelessWidget {
             icon: isUnread
                 ? Icons.mark_email_read_outlined
                 : Icons.check_circle_outline_rounded,
-            label: isUnread ? 'Mark read' : 'Read',
+            label: isUnread ? StringConstants.markRead : StringConstants.read,
             onTap: isUnread ? onMarkRead : null,
             emphasised: isUnread,
           ),

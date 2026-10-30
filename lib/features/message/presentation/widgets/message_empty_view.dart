@@ -3,6 +3,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class MessageEmptyView extends StatelessWidget {
   const MessageEmptyView({super.key, required this.isFiltered});
@@ -34,7 +35,9 @@ class MessageEmptyView extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX14),
             Text(
-              isFiltered ? 'No matching conversations' : 'No messages yet',
+              isFiltered
+                  ? StringConstants.noMatchingConversations
+                  : StringConstants.noMessagesYet,
               style: textTheme.bodyTextMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: LightColor.primaryTextColor,
@@ -43,8 +46,8 @@ class MessageEmptyView extends StatelessWidget {
             const SizedBox(height: AppDimens.paddingX6),
             Text(
               isFiltered
-                  ? 'Try a different filter or search term.'
-                  : 'Your conversations will appear here.',
+                  ? StringConstants.tryDifferentFilterOrSearch
+                  : StringConstants.yourConversationsWillAppearHere,
               textAlign: TextAlign.center,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,

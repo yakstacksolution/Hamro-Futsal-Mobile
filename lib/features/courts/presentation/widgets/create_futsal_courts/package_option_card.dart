@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
-import 'package:hamro_futsal/features/courts/data/model/create_courts_package_option.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/features/courts/data/model/create_courts_package_option.dart';
 
 class PackageOptionCard extends StatelessWidget {
   const PackageOptionCard({
@@ -143,7 +143,9 @@ class PackageOptionCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    isSelected ? 'Selected package' : 'Tap to choose package',
+                    isSelected
+                        ? StringConstants.selectedPackage
+                        : StringConstants.tapToChoosePackage,
                     style: TextStyle(
                       color: isSelected
                           ? LightColor.secondaryColor

@@ -572,10 +572,7 @@ class _ProfileError extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppDimens.paddingX10),
-          TextButton(
-            onPressed: onRetry,
-            child: const Text(StringConstants.retry),
-          ),
+          TextButton(onPressed: onRetry, child: Text(StringConstants.retry)),
         ],
       ),
     );

@@ -204,8 +204,8 @@ class _BookingExportSheetState extends State<_BookingExportSheet> {
                     ),
                     const SizedBox(height: AppDimens.paddingX2),
                     Text(
-                      'CSV · ${_size(widget.export.bytes.length)} · $_rows '
-                      '${_rows == 1 ? 'row' : 'rows'}',
+                      'CSV · ${_size(widget.export.bytes.length)} · '
+                      '${StringConstants.rowCount(_rows)}',
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.secondaryTextColor,
                         fontSize: AppDimens.fontBodySubTitle,

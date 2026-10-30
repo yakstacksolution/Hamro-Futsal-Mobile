@@ -6,8 +6,8 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_utils.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:nepali_utils/nepali_utils.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class ExpenseDateRangeSheet extends StatefulWidget {
   const ExpenseDateRangeSheet({
@@ -196,7 +196,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
 
   Widget _header(dynamic textTheme) {
     final summary = _start == null
-        ? 'Select a start date'
+        ? StringConstants.selectAStartDate
         : _end == null
         ? '${formatShortDate(_start!)} → …'
         : '${formatShortDate(_start!)} → ${formatShortDate(_end!)}';
@@ -235,10 +235,18 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
   Widget _presets(dynamic textTheme) {
     final today = _d(DateTime.now());
     final items = <(String, DateTime, DateTime)>[
-      ('7 days', today.subtract(const Duration(days: 6)), today),
-      ('30 days', today.subtract(const Duration(days: 29)), today),
-      ('This month', _dayOf(_monthOf(today), 1), today),
-      ('This year', _dayOf((_monthOf(today).$1, 1), 1), today),
+      (
+        StringConstants.sevenDays,
+        today.subtract(const Duration(days: 6)),
+        today,
+      ),
+      (
+        StringConstants.thirtyDays,
+        today.subtract(const Duration(days: 29)),
+        today,
+      ),
+      (StringConstants.thisMonth, _dayOf(_monthOf(today), 1), today),
+      (StringConstants.thisYear, _dayOf((_monthOf(today).$1, 1), 1), today),
     ];
     return SizedBox(
       height: AppDimens.sizeX32,
@@ -404,7 +412,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
                 borderRadius: BorderRadius.circular(AppDimens.radiusX12),
               ),
             ),
-            child: const Text(StringConstants.cancel),
+            child: Text(StringConstants.cancel),
           ),
         ),
         const SizedBox(width: AppDimens.paddingX12),
@@ -426,7 +434,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
                 borderRadius: BorderRadius.circular(AppDimens.radiusX12),
               ),
             ),
-            child: const Text(StringConstants.apply),
+            child: Text(StringConstants.apply),
           ),
         ),
       ],

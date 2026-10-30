@@ -1,15 +1,16 @@
 import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/features/booking_overview/data/model/booking_overview_model.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 enum BookingPeriod { today, week, month, year, custom }
 
 extension BookingPeriodLabel on BookingPeriod {
   String get label => switch (this) {
-    BookingPeriod.today => 'Today',
-    BookingPeriod.week => 'Week',
-    BookingPeriod.month => 'Month',
-    BookingPeriod.year => 'Year',
-    BookingPeriod.custom => 'Custom',
+    BookingPeriod.today => StringConstants.today,
+    BookingPeriod.week => StringConstants.periodWeek,
+    BookingPeriod.month => StringConstants.periodMonth,
+    BookingPeriod.year => StringConstants.periodYear,
+    BookingPeriod.custom => StringConstants.periodCustom,
   };
 
   String get key => name;
@@ -123,11 +124,13 @@ class BookingAnalytics {
   int get statusTotal =>
       data.statusMix.fold(0, (int a, StatusMixEntry e) => a + e.count);
 
-  String get statusTitle =>
-      data.statusTitle.isEmpty ? 'Booking statuses' : data.statusTitle;
+  String get statusTitle => data.statusTitle.isEmpty
+      ? StringConstants.bookingStatuses
+      : data.statusTitle;
 
-  String get statusChartTitle =>
-      data.statusChartTitle.isEmpty ? 'Status mix' : data.statusChartTitle;
+  String get statusChartTitle => data.statusChartTitle.isEmpty
+      ? StringConstants.statusMix
+      : data.statusChartTitle;
 
   // ── Revenue trend series ──
   List<int> get series =>
@@ -141,11 +144,13 @@ class BookingAnalytics {
       )
       .toList(growable: false);
 
-  String get trendTitle =>
-      data.trend.title.isEmpty ? 'Revenue trend' : data.trend.title;
+  String get trendTitle => data.trend.title.isEmpty
+      ? StringConstants.revenueTrend
+      : data.trend.title;
 
-  String get seriesLabel =>
-      data.trend.chartTitle.isEmpty ? 'Revenue' : data.trend.chartTitle;
+  String get seriesLabel => data.trend.chartTitle.isEmpty
+      ? StringConstants.revenue
+      : data.trend.chartTitle;
 
   String get averageLabel {
     if (data.trend.averageLabel.isNotEmpty) return data.trend.averageLabel;
@@ -153,7 +158,7 @@ class BookingAnalytics {
     final int avg = data.trend.average != 0 || values.isEmpty
         ? data.trend.average
         : (values.reduce((a, b) => a + b) / values.length).round();
-    return 'Avg NPR ${_group(avg)}';
+    return StringConstants.avgNpr(_group(avg));
   }
 
   static String _group(int v) {

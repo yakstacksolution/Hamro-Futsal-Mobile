@@ -176,7 +176,7 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  const _SectionLabel(StringConstants.direction),
+                  _SectionLabel(StringConstants.direction),
                   _DirectionSegments(
                     selected: _direction,
                     onChanged: (TransactionDirectionFilter filter) =>
@@ -184,7 +184,7 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
                   ),
 
                   if (widget.availableTypes.isNotEmpty) ...<Widget>[
-                    const _SectionLabel(StringConstants.type),
+                    _SectionLabel(StringConstants.type),
                     _ChipGrid(
                       children: <Widget>[
                         for (final String option in <String>[
@@ -202,7 +202,7 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
                     ),
                   ],
 
-                  const _SectionLabel(StringConstants.dateRange),
+                  _SectionLabel(StringConstants.dateRange),
                   _ChipGrid(
                     children: TransactionRangeFilter.values
                         .map(

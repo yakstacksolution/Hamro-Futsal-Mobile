@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_hold_model.dart';
 import 'package:hamro_futsal/features/futsal_details/domain/repository/futsal_details_repository.dart';
 
@@ -36,7 +37,8 @@ final class BookingHoldUseCase {
       (List<BookingHoldModel> holds) => holds.isEmpty
           ? left(
               DefaultException(
-                errorMessage: 'Could not hold this slot. Please try again.',
+                errorMessage:
+                    StringConstants.couldNotHoldThisSlotPleaseTryAgain,
                 statusCode: 0,
               ),
             )

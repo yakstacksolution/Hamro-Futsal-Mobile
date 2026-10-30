@@ -164,15 +164,15 @@ class CreateTeamSheet extends StatefulWidget {
     super.key,
     required this.onCreate,
     this.initialName,
-    this.title = 'Create Team',
-    this.actionLabel = 'Create Team',
+    this.title,
+    this.actionLabel,
     this.actionIcon = Icons.add_rounded,
   });
 
   final ValueChanged<String> onCreate;
   final String? initialName;
-  final String title;
-  final String actionLabel;
+  final String? title;
+  final String? actionLabel;
   final IconData actionIcon;
 
   @override
@@ -193,20 +193,20 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
     final trimmed = _teamCtrl.text.trim();
     final enabled = trimmed.isNotEmpty && trimmed != widget.initialName?.trim();
     return OpponentSheetShell(
-      title: widget.title,
+      title: widget.title ?? StringConstants.createTeam,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SheetInput(
             controller: _teamCtrl,
-            hint: 'Team name',
+            hint: StringConstants.teamName,
             icon: Icons.groups_2_outlined,
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: AppDimens.sizeX20),
           CustomButton(
-            text: widget.actionLabel,
+            text: widget.actionLabel ?? StringConstants.createTeam,
             icon: widget.actionIcon,
             minHeight: AppDimens.sizeX44,
             backgroundColor: LightColor.buttonColor,
@@ -295,21 +295,21 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
   @override
   Widget build(BuildContext context) {
     return OpponentSheetShell(
-      title: _isEdit ? 'Edit Player' : 'Add Player',
+      title: _isEdit ? StringConstants.editPlayer : StringConstants.addPlayer,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SheetInput(
             controller: _nameCtrl,
-            hint: 'Player name',
+            hint: StringConstants.playerNameHint,
             icon: Icons.person_outline_rounded,
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: AppDimens.sizeX12),
           _SheetInput(
             controller: _emailCtrl,
-            hint: 'Player email',
+            hint: StringConstants.playerEmailHint,
             icon: Icons.mail_outline_rounded,
             keyboardType: TextInputType.emailAddress,
             // Addresses are never capitalised, unlike the name above.
@@ -319,7 +319,7 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
           ),
           const SizedBox(height: AppDimens.sizeX14),
           Text(
-            'Position in ${widget.teamName}',
+            StringConstants.positionInTeam(widget.teamName),
             style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               color: LightColor.secondaryTextColor,
               fontWeight: FontWeight.w600,
@@ -367,7 +367,9 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
           ),
           const SizedBox(height: AppDimens.sizeX20),
           CustomButton(
-            text: _isEdit ? 'Save Changes' : 'Add Player',
+            text: _isEdit
+                ? StringConstants.saveChangesTitle
+                : StringConstants.addPlayer,
             icon: _isEdit ? Icons.check_rounded : Icons.person_add_outlined,
             minHeight: AppDimens.sizeX44,
             backgroundColor: LightColor.buttonColor,

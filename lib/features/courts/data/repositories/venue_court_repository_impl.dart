@@ -2,13 +2,13 @@ import 'package:dartz/dartz.dart';
 import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/core/helper/response_helper.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/courts/data/data_source/venue_court_data_source.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_page_model.dart';
 import 'package:hamro_futsal/features/courts/domain/model/venue_court_purpose.dart';
 import 'package:hamro_futsal/features/courts/domain/repository/venue_court_repository.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 final class VenueCourtRepositoryImpl implements VenueCourtRepository {
   VenueCourtRepositoryImpl({VenueCourtRemoteDataSource? remoteDataSource})
@@ -67,7 +67,10 @@ final class VenueCourtRepositoryImpl implements VenueCourtRepository {
     int courtId,
   ) async {
     final response = await _remoteDataSource.getCourtSlots(courtId);
-    return _parseSlots(response, 'Could not parse court slots from server.');
+    return _parseSlots(
+      response,
+      StringConstants.couldNotParseCourtSlotsFromServer,
+    );
   }
 
   @override
@@ -75,7 +78,7 @@ final class VenueCourtRepositoryImpl implements VenueCourtRepository {
     Map<String, dynamic> data,
   ) async {
     final response = await _remoteDataSource.createCourtSlot(data);
-    return _parseSlots(response, 'Could not create the court slot.');
+    return _parseSlots(response, StringConstants.couldNotCreateCourtSlot);
   }
 
   @override
@@ -83,7 +86,7 @@ final class VenueCourtRepositoryImpl implements VenueCourtRepository {
     Map<String, dynamic> data,
   ) async {
     final response = await _remoteDataSource.updateCourtSlot(data);
-    return _parseSlots(response, 'Could not save the court slot.');
+    return _parseSlots(response, StringConstants.couldNotSaveCourtSlot);
   }
 
   @override
@@ -91,7 +94,7 @@ final class VenueCourtRepositoryImpl implements VenueCourtRepository {
     Map<String, dynamic> data,
   ) async {
     final response = await _remoteDataSource.deleteCourtSlot(data);
-    return _parseSlots(response, 'Could not delete the court slot.');
+    return _parseSlots(response, StringConstants.couldNotDeleteCourtSlot);
   }
 
   @override

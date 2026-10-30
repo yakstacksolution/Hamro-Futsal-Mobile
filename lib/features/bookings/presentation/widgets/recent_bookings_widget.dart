@@ -82,7 +82,7 @@ class RecentBookingsWidget extends StatelessWidget {
               _InlineError(
                 message:
                     state.futsalBookingsError ??
-                    'Failed to load recent bookings.',
+                    StringConstants.failedToLoadRecentBookings,
                 onRetry: () => context.read<BookingBloc>().add(
                   const FetchFutsalBookingsEvent(),
                 ),
@@ -139,7 +139,7 @@ class RecentBookingsWidget extends StatelessWidget {
       ),
       _Summary(
         label: StringConstants.revenue,
-        value: 'NPR ${_compact(revenue)}',
+        value: '${StringConstants.npr} ${_compact(revenue)}',
         icon: Icons.payments_rounded,
         color: LightColor.secondaryColor,
       ),
@@ -286,7 +286,9 @@ class _BookingTile extends StatelessWidget {
     final statusColor = bookingStatusColor(booking.status);
     final displayName = (booking.playerName?.isNotEmpty == true)
         ? booking.playerName!
-        : (booking.futsalName.isNotEmpty ? booking.futsalName : 'Unknown');
+        : (booking.futsalName.isNotEmpty
+              ? booking.futsalName
+              : StringConstants.unknown);
 
     return Container(
       padding: AppUtils().getPadding(all: AppDimens.paddingX14),
@@ -325,7 +327,7 @@ class _BookingTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       booking.bookingRef.isNotEmpty
-                          ? 'Ref #${booking.bookingRef}'
+                          ? StringConstants.refNumber(booking.bookingRef)
                           : _relativeDate(booking.date),
                       style: textTheme.bodyTextSmall?.copyWith(
                         fontSize: 11,
@@ -427,7 +429,7 @@ class _BookingTile extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                'NPR ${booking.amount.toStringAsFixed(0)}',
+                '${StringConstants.npr} ${booking.amount.toStringAsFixed(0)}',
                 style: textTheme.bodyTextLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
@@ -464,9 +466,9 @@ class _BookingTile extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final that = DateTime(d.year, d.month, d.day);
     final diff = that.difference(today).inDays;
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Tomorrow';
-    if (diff == -1) return 'Yesterday';
+    if (diff == 0) return StringConstants.today;
+    if (diff == 1) return StringConstants.tomorrow;
+    if (diff == -1) return StringConstants.yesterday;
     return AppDateFormat.format(d, 'd MMM');
   }
 }

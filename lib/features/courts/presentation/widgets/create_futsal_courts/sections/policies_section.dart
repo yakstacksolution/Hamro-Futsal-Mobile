@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/courts/presentation/bloc/create_futsal_courts_bloc.dart';
 import 'package:hamro_futsal/features/courts/presentation/widgets/create_futsal_courts/policy_toggle_tile.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
 class PoliciesSection extends StatelessWidget {
@@ -29,10 +29,9 @@ class PoliciesSection extends StatelessWidget {
         // policy stays visible to the vendor.
         PolicyToggleTile(
           title: StringConstants.requireAdvancePayment,
-          subtitle:
-              'Required on every court — at least '
-              '${kMinimumAdvancePercent.toStringAsFixed(0)}% is collected '
-              'before a booking is confirmed.',
+          subtitle: StringConstants.advanceRequiredOnEveryCourt(
+            kMinimumAdvancePercent.toStringAsFixed(0),
+          ),
           value: true,
           onChanged: null,
         ),
@@ -68,7 +67,9 @@ class PoliciesSection extends StatelessWidget {
           focusNode: bloc.cancellationWindowFocus,
           ensureVisibleOnFocus: true,
           labelText: StringConstants.cancellationWindowHours,
-          hintText: bloc.state.allowCancellation ? '12' : 'Disabled',
+          hintText: bloc.state.allowCancellation
+              ? '12'
+              : StringConstants.disabled,
           icon: Icons.access_time_filled_rounded,
           iconColor: LightColor.monoIconColor,
           keyboardType: TextInputType.number,

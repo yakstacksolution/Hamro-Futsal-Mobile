@@ -106,7 +106,7 @@ class BookingPeriodChips extends StatelessWidget {
           final p = BookingPeriod.values[i];
           return BookingChip(
             label: p == BookingPeriod.custom && customRange != null
-                ? '${customRange!.duration.inDays + 1}d'
+                ? StringConstants.daysShort(customRange!.duration.inDays + 1)
                 : p.label,
             selected: period == p,
             icon: p == BookingPeriod.custom ? Icons.date_range_outlined : null,

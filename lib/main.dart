@@ -19,6 +19,9 @@ import 'package:hamro_futsal/core/helper/crash_reporter.dart';
 import 'package:hamro_futsal/core/helper/fcm_helper.dart';
 import 'package:hamro_futsal/core/helper/session_bootstrap.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/l10n/app_language.dart';
+import 'package:hamro_futsal/core/l10n/app_locale_controller.dart';
+import 'package:hamro_futsal/core/l10n/generated/app_localizations.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/core/routers/app_routers.dart';
 import 'package:hamro_futsal/core/routers/deep_link_service.dart';
@@ -35,7 +38,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 // ignore: unnecessary_nullable_for_final_variable_declarations
-const AppFlavor kAppFlavor = AppFlavor.production;
+const AppFlavor kAppFlavor = AppFlavor.staging;
 
 void main() async {
   final WidgetsBinding widgetsBinding =
@@ -86,6 +89,7 @@ void main() async {
     await AppSettings().init(SharedPreferencesWrapper(preferences));
     await HiveCacheService.instance.init();
     AppThemeController.restore();
+    AppLocaleController.restore();
     AppCalendarController.restore();
 
     hasLoggedIn = await SessionBootstrap.resolve();
@@ -161,33 +165,40 @@ class _MyAppState extends State<MyApp> {
         return BlocProvider<AppUpdateBloc>(
           create: (_) =>
               AppUpdateBloc(CheckAppUpdateUseCase(AppUpdateRepositoryImpl())),
-          child: ValueListenableBuilder<ThemeMode>(
-            valueListenable: AppThemeController.instance,
-            builder: (BuildContext context, ThemeMode mode, Widget? child) {
-              return MaterialApp.router(
-                title: StringConstants.hamroFutsal,
-                debugShowCheckedModeBanner: false,
-                theme: FutsalTheme.lightTheme,
-                darkTheme: FutsalTheme.darkTheme,
-                themeMode: mode,
-                themeAnimationDuration: Duration.zero,
-                localizationsDelegates: const [
-                  GlobalMaterialLocalizations.delegate,
-                  GlobalCupertinoLocalizations.delegate,
-                  GlobalWidgetsLocalizations.delegate,
-                  FlutterQuillLocalizations.delegate,
-                ],
-                supportedLocales: const [Locale('en')],
-                routerConfig: _router,
-                builder: (BuildContext context, Widget? child) {
-                  return AppTextScaling(
-                    child: AppUpdateGate(
-                      child: child ?? const SizedBox.shrink(),
-                    ),
-                  );
-                },
-              );
-            },
+          child: ValueListenableBuilder<AppLanguage>(
+            valueListenable: AppLocaleController.instance,
+            builder: (BuildContext context, AppLanguage language, Widget? _) =>
+                ValueListenableBuilder<ThemeMode>(
+                  valueListenable: AppThemeController.instance,
+                  builder:
+                      (BuildContext context, ThemeMode mode, Widget? child) {
+                        return MaterialApp.router(
+                          title: StringConstants.hamroFutsal,
+                          debugShowCheckedModeBanner: false,
+                          theme: FutsalTheme.lightTheme,
+                          darkTheme: FutsalTheme.darkTheme,
+                          themeMode: mode,
+                          themeAnimationDuration: Duration.zero,
+                          locale: language.locale,
+                          localizationsDelegates: const [
+                            AppLocalizations.delegate,
+                            GlobalMaterialLocalizations.delegate,
+                            GlobalCupertinoLocalizations.delegate,
+                            GlobalWidgetsLocalizations.delegate,
+                            FlutterQuillLocalizations.delegate,
+                          ],
+                          supportedLocales: AppLanguage.supportedLocales,
+                          routerConfig: _router,
+                          builder: (BuildContext context, Widget? child) {
+                            return AppTextScaling(
+                              child: AppUpdateGate(
+                                child: child ?? const SizedBox.shrink(),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                ),
           ),
         );
       },

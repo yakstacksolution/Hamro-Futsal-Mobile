@@ -146,9 +146,11 @@ class _NotificationsView extends StatelessWidget {
                                   Icons.done_all_rounded,
                                   size: AppDimens.sizeX18,
                                 ),
-                                label: const Text(
+                                label: Text(
                                   StringConstants.markAllAsRead,
-                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                           ],

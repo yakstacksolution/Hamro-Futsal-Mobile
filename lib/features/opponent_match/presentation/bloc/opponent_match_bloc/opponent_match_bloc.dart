@@ -11,6 +11,7 @@ import 'package:hamro_futsal/features/opponent_match/domain/entities/opponent_ma
 import 'package:hamro_futsal/features/opponent_match/data/model/opponent_request_tab.dart';
 import 'package:hamro_futsal/features/opponent_match/data/model/opponent_request_summary_model.dart';
 import 'package:hamro_futsal/features/opponent_match/domain/usecase/opponent_match_usecase.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 part 'opponent_match_event.dart';
 part 'opponent_match_state.dart';
@@ -318,9 +319,7 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
       emit(
         state.copyWith(
           venueStepStatus: OpponentMatchStatus.failure,
-          venueStepError:
-              'The match details have not been saved yet. '
-              'Go back a step and try again.',
+          venueStepError: StringConstants.matchDetailsNotSavedYet,
         ),
       );
       return;
@@ -391,9 +390,7 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
       emit(
         state.copyWith(
           costStepStatus: OpponentMatchStatus.failure,
-          costStepError:
-              'The match details have not been saved yet. '
-              'Go back a step and try again.',
+          costStepError: StringConstants.matchDetailsNotSavedYet,
         ),
       );
       return;
@@ -436,9 +433,7 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
       emit(
         state.copyWith(
           publishStatus: OpponentMatchStatus.failure,
-          publishError:
-              'This request has not been opened on the server yet. '
-              'Go back and save the match details first.',
+          publishError: StringConstants.requestNotOpenedOnServerYet,
         ),
       );
       return;
@@ -644,8 +639,7 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
       emit(
         state.copyWith(
           selectOpponentStatus: OpponentMatchStatus.failure,
-          selectOpponentError:
-              'That invitation is missing its id — refresh and try again.',
+          selectOpponentError: StringConstants.invitationMissingId,
         ),
       );
       return;

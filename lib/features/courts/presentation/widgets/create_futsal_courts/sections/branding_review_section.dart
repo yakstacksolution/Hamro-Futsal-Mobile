@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/courts/presentation/bloc/create_futsal_courts_bloc.dart';
 import 'package:hamro_futsal/features/courts/presentation/widgets/create_futsal_courts/info_banner.dart';
 import 'package:hamro_futsal/features/courts/presentation/widgets/create_futsal_courts/logo_picker_card.dart';
 import 'package:hamro_futsal/features/courts/presentation/widgets/create_futsal_courts/review_summary_tile.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BrandingReviewSection extends StatelessWidget {
   const BrandingReviewSection({
@@ -86,13 +86,15 @@ class BrandingReviewSection extends StatelessWidget {
           label: StringConstants.basicPrice,
           value: bloc.basicPriceController.text.trim().isEmpty
               ? ''
-              : 'NPR ${bloc.basicPriceController.text.trim()}',
+              : StringConstants.nprAmount(
+                  bloc.basicPriceController.text.trim(),
+                ),
           icon: Icons.payments_rounded,
         ),
         ReviewSummaryTile(
           label: StringConstants.website,
           value: bloc.websiteController.text.trim().isEmpty
-              ? 'Not provided'
+              ? StringConstants.notProvided
               : bloc.websiteController.text.trim(),
           icon: Icons.language_rounded,
         ),

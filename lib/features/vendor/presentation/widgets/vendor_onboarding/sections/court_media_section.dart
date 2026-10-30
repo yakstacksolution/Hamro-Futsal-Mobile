@@ -50,7 +50,7 @@ class CourtMediaSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const VendorOnboardingSectionHeader(
+          VendorOnboardingSectionHeader(
             title: StringConstants.uploadPhotosAndMemories,
             subtitle: StringConstants
                 .useSeparateCourtMediaToShowConditionLayoutAndEvec64b5,
@@ -61,7 +61,7 @@ class CourtMediaSection extends StatelessWidget {
             title: StringConstants.courtPhotos,
             subtitle: StringConstants.operationalPhotosForThisSpecificCourt,
             onPick: () => unawaited(_openPhotoLibrary(context)),
-            actionLabel: 'Gallery',
+            actionLabel: StringConstants.gallery,
             actionIcon: Icons.photo_library_rounded,
             files: court.photos,
             onRemove: cubit.removeCourtPhoto,
@@ -71,7 +71,7 @@ class CourtMediaSection extends StatelessWidget {
             title: StringConstants.memories,
             subtitle: StringConstants.tournamentsEventsOrPromotionalMoments,
             onPick: () => unawaited(_openMemoryLibrary(context)),
-            actionLabel: 'Gallery',
+            actionLabel: StringConstants.gallery,
             actionIcon: Icons.collections_bookmark_rounded,
             files: court.memories,
             onRemove: cubit.removeCourtMemory,

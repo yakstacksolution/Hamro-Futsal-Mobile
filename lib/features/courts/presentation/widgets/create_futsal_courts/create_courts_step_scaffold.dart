@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class CreateCourtsStepScaffold extends StatelessWidget {
   const CreateCourtsStepScaffold({
@@ -60,7 +61,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Step ${stepIndex + 1} of $totalSteps',
+                      StringConstants.stepOfTotal(stepIndex + 1, totalSteps),
                       style: const TextStyle(
                         fontSize: 12,
                         color: LightColor.secondaryColor,

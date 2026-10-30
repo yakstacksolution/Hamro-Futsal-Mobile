@@ -1,4 +1,5 @@
 import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 int _toInt(dynamic v) {
   if (v is int) return v;
@@ -88,9 +89,9 @@ class ExpenseTrend {
   static const empty = ExpenseTrend(granularity: '', avg: 0, buckets: []);
 
   String get title => switch (granularity) {
-    'hourly' => 'Hourly spend',
-    'monthly' => 'Monthly spend',
-    _ => 'Daily spend',
+    'hourly' => StringConstants.hourlySpend,
+    'monthly' => StringConstants.monthlySpend,
+    _ => StringConstants.dailySpend,
   };
 
   factory ExpenseTrend.fromJson(Map json) {

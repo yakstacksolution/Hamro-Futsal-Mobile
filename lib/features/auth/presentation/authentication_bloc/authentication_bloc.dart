@@ -64,7 +64,7 @@ class AuthenticationBloc
           emit(
             state.copyWith(
               loginStatus: AuthStatus.success,
-              successMessage: 'Login successful',
+              successMessage: StringConstants.loginSuccessful,
               clearErrorMessage: true,
               clearErrorData: true,
             ),
@@ -156,7 +156,7 @@ class AuthenticationBloc
           emit(
             state.copyWith(
               googleLoginStatus: AuthStatus.success,
-              successMessage: 'Login successful',
+              successMessage: StringConstants.loginSuccessful,
               clearErrorMessage: true,
               clearErrorData: true,
             ),
@@ -171,10 +171,9 @@ class AuthenticationBloc
         r'ApiException:\s*(\d+)',
       ).firstMatch(error.message ?? '')?.group(1);
       final message = status == '10'
-          ? 'Google sign-in is not configured for this app version. '
-                'Please contact support. (Google 10)'
+          ? StringConstants.googleSignInNotConfigured
           : '${StringConstants.googleSignInFailedPleaseTryAgain} '
-                '(Google ${status ?? error.code})';
+                '${StringConstants.googleErrorCode(status ?? error.code)}';
       emit(
         state.copyWith(
           googleLoginStatus: AuthStatus.failure,
@@ -275,7 +274,7 @@ class AuthenticationBloc
           emit(
             state.copyWith(
               appleLoginStatus: AuthStatus.success,
-              successMessage: 'Login successful',
+              successMessage: StringConstants.loginSuccessful,
               clearErrorMessage: true,
               clearErrorData: true,
             ),
@@ -349,7 +348,7 @@ class AuthenticationBloc
         (TokenModel token) => emit(
           state.copyWith(
             registrationStatus: AuthStatus.success,
-            successMessage: 'Registration successful',
+            successMessage: StringConstants.registrationSuccessful,
             clearErrorMessage: true,
             clearErrorData: true,
           ),
@@ -408,7 +407,7 @@ class AuthenticationBloc
             state.copyWith(
               otpVerificationStatus: AuthStatus.success,
               otpVerificationData: data,
-              successMessage: 'OTP verified successfully',
+              successMessage: StringConstants.otpVerifiedSuccessfullyShort,
               clearErrorMessage: true,
             ),
           );
@@ -463,7 +462,7 @@ class AuthenticationBloc
         (Map<String, dynamic> data) => emit(
           state.copyWith(
             resendOtpStatus: AuthStatus.success,
-            successMessage: 'OTP resent successfully. Check your email.',
+            successMessage: StringConstants.otpResentSuccessfullyCheckEmail,
             clearErrorMessage: true,
           ),
         ),
@@ -618,7 +617,7 @@ class AuthenticationBloc
           emit(
             state.copyWith(
               logoutStatus: AuthStatus.success,
-              successMessage: 'Logout successful',
+              successMessage: StringConstants.logoutSuccessful,
               clearErrorMessage: true,
               clearErrorData: true,
             ),

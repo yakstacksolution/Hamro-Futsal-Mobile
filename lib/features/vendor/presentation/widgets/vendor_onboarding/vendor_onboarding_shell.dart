@@ -46,18 +46,18 @@ class VendorOnboardingShell extends StatelessWidget {
         ),
         actions: <Widget>[
           IconButton(
-            tooltip: 'Home',
+            tooltip: StringConstants.home,
             onPressed: isSubmitting
                 ? null
                 : () async {
                     final bool shouldExit = await showConfirmDialog(
                       context: context,
-                      title: 'Save changes & exit?',
+                      title: StringConstants.saveChangesAndExit,
 
                       message:
-                          'Your current onboarding progress will be saved before returning home.',
-                      confirmText: 'Save & go home',
-                      cancelText: 'Stay here',
+                          StringConstants.onboardingProgressSavedBeforeHome,
+                      confirmText: StringConstants.saveAndGoHome,
+                      cancelText: StringConstants.stayHere,
                       iconWidget: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: CustomImageView(

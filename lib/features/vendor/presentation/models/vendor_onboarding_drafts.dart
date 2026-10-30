@@ -1,6 +1,7 @@
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 const int kDefaultCourtTypeId = 1;
+// Wire value (persisted in drafts / matched against API option names).
 const String kDefaultCourtTypeName = 'Indoor';
 const int kDefaultMatchFormatId = 1;
 const String kDefaultMatchFormatName = '5v5';
@@ -626,9 +627,9 @@ enum AdvancePaymentType {
   String get label {
     switch (this) {
       case AdvancePaymentType.flat:
-        return 'Flat';
+        return StringConstants.flat;
       case AdvancePaymentType.percentage:
-        return 'Percentage';
+        return StringConstants.percentage;
     }
   }
 }

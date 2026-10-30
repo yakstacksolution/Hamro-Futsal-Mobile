@@ -19,7 +19,7 @@ class AmenitiesFacilitiesSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const _SectionTitle(
+        _SectionTitle(
           title: StringConstants.amenities,
           subtitle: StringConstants
               .selectTheValueAddedServicesPlayersCanExpectOnBookingDays,
@@ -31,7 +31,7 @@ class AmenitiesFacilitiesSection extends StatelessWidget {
           children: CreateFutsalCourtsBloc.amenityOptions
               .map(
                 (String option) => SelectionOptionChip(
-                  label: option,
+                  label: CreateFutsalCourtsBloc.optionLabel(option),
                   isSelected: bloc.state.selectedAmenities.contains(option),
                   onTap: () => bloc.toggleAmenity(option),
                 ),
@@ -39,7 +39,7 @@ class AmenitiesFacilitiesSection extends StatelessWidget {
               .toList(),
         ),
         const SizedBox(height: 20),
-        const _SectionTitle(
+        _SectionTitle(
           title: StringConstants.facilities,
           subtitle: StringConstants
               .markThePhysicalVenueFacilitiesAvailableForTeamsAndVisitors,
@@ -51,7 +51,7 @@ class AmenitiesFacilitiesSection extends StatelessWidget {
           children: CreateFutsalCourtsBloc.facilityOptions
               .map(
                 (String option) => SelectionOptionChip(
-                  label: option,
+                  label: CreateFutsalCourtsBloc.optionLabel(option),
                   isSelected: bloc.state.selectedFacilities.contains(option),
                   onTap: () => bloc.toggleFacility(option),
                 ),

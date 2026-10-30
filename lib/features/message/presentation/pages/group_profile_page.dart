@@ -6,7 +6,6 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/features/vendor/data/repositories/vendor_onboarding_repository_impl.dart';
 import 'package:hamro_futsal/features/vendor/data/vendor_draft_repository.dart';
@@ -22,6 +21,7 @@ import 'package:hamro_futsal/features/message/presentation/bloc/message_bloc/mes
 import 'package:hamro_futsal/features/message/presentation/pages/user_profile_page.dart';
 import 'package:hamro_futsal/features/message/presentation/widgets/group_conversation_sheet.dart';
 import 'package:hamro_futsal/features/message/presentation/widgets/group_member_widgets.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 Future<bool> openGroupProfilePage({
   required BuildContext context,
@@ -252,7 +252,7 @@ class _Header extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '${members.length} ${members.length == 1 ? 'member' : 'members'}',
+              StringConstants.memberCount(members.length),
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
               ),

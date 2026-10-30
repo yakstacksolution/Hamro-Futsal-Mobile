@@ -246,13 +246,13 @@ class KeyboardAttachedToolbar extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(StringConstants.insertLink),
+        title: Text(StringConstants.insertLink),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: urlController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: StringConstants.urlExample,
                 labelText: StringConstants.url,
               ),
@@ -263,7 +263,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(StringConstants.cancel),
+            child: Text(StringConstants.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -287,7 +287,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                 Navigator.pop(context);
               }
             },
-            child: const Text(StringConstants.insert),
+            child: Text(StringConstants.insert),
           ),
         ],
       ),
@@ -317,7 +317,9 @@ class KeyboardAttachedToolbar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              isBackground ? 'Select Background Color' : 'Select Text Color',
+              isBackground
+                  ? StringConstants.selectBackgroundColor
+                  : StringConstants.selectTextColor,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),

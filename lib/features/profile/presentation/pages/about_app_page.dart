@@ -31,7 +31,7 @@ class _AboutAppPageState extends State<AboutAppPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.aboutApp),
+      appBar: CustomAppBar(title: StringConstants.aboutApp),
       body: SafeArea(
         top: false,
         child: FutureBuilder<PackageInfo>(
@@ -39,7 +39,7 @@ class _AboutAppPageState extends State<AboutAppPage> {
           builder: (BuildContext context, AsyncSnapshot<PackageInfo> snapshot) {
             final PackageInfo? info = snapshot.data;
             final String version = info == null
-                ? 'Loading version…'
+                ? StringConstants.loadingVersion
                 : '${info.version} (${info.buildNumber})';
 
             if (context.isTabletOrWider) return _WideAbout(version: version);
@@ -59,16 +59,16 @@ class _AboutAppPageState extends State<AboutAppPage> {
                     children: <Widget>[
                       _HeroCard(version: version),
                       const SizedBox(height: AppDimens.paddingX16),
-                      const _SectionLabel('Made by'),
+                      _SectionLabel(StringConstants.madeBy),
                       const _ProductOfCard(),
                       const SizedBox(height: AppDimens.paddingX16),
-                      const _SectionLabel('Our mission'),
+                      _SectionLabel(StringConstants.ourMission),
                       const _MissionCard(),
                       const SizedBox(height: AppDimens.paddingX16),
-                      const _SectionLabel('What we offer'),
+                      _SectionLabel(StringConstants.whatWeOffer),
                       const _FeatureGrid(),
                       const SizedBox(height: AppDimens.paddingX16),
-                      const _SectionLabel('Why we built this'),
+                      _SectionLabel(StringConstants.whyWeBuiltThis),
                       const _InfoCard(),
                     ],
                   ),
@@ -91,7 +91,7 @@ class _WideAbout extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool desktop = context.isDesktop;
     const Widget gap = SizedBox(height: AppDimens.paddingX24);
-    const List<_AboutFeature> features = _FeatureGrid.features;
+    final List<_AboutFeature> features = _FeatureGrid.features;
     const double spacing = AppDimens.paddingX16;
     final int perRow = desktop ? 4 : 2;
 
@@ -111,7 +111,7 @@ class _WideAbout extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 Text(
-                  'Hamro Futsal · v$version',
+                  StringConstants.appVersionLabel(version),
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall
                       ?.copyWith(color: LightColor.secondaryTextColor),
                 ),
@@ -121,13 +121,13 @@ class _WideAbout extends StatelessWidget {
                 DashboardPair(
                   stacked: !desktop,
                   gap: spacing,
-                  leftLabel: 'Made by',
+                  leftLabel: StringConstants.madeBy,
                   left: const _ProductOfCard(),
-                  rightLabel: 'Our mission',
+                  rightLabel: StringConstants.ourMission,
                   right: const _MissionCard(),
                 ),
                 gap,
-                const DashboardSectionLabel('What we offer'),
+                DashboardSectionLabel(StringConstants.whatWeOffer),
                 for (int i = 0; i < features.length; i += perRow) ...<Widget>[
                   if (i > 0) const SizedBox(height: spacing),
                   DashboardEqualHeightRow(
@@ -143,7 +143,7 @@ class _WideAbout extends StatelessWidget {
                   ),
                 ],
                 gap,
-                const DashboardSectionLabel('Why we built this'),
+                DashboardSectionLabel(StringConstants.whyWeBuiltThis),
                 const _InfoCard(),
               ],
             ),
@@ -169,7 +169,7 @@ class _Subtitle extends StatelessWidget {
     return Padding(
       padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX20),
       child: Text(
-        'Hamro Futsal · v$version',
+        StringConstants.appVersionLabel(version),
         style: textTheme.bodyTextSmall?.copyWith(
           color: LightColor.secondaryTextColor,
         ),
@@ -272,7 +272,7 @@ class _VersionPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusX20),
       ),
       child: Text(
-        'v${version.split(' ').first}',
+        StringConstants.versionLabel(version.split(' ').first),
         style: textTheme.bodyTextSmall?.copyWith(
           fontSize: AppDimens.fontBodySubTitle,
           fontWeight: FontWeight.w600,
@@ -361,7 +361,7 @@ class _MissionCard extends StatelessWidget {
 class _FeatureGrid extends StatelessWidget {
   const _FeatureGrid();
 
-  static const List<_AboutFeature> features = <_AboutFeature>[
+  static List<_AboutFeature> get features => <_AboutFeature>[
     _AboutFeature(
       icon: Icons.calendar_month_rounded,
       title: StringConstants.fastBooking,
@@ -421,7 +421,7 @@ class _InfoCard extends StatelessWidget {
           ),
         ],
       ),
-      child: const Column(
+      child: Column(
         children: <Widget>[
           _InfoRow(
             icon: Icons.privacy_tip_outlined,
@@ -429,14 +429,14 @@ class _InfoCard extends StatelessWidget {
             subtitle:
                 StringConstants.yourAccountAndBookingInformationStayProtected,
           ),
-          _InfoDivider(),
+          const _InfoDivider(),
           _InfoRow(
             icon: Icons.update_rounded,
             title: StringConstants.alwaysImproving,
             subtitle:
                 StringConstants.weKeepRefiningTheAppForSmootherPlayPlanning,
           ),
-          _InfoDivider(),
+          const _InfoDivider(),
           _InfoRow(
             icon: Icons.favorite_rounded,
             title: StringConstants.madeForFutsal,

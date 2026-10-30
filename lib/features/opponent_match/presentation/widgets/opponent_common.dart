@@ -12,12 +12,12 @@ class OpponentCountdownPill extends StatelessWidget {
     super.key,
     required this.value,
     required this.urgent,
-    this.label = StringConstants.acceptWithin,
+    this.label,
   });
 
   final String value;
   final bool urgent;
-  final String label;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +44,7 @@ class OpponentCountdownPill extends StatelessWidget {
           ),
           const SizedBox(width: AppDimens.paddingX6),
           Text(
-            label,
+            label ?? StringConstants.acceptWithin,
             style: textTheme.bodyTextSmall?.copyWith(
               color: fg,
               fontWeight: FontWeight.w500,
@@ -463,7 +463,7 @@ class OpponentStatusBadge extends StatelessWidget {
       RequestStatus.pending || RequestStatus.sent => (
         LightColor.warningColor,
         LightColor.warningLightColor,
-        'Pending',
+        StringConstants.pending,
       ),
       RequestStatus.fresh => (
         LightColor.secondaryColor,
@@ -491,7 +491,7 @@ class OpponentStatusBadge extends StatelessWidget {
       RequestStatus.expired || RequestStatus.cancelled => (
         LightColor.hintTextColor,
         LightColor.dividerColor,
-        'Closed',
+        StringConstants.closed,
       ),
     };
     // The server's word wins when the row carried one; the tone above still

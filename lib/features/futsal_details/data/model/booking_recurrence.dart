@@ -1,14 +1,21 @@
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+
 enum BookingMode { single, recurring }
 
 enum BookingRecurrence {
-  twoWeeks('2 Weeks', 2),
-  oneMonth('1 Month', 4),
-  twoMonths('2 Months', 8),
-  threeMonths('3 Months', 12);
+  twoWeeks(2),
+  oneMonth(4),
+  twoMonths(8),
+  threeMonths(12);
 
-  const BookingRecurrence(this.label, this.weeks);
+  const BookingRecurrence(this.weeks);
 
-  final String label;
+  String get label => switch (this) {
+    BookingRecurrence.twoWeeks => StringConstants.twoWeeks,
+    BookingRecurrence.oneMonth => StringConstants.oneMonth,
+    BookingRecurrence.twoMonths => StringConstants.twoMonths,
+    BookingRecurrence.threeMonths => StringConstants.threeMonths,
+  };
 
   final int weeks;
 
@@ -50,24 +57,24 @@ abstract final class RecurringWeekdays {
     DateTime.saturday,
   ];
 
-  static const List<String> _short = <String>[
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun',
+  static List<String> get _short => <String>[
+    StringConstants.weekdayMon,
+    StringConstants.weekdayTue,
+    StringConstants.weekdayWed,
+    StringConstants.weekdayThu,
+    StringConstants.weekdayFri,
+    StringConstants.weekdaySat,
+    StringConstants.weekdaySun,
   ];
 
-  static const List<String> _full = <String>[
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
+  static List<String> get _full => <String>[
+    StringConstants.monday,
+    StringConstants.tuesday,
+    StringConstants.wednesday,
+    StringConstants.thursday,
+    StringConstants.friday,
+    StringConstants.saturday,
+    StringConstants.sunday,
   ];
 
   static String shortLabel(int weekday) => _short[weekday - 1];

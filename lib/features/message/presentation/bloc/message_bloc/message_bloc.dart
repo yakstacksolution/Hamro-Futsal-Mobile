@@ -10,6 +10,7 @@ import 'package:hamro_futsal/features/message/data/model/conversation_model.dart
 import 'package:hamro_futsal/features/message/data/model/message_profile_model.dart';
 import 'package:hamro_futsal/features/message/data/service/chat_socket_service.dart';
 import 'package:hamro_futsal/features/message/domain/usecase/message_usecase.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 part 'message_event.dart';
 part 'message_state.dart';
@@ -509,8 +510,8 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
           state.copyWith(
             actionBusy: false,
             actionMessage: event.mediaId != null && !hasTitle
-                ? 'Group photo updated.'
-                : 'Group updated.',
+                ? StringConstants.groupPhotoUpdated
+                : StringConstants.groupUpdated,
             activeConversation: nextActive,
             conversations: state.conversations
                 .map(
@@ -556,7 +557,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
           emit(
             state.copyWith(
               actionBusy: false,
-              actionMessage: 'You joined the group.',
+              actionMessage: StringConstants.youJoinedTheGroup,
               conversations: current == null
                   ? state.conversations
                   : _upsertConversation(
@@ -577,7 +578,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         emit(
           state.copyWith(
             actionBusy: false,
-            actionMessage: 'Invitation declined.',
+            actionMessage: StringConstants.invitationDeclined,
             conversations: state.conversations
                 .where((c) => c.id != event.conversationId)
                 .toList(growable: false),
@@ -613,7 +614,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         emit(
           state.copyWith(
             actionBusy: false,
-            actionMessage: 'You left the group.',
+            actionMessage: StringConstants.youLeftTheGroup,
             leftConversationId: event.conversationId,
             conversations: state.conversations
                 .where((c) => c.id != event.conversationId)
@@ -650,8 +651,8 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
           activeConversation: conversation,
           conversations: _upsertConversation(conversation),
           actionMessage: event.participantIds.length == 1
-              ? 'Member added.'
-              : '${event.participantIds.length} members added.',
+              ? StringConstants.memberAdded
+              : StringConstants.membersAdded(event.participantIds.length),
           clearErrorMessage: true,
         ),
       ),
@@ -714,8 +715,8 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
             activeConversation: updated,
             conversations: conversations,
             actionMessage: event.archived
-                ? 'Conversation archived.'
-                : 'Conversation unarchived.',
+                ? StringConstants.conversationArchived
+                : StringConstants.conversationUnarchived,
             clearErrorMessage: true,
           ),
         );
@@ -745,8 +746,8 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
                 ? state.conversations
                 : _upsertConversation(updated),
             actionMessage: event.muted
-                ? 'Conversation muted.'
-                : 'Conversation unmuted.',
+                ? StringConstants.conversationMuted
+                : StringConstants.conversationUnmuted,
             clearErrorMessage: true,
           ),
         );
@@ -789,8 +790,8 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
                 ? state.conversations
                 : _upsertConversation(updated),
             actionMessage: event.blocked
-                ? 'Participant blocked.'
-                : 'Participant unblocked.',
+                ? StringConstants.participantBlocked
+                : StringConstants.participantUnblocked,
             clearErrorMessage: true,
           ),
         );
@@ -815,7 +816,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
             messages: state.messages
                 .where((message) => message.id != event.messageId)
                 .toList(growable: false),
-            actionMessage: 'Message deleted.',
+            actionMessage: StringConstants.messageDeletedSuccess,
             clearErrorMessage: true,
           ),
         );

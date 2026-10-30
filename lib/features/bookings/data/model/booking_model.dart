@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BookingModel extends Equatable {
   const BookingModel({
@@ -1090,7 +1091,7 @@ String _displayTime(String value) {
   if (hour == null || minute == null || hour > 23 || minute > 59) {
     return value.trim();
   }
-  final String period = hour >= 12 ? 'PM' : 'AM';
+  final String period = hour >= 12 ? StringConstants.pm : StringConstants.am;
   final int displayHour = hour % 12 == 0 ? 12 : hour % 12;
   return '$displayHour:${minute.toString().padLeft(2, '0')} $period';
 }

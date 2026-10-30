@@ -10,6 +10,7 @@ import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/bloc/vendor_ops_bloc.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops_style.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class OpsCourtCardsView extends StatelessWidget {
   const OpsCourtCardsView({super.key, required this.onBookingTap});
@@ -31,7 +32,7 @@ class OpsCourtCardsView extends StatelessWidget {
         final OpsBoard? board = state.board;
         if (board == null) return const SizedBox.shrink();
         if (board.isEmpty) {
-          return const _Empty(text: 'No courts match these filters.');
+          return _Empty(text: StringConstants.noCourtsMatchFilters);
         }
         // Until the server answers for every court shown, a court listed
         // without a schedule would read as closed — so wait for them. A
@@ -45,7 +46,7 @@ class OpsCourtCardsView extends StatelessWidget {
         // The date failed to load: the error above offers the retry, and
         // there are no slots to draw.
         if (awaitingLive && state.bookingsError) {
-          return const _Empty(text: 'This date\'s slots could not be loaded.');
+          return _Empty(text: StringConstants.dateSlotsCouldNotLoad);
         }
         if (awaitingLive) return const _CardsSkeleton();
         final DateTime today = KathmanduClock.today();
@@ -107,8 +108,8 @@ class OpsCourtCardsSliver extends StatelessWidget {
         final OpsBoard? board = state.board;
         if (board == null) return const SliverToBoxAdapter();
         if (board.isEmpty) {
-          return const SliverToBoxAdapter(
-            child: _Empty(text: 'No courts match these filters.'),
+          return SliverToBoxAdapter(
+            child: _Empty(text: StringConstants.noCourtsMatchFilters),
           );
         }
         final bool awaitingLive = board.venues.any(
@@ -118,8 +119,8 @@ class OpsCourtCardsSliver extends StatelessWidget {
           ),
         );
         if (awaitingLive && state.bookingsError) {
-          return const SliverToBoxAdapter(
-            child: _Empty(text: 'This date\'s slots could not be loaded.'),
+          return SliverToBoxAdapter(
+            child: _Empty(text: StringConstants.dateSlotsCouldNotLoad),
           );
         }
         if (awaitingLive) {
@@ -297,8 +298,7 @@ class _VenueSection extends StatelessWidget {
               ),
             ),
             Text(
-              '${summaries.length} '
-              '${summaries.length == 1 ? 'court' : 'courts'} · $free free',
+              StringConstants.courtsFreeSummary(summaries.length, free),
               style: TextStyle(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
@@ -420,11 +420,19 @@ class _CourtCardState extends State<_CourtCard> {
               .toList();
 
     final (String badge, Color badgeFg, Color badgeBg) = s.isClosed
-        ? ('Closed', LightColor.secondaryTextColor, LightColor.sunkenColor)
+        ? (
+            StringConstants.closed,
+            LightColor.secondaryTextColor,
+            LightColor.sunkenColor,
+          )
         : s.isFull
-        ? ('Full', LightColor.onWarningLightColor, LightColor.warningLightColor)
+        ? (
+            StringConstants.full,
+            LightColor.onWarningLightColor,
+            LightColor.warningLightColor,
+          )
         : (
-            '${s.freeSlots} free',
+            StringConstants.freeCount(s.freeSlots),
             LightColor.brandTextColor,
             LightColor.secondaryColor.withValues(alpha: 0.10),
           );
@@ -459,7 +467,9 @@ class _CourtCardState extends State<_CourtCard> {
                       ),
                     ),
                     Text(
-                      '${formatDuration(s.court.slotMinutes)} slots',
+                      StringConstants.slotsDuration(
+                        formatDuration(s.court.slotMinutes),
+                      ),
                       style: TextStyle(
                         fontSize: 10.5,
                         color: LightColor.hintTextColor,
@@ -491,16 +501,23 @@ class _CourtCardState extends State<_CourtCard> {
                   minimumSize: const Size(0, 32),
                   foregroundColor: LightColor.brandTextColor,
                 ),
-                child: const Text(
-                  'Week ›',
-                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                child: Text(
+                  StringConstants.weekLink,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
           ),
           if (s.isClosed) ...<Widget>[
             const SizedBox(height: 8),
-            _Fact(label: 'Status', value: s.closedReason!, muted: true),
+            _Fact(
+              label: StringConstants.status,
+              value: s.closedReason!,
+              muted: true,
+            ),
           ] else ...<Widget>[
             const SizedBox(height: 8),
             _OccupancyBar(value: s.occupancy, percent: percent),
@@ -510,9 +527,9 @@ class _CourtCardState extends State<_CourtCard> {
               children: <Widget>[
                 Expanded(
                   child: _Fact(
-                    label: 'Next free',
+                    label: StringConstants.nextFree,
                     value: s.nextFree == null
-                        ? 'None left'
+                        ? StringConstants.noneLeft
                         : '${formatMinuteOfDay(s.nextFree!.start)}'
                               '${s.nextFree!.price == null ? '' : ' · ${_rs(s.nextFree!.price!)}'}',
                     muted: s.nextFree == null,
@@ -542,8 +559,8 @@ class _CourtCardState extends State<_CourtCard> {
                   ),
                   label: Text(
                     _showPast
-                        ? 'Hide earlier'
-                        : 'Show earlier (${past.length})',
+                        ? StringConstants.hideEarlier
+                        : StringConstants.showEarlier(past.length),
                     style: const TextStyle(fontSize: 11.5),
                   ),
                 ),
@@ -552,7 +569,7 @@ class _CourtCardState extends State<_CourtCard> {
               const SizedBox(height: 10),
             if (shown.isEmpty)
               Text(
-                'No slots left on this day.',
+                StringConstants.noSlotsLeftOnDay,
                 style: TextStyle(
                   fontSize: 12,
                   color: LightColor.secondaryTextColor,
@@ -569,25 +586,30 @@ class _CourtCardState extends State<_CourtCard> {
   Widget _bookingFact(OpsCourtDaySummary s) {
     String name(BookingModel b) => (b.playerName?.trim().isNotEmpty ?? false)
         ? b.playerName!.trim().split(' ').first
-        : 'Booked';
+        : StringConstants.booked;
     if (s.current != null) {
       return _Fact(
-        label: 'On court now',
-        value:
-            '${name(s.current!.booking!)} · till '
-            '${formatMinuteOfDay(s.current!.end)}',
+        label: StringConstants.onCourtNow,
+        value: StringConstants.bookingTill(
+          name(s.current!.booking!),
+          formatMinuteOfDay(s.current!.end),
+        ),
         highlight: true,
       );
     }
     if (s.next != null) {
       return _Fact(
-        label: 'Next booking',
+        label: StringConstants.nextBooking,
         value:
             '${name(s.next!.booking!)} · '
             '${formatMinuteOfDay(s.next!.start)}',
       );
     }
-    return const _Fact(label: 'Next booking', value: 'None', muted: true);
+    return _Fact(
+      label: StringConstants.nextBooking,
+      value: StringConstants.none,
+      muted: true,
+    );
   }
 }
 
@@ -661,25 +683,33 @@ class _SlotChip extends StatelessWidget {
     final String sub = switch (cell.kind) {
       OpsCellKind.available =>
         selected
-            ? 'Selected'
-            : (cell.price == null ? 'Available' : _rs(cell.price!)),
+            ? StringConstants.selected
+            : (cell.price == null
+                  ? StringConstants.available
+                  : _rs(cell.price!)),
       OpsCellKind.booked =>
         (cell.booking!.playerName?.trim().isNotEmpty ?? false)
             ? cell.booking!.playerName!.trim()
-            : 'Booked',
-      OpsCellKind.closed => cell.note ?? 'Closed',
-      OpsCellKind.past => 'Past',
+            : StringConstants.booked,
+      OpsCellKind.closed => cell.note ?? StringConstants.closed,
+      OpsCellKind.past => StringConstants.past,
     };
     final String label = switch (cell.kind) {
-      OpsCellKind.available =>
-        '$time, ${selected ? 'selected' : 'available'}, '
-            '${cell.price == null ? 'price on confirmation' : Money.npr(cell.price!)}. '
-            '${selected ? 'Tap to remove.' : 'Tap to add to booking.'}',
-      OpsCellKind.booked =>
-        '$time, ${opsPhaseStyle(cell.phase!).label}, $sub, '
-            '${opsPaymentLabel(cell.payment!)}. Tap for details.',
-      OpsCellKind.closed => '$time, closed',
-      OpsCellKind.past => '$time, past',
+      OpsCellKind.available => StringConstants.availableSlotSemantics(
+        time,
+        selected: selected,
+        price: cell.price == null
+            ? StringConstants.priceOnConfirmationLower
+            : Money.npr(cell.price!),
+      ),
+      OpsCellKind.booked => StringConstants.bookedSlotSemantics(
+        time,
+        opsPhaseStyle(cell.phase!).label,
+        sub,
+        opsPaymentLabel(cell.payment!),
+      ),
+      OpsCellKind.closed => StringConstants.closedSlotSemantics(time),
+      OpsCellKind.past => StringConstants.pastSlotSemantics(time),
     };
 
     return Semantics(
@@ -783,7 +813,7 @@ class _OccupancyBar extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Text(
-          '$percent% booked',
+          StringConstants.percentBooked(percent),
           style: TextStyle(
             fontSize: 10.5,
             fontWeight: FontWeight.w700,
@@ -857,7 +887,7 @@ class _CardsSkeleton extends StatelessWidget {
       ),
     );
     return Semantics(
-      label: 'Loading courts\' slots',
+      label: StringConstants.loadingCourtsSlots,
       child: ExcludeSemantics(
         child: Shimmer.fromColors(
           baseColor: LightColor.skeletonBaseColor,

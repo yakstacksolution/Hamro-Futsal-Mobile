@@ -51,17 +51,17 @@ enum _Step { match, venue, cost, publish }
 
 extension _StepX on _Step {
   String get title => switch (this) {
-    _Step.match => 'Team & match',
-    _Step.venue => 'Venue',
-    _Step.cost => 'Cost split',
-    _Step.publish => 'Publish',
+    _Step.match => StringConstants.teamAndMatch,
+    _Step.venue => StringConstants.venue,
+    _Step.cost => StringConstants.costSplit,
+    _Step.publish => StringConstants.publish,
   };
 
   String get hint => switch (this) {
-    _Step.match => 'Your team, format and level',
-    _Step.venue => 'Attach the court booking',
-    _Step.cost => 'Who pays what',
-    _Step.publish => 'Review and go live',
+    _Step.match => StringConstants.teamAndMatchSubtitle,
+    _Step.venue => StringConstants.attachTheCourtBooking,
+    _Step.cost => StringConstants.whoPaysWhat,
+    _Step.publish => StringConstants.reviewAndGoLive,
   };
 }
 
@@ -523,7 +523,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'Some match details are still loading. Please try again.',
+        StringConstants.someMatchDetailsStillLoading,
         key: 'opponent_match_step_ids',
       );
       return false;
@@ -720,18 +720,17 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   String _stepHint(_Step step) => switch (step) {
     _Step.match =>
       _team == null
-          ? 'Select the team that will play.'
-          : 'Pick a match type to continue.',
+          ? StringConstants.selectTheTeamThatWillPlay
+          : StringConstants.pickAMatchTypeToContinue,
     _Step.venue =>
       _venuePlan != _VenuePlan.alreadyBooked
-          ? 'Pick a venue, then confirm a court slot.'
+          ? StringConstants.pickVenueThenConfirmSlot
           : _bookedSource == _BookedSource.existingBooking
-          ? 'Select the booking that hosts this match.'
+          ? StringConstants.selectBookingThatHostsMatch
           : !_externalWindowValid
-          ? 'The end time has to be after the start time.'
-          : 'Fill in the venue, its location, the fee and the booked date '
-                'and time.',
-    _ => 'Complete this step to continue.',
+          ? StringConstants.endTimeMustBeAfterStartTime
+          : StringConstants.fillInExternalVenueDetails,
+    _ => StringConstants.completeThisStepToContinue,
   };
 
   // ───────────────────────────── venue pickers ─────────────────────────────
@@ -808,7 +807,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       AppUtils().showSnackBar(
         context,
         MsgType.info,
-        'Select a bookable venue first.',
+        StringConstants.selectBookableVenueFirst,
       );
       return;
     }
@@ -855,12 +854,14 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         if ((_resolvedCourtFee ?? 0) > 0)
           (
             icon: Icons.payments_outlined,
-            text: '${OpponentFmt.npr(_resolvedCourtFee!)} court fee',
+            text: StringConstants.amountCourtFee(
+              OpponentFmt.npr(_resolvedCourtFee!),
+            ),
           ),
         if (booking.bookingId != null)
           (
             icon: Icons.confirmation_number_outlined,
-            text: 'Booking #${booking.bookingId}',
+            text: StringConstants.bookingNumber(booking.bookingId!),
           ),
       ],
     );
@@ -920,24 +921,26 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   }
 
   Future<void> _editTeam() => _openEditSheet(
-    title: 'Team',
+    title: StringConstants.team,
     icon: Icons.shield_outlined,
     body: _teamSection,
     save: _saveMatchStep,
-    validate: () => _team == null ? 'Select the team that will play.' : null,
+    validate: () =>
+        _team == null ? StringConstants.selectTheTeamThatWillPlay : null,
   );
 
   Future<void> _editMatchDetails() => _openEditSheet(
-    title: 'Match format',
+    title: StringConstants.matchFormat,
     icon: Icons.sports_soccer_rounded,
     body: _matchDetailsSection,
     save: _saveMatchStep,
-    validate: () =>
-        _selectedFormatId == null ? 'Pick a match type to continue.' : null,
+    validate: () => _selectedFormatId == null
+        ? StringConstants.pickAMatchTypeToContinue
+        : null,
   );
 
   Future<void> _editVenue() => _openEditSheet(
-    title: 'Kickoff & venue',
+    title: StringConstants.kickoffAndVenue,
     icon: Icons.stadium_outlined,
     body: (_) => _venueSection(),
     save: _saveVenueStep,
@@ -945,7 +948,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   );
 
   Future<void> _editCostSplit() => _openEditSheet(
-    title: 'Cost split',
+    title: StringConstants.costSplit,
     icon: Icons.pie_chart_outline_rounded,
     body: (_) => _costSection(),
     save: _saveCostStep,
@@ -1065,10 +1068,12 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       venueSlug: venue.slug,
       name: venue.name?.trim().isNotEmpty == true
           ? venue.name!.trim()
-          : 'Futsal venue',
+          : StringConstants.futsalVenue,
       location: location,
       address: exactLocation,
-      price: venue.price == null ? '' : 'Rs ${venue.price!.toStringAsFixed(0)}',
+      price: venue.price == null
+          ? ''
+          : StringConstants.rsAmount(venue.price!.toStringAsFixed(0)),
       rating: 0,
       reviewCount: 0,
       images: images,
@@ -1076,7 +1081,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       distance: '',
       features: <String>[
         if (courtType.isNotEmpty) courtType,
-        if ((venue.maxPlayer ?? 0) > 0) '${venue.maxPlayer} Players',
+        if ((venue.maxPlayer ?? 0) > 0)
+          StringConstants.maxPlayersLabel(venue.maxPlayer!),
       ],
       description: '',
       hostedByName: '',
@@ -1266,13 +1272,17 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   Widget _wizardActions(OpponentMatchState state, {bool inline = false}) {
     return _BottomBar(
       inline: inline,
-      text: _step == _Step.publish ? 'Publish Request' : 'Continue',
+      text: _step == _Step.publish
+          ? StringConstants.publishRequest
+          : StringConstants.continueLabel,
       icon: _step == _Step.publish
           ? Icons.campaign_rounded
           : Icons.arrow_forward_rounded,
       onNext: _next,
       onBack: _back,
-      backText: _step == _Step.match ? 'Cancel' : 'Back',
+      backText: _step == _Step.match
+          ? StringConstants.cancel
+          : StringConstants.back,
       isBusy:
           state.isSavingMatchStep ||
           state.isSavingVenueStep ||
@@ -1285,13 +1295,10 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   // ── Step 1: team + match details ──
 
   List<Widget> _matchStep(OpponentMatchState state) => <Widget>[
-    const OpponentGuidanceCard(
+    OpponentGuidanceCard(
       icon: Icons.sports_soccer_rounded,
-      title: 'Who plays, and what match?',
-      message:
-          'Pick the team that will play — its roster size drives the per-player '
-          'share shown later — then describe the match you want. The match '
-          'date and time come from the booking you attach next.',
+      title: StringConstants.whoPlaysAndWhatMatch,
+      message: StringConstants.whoPlaysGuidance,
     ),
     const SizedBox(height: AppDimens.paddingX18),
     ..._teamSection(state),
@@ -1302,7 +1309,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   ];
 
   List<Widget> _teamSection(OpponentMatchState state) => <Widget>[
-    const OpponentSectionLabel('Select / create team'),
+    OpponentSectionLabel(StringConstants.selectOrCreateTeam),
     // Teams arrive asynchronously, so "no teams" is only true once the fetch
     // has actually settled — otherwise a slow load looked like an empty roster.
     if (state.teams.isEmpty &&
@@ -1327,7 +1334,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         state.teamsStatus == OpponentMatchStatus.failure)
       _StepMessageCard(
         icon: Icons.wifi_off_rounded,
-        title: 'Could not load your teams',
+        title: StringConstants.couldNotLoadYourTeamsTitle,
         message: state.errorMessage ?? StringConstants.tryAgain,
         actionLabel: StringConstants.retry,
         actionIcon: Icons.refresh_rounded,
@@ -1337,10 +1344,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     else if (state.teams.isEmpty)
       _StepMessageCard(
         icon: Icons.groups_2_outlined,
-        title: 'No teams yet',
-        message:
-            'A request is published in a team\'s name, so create the team '
-            'that will play this match.',
+        title: StringConstants.noTeamsYet,
+        message: StringConstants.noTeamsYetCreateRequestMessage,
         actionLabel: StringConstants.createTeam,
         actionIcon: Icons.add_rounded,
         onAction: _openCreateTeamSheet,
@@ -1352,8 +1357,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           child: _SelectableTile(
             title: team.name,
             subtitle:
-                '${team.players.length} '
-                '${team.players.length == 1 ? 'player' : 'players'}'
+                '${StringConstants.playerCount(team.players.length)}'
                 '${team.positionSummary.isEmpty ? '' : ' · ${team.positionSummary}'}',
             icon: Icons.shield_outlined,
             selected: team.id == _team?.id,
@@ -1368,12 +1372,12 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   ];
 
   List<Widget> _matchDetailsSection(OpponentMatchState state) => <Widget>[
-    const OpponentSectionLabel('Match format'),
+    OpponentSectionLabel(StringConstants.matchFormat),
     OpponentCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const OpponentFieldLabel('Match Type'),
+          OpponentFieldLabel(StringConstants.matchType),
           // Formats come from `/match-formate` because the request payload
           // carries `match_format_id` — there is no id to send for a locally
           // defined 5v5/6v6/7v7.
@@ -1386,7 +1390,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                 return optionsState.isLoadingMatchFormats
                     ? const _PillRowLoading()
                     : _InlineRetry(
-                        message: 'Could not load match types.',
+                        message: StringConstants.couldNotLoadMatchTypes,
                         onRetry: () => _optionsBloc.add(
                           const FetchPublicMatchFormatsEvent(),
                         ),
@@ -1408,7 +1412,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
             },
           ),
           const SizedBox(height: AppDimens.paddingX14),
-          const OpponentFieldLabel('Opponent Level'),
+          OpponentFieldLabel(StringConstants.opponentLevel),
           // Same row treatment and the same pill height as Match Type, so the
           // two fields sit on a shared grid instead of looking like unrelated
           // controls that happen to share a card.
@@ -1430,7 +1434,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   ];
 
   List<Widget> _matchPreviewSection(OpponentMatchState state) => <Widget>[
-    const OpponentSectionLabel('Match preview'),
+    OpponentSectionLabel(StringConstants.matchPreview),
     OpponentCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1438,9 +1442,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           _MiniLine(
             icon: Icons.shield_outlined,
             text: _team == null
-                ? 'No team selected yet'
-                : '${_team!.name} · ${_team!.players.length} '
-                      '${_team!.players.length == 1 ? 'player' : 'players'}',
+                ? StringConstants.noTeamSelectedYet
+                : '${_team!.name} · '
+                      '${StringConstants.playerCount(_team!.players.length)}',
           ),
           const SizedBox(height: AppDimens.paddingX8),
           _MiniLine(
@@ -1451,9 +1455,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
             ].where((String s) => s.trim().isNotEmpty).join(' · '),
           ),
           const SizedBox(height: AppDimens.paddingX8),
-          const _MiniLine(
+          _MiniLine(
             icon: Icons.schedule_outlined,
-            text: 'Date, time and venue are set on the next step',
+            text: StringConstants.dateTimeVenueSetOnNextStep,
           ),
         ],
       ),
@@ -1463,30 +1467,28 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   // ── Step 2: venue ──
 
   List<Widget> _venueStep() => <Widget>[
-    const OpponentGuidanceCard(
+    OpponentGuidanceCard(
       icon: Icons.stadium_outlined,
-      title: 'Venue already booked?',
-      message:
-          'A published request always carries a venue, so opponents know '
-          'exactly where and when they are playing.',
+      title: StringConstants.venueAlreadyBooked,
+      message: StringConstants.venueAlreadyBookedMessage,
     ),
     const SizedBox(height: AppDimens.paddingX18),
     ..._venueSection(),
   ];
 
   List<Widget> _venueSection() => <Widget>[
-    const OpponentSectionLabel('Venue arrangement'),
+    OpponentSectionLabel(StringConstants.venueArrangement),
     _VenuePlanOption(
-      title: 'Yes — I already booked a venue',
-      subtitle: 'Attach one of your bookings, or enter an outside booking.',
+      title: StringConstants.yesAlreadyBookedVenue,
+      subtitle: StringConstants.yesAlreadyBookedVenueSubtitle,
       icon: Icons.event_available_outlined,
       selected: _venuePlan == _VenuePlan.alreadyBooked,
       onTap: () => _selectVenuePlan(_VenuePlan.alreadyBooked),
     ),
     const SizedBox(height: AppDimens.paddingX10),
     _VenuePlanOption(
-      title: 'No — find and book a court now',
-      subtitle: 'Browse venues, pick a court, date and time, then confirm.',
+      title: StringConstants.noFindAndBookCourtNow,
+      subtitle: StringConstants.noFindAndBookCourtNowSubtitle,
       icon: Icons.search_rounded,
       selected: _venuePlan == _VenuePlan.findAvailable,
       onTap: () => _selectVenuePlan(_VenuePlan.findAvailable),
@@ -1499,7 +1501,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   ];
 
   List<Widget> _alreadyBookedBranch() => <Widget>[
-    const OpponentSectionLabel('Select existing booking'),
+    OpponentSectionLabel(StringConstants.selectExistingBooking),
     OpponentCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1508,7 +1510,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
             children: [
               Expanded(
                 child: OpponentPillChip(
-                  label: 'My bookings',
+                  label: StringConstants.myBookingsLower,
                   active: _bookedSource == _BookedSource.existingBooking,
                   compact: true,
                   onTap: () => setState(
@@ -1519,7 +1521,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
               const SizedBox(width: AppDimens.paddingX8),
               Expanded(
                 child: OpponentPillChip(
-                  label: 'Booked elsewhere',
+                  label: StringConstants.bookedElsewhere,
                   active: _bookedSource == _BookedSource.manual,
                   compact: true,
                   onTap: () =>
@@ -1548,24 +1550,26 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       _PickerTile(
         icon: Icons.event_available_outlined,
         label: booking == null
-            ? 'Choose from your bookings'
+            ? StringConstants.chooseFromYourBookings
             : <String>[
                 booking.courtName,
                 booking.futsalName,
               ].where((s) => s.trim().isNotEmpty).join(' · '),
         value: booking == null
-            ? 'Court, date, time and fee are filled in for you'
+            ? StringConstants.bookingDetailsFilledInForYou
             : '${OpponentFmt.shortDate(booking.date)}'
                   '${booking.displayTimeRange.isEmpty ? '' : ' · ${booking.displayTimeRange}'}'
                   ' · ${OpponentFmt.npr(booking.bookingTotal.round())}',
         selected: booking != null,
-        actionLabel: booking == null ? 'Select' : 'Change',
+        actionLabel: booking == null
+            ? StringConstants.select
+            : StringConstants.change,
         onTap: _pickExistingBooking,
       ),
       if (booking != null) ...<Widget>[
         const SizedBox(height: AppDimens.paddingX12),
         _ConfirmedVenueCard(
-          title: 'Booking attached',
+          title: StringConstants.bookingAttached,
           venue: _venueLabelText,
           when: _kickoffWhen,
           slot: _slotLabel,
@@ -1579,36 +1583,38 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   List<Widget> _manualVenueFields() => <Widget>[
     CustomTextField(
       controller: _venueNameCtrl,
-      labelText: 'Venue name',
-      hintText: 'Enter the booked venue',
+      labelText: StringConstants.venueName,
+      hintText: StringConstants.enterTheBookedVenue,
       icon: Icons.stadium_outlined,
       textCapitalization: TextCapitalization.words,
       onChanged: (_) => setState(() {}),
       autovalidateMode: _submitted
           ? AutovalidateMode.always
           : AutovalidateMode.disabled,
-      validator: (String? value) =>
-          value?.trim().isEmpty ?? true ? 'Enter the venue name' : null,
+      validator: (String? value) => value?.trim().isEmpty ?? true
+          ? StringConstants.enterTheVenueName
+          : null,
     ),
     const SizedBox(height: AppDimens.paddingX14),
     CustomTextField(
       controller: _venueLocationCtrl,
-      labelText: 'Venue location',
-      hintText: 'Area, city or full address',
+      labelText: StringConstants.venueLocation,
+      hintText: StringConstants.areaCityOrFullAddress,
       icon: Icons.location_on_outlined,
       textCapitalization: TextCapitalization.words,
       onChanged: (_) => setState(() {}),
       autovalidateMode: _submitted
           ? AutovalidateMode.always
           : AutovalidateMode.disabled,
-      validator: (String? value) =>
-          value?.trim().isEmpty ?? true ? 'Enter the venue location' : null,
+      validator: (String? value) => value?.trim().isEmpty ?? true
+          ? StringConstants.enterTheVenueLocation
+          : null,
     ),
     const SizedBox(height: AppDimens.paddingX14),
     CustomTextField(
       controller: _courtFeeCtrl,
       labelText: StringConstants.totalCourtFeeRs,
-      hintText: 'What you paid for the court',
+      hintText: StringConstants.whatYouPaidForTheCourt,
       icon: Icons.payments_outlined,
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -1619,11 +1625,11 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           : AutovalidateMode.disabled,
       validator: (String? value) =>
           (int.tryParse(value?.trim() ?? '') ?? 0) <= 0
-          ? 'Enter the total court fee'
+          ? StringConstants.enterTheTotalCourtFee
           : null,
     ),
     const SizedBox(height: AppDimens.paddingX14),
-    const OpponentSectionLabel('Booked date & time'),
+    OpponentSectionLabel(StringConstants.bookedDateAndTime),
     OpponentCard(
       padding: EdgeInsets.zero,
       child: Column(
@@ -1656,7 +1662,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       Padding(
         padding: const EdgeInsets.only(left: AppDimens.paddingX4),
         child: Text(
-          'The end time has to be after the start time.',
+          StringConstants.endTimeMustBeAfterStartTime,
           style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
             color: LightColor.redColor,
             fontWeight: FontWeight.w500,
@@ -1694,7 +1700,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   }
 
   List<Widget> _findAvailableBranch() => <Widget>[
-    const OpponentSectionLabel('Browse venues'),
+    OpponentSectionLabel(StringConstants.browseVenues),
     OpponentCard(
       child: BlocBuilder<PublicVenueBloc, PublicVenueState>(
         bloc: _publicVenueBloc,
@@ -1726,13 +1732,17 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                           ? venue.exactLocation!.trim()
                           : venue.address?.trim() ?? ''),
                 selected: venue != null,
-                actionLabel: venue == null ? 'Search' : 'Change',
+                actionLabel: venue == null
+                    ? StringConstants.search
+                    : StringConstants.change,
                 onTap: _pickPreferredVenue,
               ),
               if (venueState.status == PublicVenueStatus.failure) ...<Widget>[
                 const SizedBox(height: AppDimens.paddingX10),
                 _InlineRetry(
-                  message: venueState.errorMessage ?? 'Could not load venues.',
+                  message:
+                      venueState.errorMessage ??
+                      StringConstants.couldNotLoadVenues,
                   onRetry: () =>
                       _publicVenueBloc.add(const FetchPublicVenuesEvent()),
                 ),
@@ -1740,15 +1750,17 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
               const SizedBox(height: AppDimens.paddingX14),
               _PickerTile(
                 icon: Icons.event_seat_outlined,
-                label: 'Find and book a court now',
+                label: StringConstants.findAndBookACourtNow,
                 value: _confirmedSlot == null
-                    ? 'Choose a court, date and available time slot'
+                    ? StringConstants.chooseCourtDateAndSlot
                     : '${_confirmedSlot!.courtName} · '
                           '${OpponentFmt.shortDate(_confirmedSlot!.selectedDate)} · '
                           '$_slotLabel',
                 selected: _confirmedSlot != null,
                 enabled: venue?.id != null,
-                actionLabel: _confirmedSlot == null ? 'Open' : 'Change',
+                actionLabel: _confirmedSlot == null
+                    ? StringConstants.open
+                    : StringConstants.change,
                 onTap: _confirmVenueBooking,
               ),
             ],
@@ -1759,7 +1771,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     if (_confirmedSlot != null) ...<Widget>[
       const SizedBox(height: AppDimens.paddingX14),
       _ConfirmedVenueCard(
-        title: 'Venue booking confirmed',
+        title: StringConstants.venueBookingConfirmed,
         venue: _venueLabelText,
         when: _kickoffWhen,
         slot: _slotLabel,
@@ -1778,19 +1790,17 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   // ── Step 3: cost split ──
 
   List<Widget> _costStep() => <Widget>[
-    const OpponentGuidanceCard(
+    OpponentGuidanceCard(
       icon: Icons.pie_chart_outline_rounded,
-      title: 'Configure the cost split rule',
-      message:
-          'Decide how the court fee is divided with the opponent. The '
-          'accepting team sees this exact rule before it pays.',
+      title: StringConstants.configureTheCostSplitRule,
+      message: StringConstants.configureCostSplitMessage,
     ),
     const SizedBox(height: AppDimens.paddingX18),
     ..._costSection(),
   ];
 
   List<Widget> _costSection() => <Widget>[
-    const OpponentSectionLabel('Cost split'),
+    OpponentSectionLabel(StringConstants.costSplit),
     OpponentCostSplitCard(
       cost: _cost,
       onSplit: (v) => setState(() => _split = v),
@@ -1813,19 +1823,18 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     final cost = _cost;
     final int totalFee = cost.courtFee;
     final String feeLabel = cost.hasCourtFee
-        ? '${OpponentFmt.npr(totalFee)} total'
-        : 'Court fee ${StringConstants.courtFeeNotSetYet.toLowerCase()}';
+        ? StringConstants.amountTotal(OpponentFmt.npr(totalFee))
+        : '${StringConstants.courtFee} '
+              '${StringConstants.courtFeeNotSetYet.toLowerCase()}';
     final level = _resolveLevel(_levelOptions(state));
     return <Widget>[
-      const OpponentGuidanceCard(
+      OpponentGuidanceCard(
         icon: Icons.campaign_outlined,
-        title: 'Review and publish',
-        message:
-            'Once published, every eligible team can see this request and '
-            'send you an invitation. You pick the opponent you want.',
+        title: StringConstants.reviewAndPublish,
+        message: StringConstants.reviewAndPublishMessage,
       ),
       const SizedBox(height: AppDimens.paddingX18),
-      const OpponentSectionLabel('Add a message (optional)'),
+      OpponentSectionLabel(StringConstants.addAMessageOptional),
       OpponentCard(
         child: CustomTextField(
           controller: _messageCtrl,
@@ -1839,29 +1848,30 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         ),
       ),
       const SizedBox(height: AppDimens.paddingX18),
-      const OpponentSectionLabel('Request summary'),
+      OpponentSectionLabel(StringConstants.requestSummary),
       OpponentCard(
         child: Column(
           children: <Widget>[
             _SummaryRow(
               icon: Icons.shield_outlined,
-              label: 'Team',
+              label: StringConstants.team,
               value: _team == null
                   ? '—'
-                  : '${_team!.name} · ${_team!.players.length} players',
+                  : '${_team!.name} · '
+                        '${StringConstants.playersCount(_team!.players.length)}',
               onEdit: _editTeam,
             ),
             const SizedBox(height: AppDimens.paddingX10),
             _SummaryRow(
               icon: Icons.sports_soccer_rounded,
-              label: 'Match',
+              label: StringConstants.match,
               value: '$_formatLabel · ${level.name}',
               onEdit: _editMatchDetails,
             ),
             const SizedBox(height: AppDimens.paddingX10),
             _SummaryRow(
               icon: Icons.schedule_outlined,
-              label: 'Kickoff',
+              label: StringConstants.kickoff,
               value:
                   '$_kickoffWhen'
                   '${_slotLabel.isEmpty ? '' : ' · $_slotLabel'}',
@@ -1870,17 +1880,19 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
             const SizedBox(height: AppDimens.paddingX10),
             _SummaryRow(
               icon: Icons.location_on_outlined,
-              label: 'Venue',
-              value: _venueLabelText.isEmpty ? 'Not set' : _venueLabelText,
+              label: StringConstants.venue,
+              value: _venueLabelText.isEmpty
+                  ? StringConstants.notSet
+                  : _venueLabelText,
               onEdit: _editVenue,
             ),
             const SizedBox(height: AppDimens.paddingX10),
             _SummaryRow(
               icon: Icons.payments_outlined,
-              label: 'Cost split',
+              label: StringConstants.costSplit,
               value:
                   '$feeLabel · '
-                  '${cost.isResultBased ? 'Loser pays $_loserPercent%' : 'You pay ${cost.myPct ?? 0}%'}',
+                  '${cost.isResultBased ? StringConstants.loserPaysPercent(_loserPercent) : StringConstants.youPayPercent(cost.myPct ?? 0)}',
               onEdit: _editCostSplit,
             ),
           ],
@@ -1889,8 +1901,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       const SizedBox(height: AppDimens.paddingX12),
       OpponentCard(
         child: Text(
-          'After publishing, the request becomes visible to all eligible '
-          'teams and their invitations arrive under My Requests.',
+          StringConstants.afterPublishingNote,
           style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
             color: LightColor.secondaryTextColor,
             height: 1.4,
@@ -2916,14 +2927,14 @@ class _ConfirmedVenueCard extends StatelessWidget {
             const SizedBox(height: AppDimens.paddingX6),
             _MiniLine(
               icon: Icons.payments_outlined,
-              text: '${OpponentFmt.npr(fee)} court fee',
+              text: StringConstants.amountCourtFee(OpponentFmt.npr(fee)),
             ),
           ],
           if (reference.trim().isNotEmpty) ...<Widget>[
             const SizedBox(height: AppDimens.paddingX6),
             _MiniLine(
               icon: Icons.confirmation_number_outlined,
-              text: 'Booking ${reference.trim()}',
+              text: StringConstants.bookingReferenceLine(reference.trim()),
             ),
           ],
         ],
@@ -3010,7 +3021,7 @@ class _SummaryRow extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             child: Text(
-              'Edit',
+              StringConstants.edit,
               style: textTheme.bodyMiniSubTitle?.copyWith(
                 color: LightColor.secondaryColor,
                 fontWeight: FontWeight.w700,

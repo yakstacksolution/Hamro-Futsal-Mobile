@@ -64,7 +64,7 @@ class CourtReviewsSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppDimens.radiusX20),
                 ),
                 child: Text(
-                  'See All ($reviewCount)',
+                  StringConstants.seeAllCount(reviewCount),
                   style: textTheme.bodySubTitle?.copyWith(
                     color: LightColor.inverseTextColor,
                     fontWeight: FontWeight.w700,

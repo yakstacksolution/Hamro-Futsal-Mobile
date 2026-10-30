@@ -1,3 +1,5 @@
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+
 enum MatchFormat { fiveASide, sixASide, sevenASide }
 
 extension MatchFormatX on MatchFormat {
@@ -18,9 +20,9 @@ enum OpponentLevel { beginner, intermediate, advanced }
 
 extension OpponentLevelX on OpponentLevel {
   String get label => switch (this) {
-    OpponentLevel.beginner => 'Beginner',
-    OpponentLevel.intermediate => 'Intermediate',
-    OpponentLevel.advanced => 'Advanced',
+    OpponentLevel.beginner => StringConstants.beginner,
+    OpponentLevel.intermediate => StringConstants.intermediate,
+    OpponentLevel.advanced => StringConstants.advanced,
   };
 }
 
@@ -28,17 +30,33 @@ enum PlayerPosition { goalkeeper, defender, midfielder, forward }
 
 extension PlayerPositionX on PlayerPosition {
   String get label => switch (this) {
-    PlayerPosition.goalkeeper => 'Goalkeeper',
-    PlayerPosition.defender => 'Defender',
-    PlayerPosition.midfielder => 'Midfielder',
-    PlayerPosition.forward => 'Forward',
+    PlayerPosition.goalkeeper => StringConstants.goalkeeper,
+    PlayerPosition.defender => StringConstants.defender,
+    PlayerPosition.midfielder => StringConstants.midfielder,
+    PlayerPosition.forward => StringConstants.forward,
   };
 
   String get abbr => switch (this) {
-    PlayerPosition.goalkeeper => 'GK',
-    PlayerPosition.defender => 'DF',
-    PlayerPosition.midfielder => 'MF',
-    PlayerPosition.forward => 'FW',
+    PlayerPosition.goalkeeper => StringConstants.goalkeeperAbbr,
+    PlayerPosition.defender => StringConstants.defenderAbbr,
+    PlayerPosition.midfielder => StringConstants.midfielderAbbr,
+    PlayerPosition.forward => StringConstants.forwardAbbr,
+  };
+
+  /// Fixed English wire names/abbreviations the API uses for positions.
+  /// Never localized: they are matched against backend data.
+  String get _wireLabel => switch (this) {
+    PlayerPosition.goalkeeper => 'goalkeeper',
+    PlayerPosition.defender => 'defender',
+    PlayerPosition.midfielder => 'midfielder',
+    PlayerPosition.forward => 'forward',
+  };
+
+  String get _wireAbbr => switch (this) {
+    PlayerPosition.goalkeeper => 'gk',
+    PlayerPosition.defender => 'df',
+    PlayerPosition.midfielder => 'mf',
+    PlayerPosition.forward => 'fw',
   };
 
   static PlayerPosition fromAny(dynamic value) {
@@ -46,9 +64,12 @@ extension PlayerPositionX on PlayerPosition {
     final raw = value.toString().trim().toLowerCase();
     if (raw.isEmpty) return PlayerPosition.midfielder;
     for (final p in PlayerPosition.values) {
-      if (raw == p.label.toLowerCase() ||
-          raw == p.abbr.toLowerCase() ||
-          raw == p.name.toLowerCase()) {
+      if (raw == p._wireLabel ||
+          raw == p._wireAbbr ||
+          raw == p.name.toLowerCase() ||
+          // Static fallback list (PlayerPositionModel.defaults) carries the
+          // label in the current UI language.
+          raw == p.label.toLowerCase()) {
         return p;
       }
     }
@@ -151,16 +172,16 @@ enum RequestStatus {
 
 extension RequestStatusX on RequestStatus {
   String get label => switch (this) {
-    RequestStatus.draft => 'Draft',
-    RequestStatus.pendingApproval => 'Pending approval',
-    RequestStatus.fresh => 'New',
-    RequestStatus.pending => 'Pending',
-    RequestStatus.invitationSent => 'Invitation sent',
-    RequestStatus.accepted => 'Accepted',
-    RequestStatus.rejected => 'Rejected',
-    RequestStatus.sent => 'Sent',
-    RequestStatus.expired => 'Expired',
-    RequestStatus.cancelled => 'Cancelled',
+    RequestStatus.draft => StringConstants.draft,
+    RequestStatus.pendingApproval => StringConstants.pendingApproval,
+    RequestStatus.fresh => StringConstants.newLabel,
+    RequestStatus.pending => StringConstants.pending,
+    RequestStatus.invitationSent => StringConstants.invitationSent,
+    RequestStatus.accepted => StringConstants.accepted,
+    RequestStatus.rejected => StringConstants.rejected,
+    RequestStatus.sent => StringConstants.sent,
+    RequestStatus.expired => StringConstants.expired,
+    RequestStatus.cancelled => StringConstants.cancelled,
   };
 
   bool get isOpen =>
@@ -254,9 +275,9 @@ enum InvitationStatus { pending, selected, rejected }
 
 extension InvitationStatusX on InvitationStatus {
   String get label => switch (this) {
-    InvitationStatus.pending => 'Awaiting your pick',
-    InvitationStatus.selected => 'Selected',
-    InvitationStatus.rejected => 'Auto-rejected',
+    InvitationStatus.pending => StringConstants.awaitingYourPick,
+    InvitationStatus.selected => StringConstants.selected,
+    InvitationStatus.rejected => StringConstants.autoRejected,
   };
 
   static InvitationStatus fromApi(dynamic raw) =>
@@ -356,8 +377,8 @@ enum SplitMode { even, custom }
 
 extension SplitModeX on SplitMode {
   String get label => switch (this) {
-    SplitMode.even => 'Even',
-    SplitMode.custom => 'Custom %',
+    SplitMode.even => StringConstants.evenSplit,
+    SplitMode.custom => StringConstants.customPercent,
   };
 }
 
@@ -365,8 +386,8 @@ enum SplitBasis { teams, result }
 
 extension SplitBasisX on SplitBasis {
   String get label => switch (this) {
-    SplitBasis.teams => 'By team',
-    SplitBasis.result => 'By result',
+    SplitBasis.teams => StringConstants.byTeam,
+    SplitBasis.result => StringConstants.byResult,
   };
 }
 
@@ -1211,11 +1232,13 @@ class OpponentBookingPayment {
   bool get isFullyPaid => paymentStatus == 'paid' || balanceDue <= 0;
 
   String get statusLabel {
-    if (isFullyPaid) return 'Paid in full';
-    if (awaitingVerification) return 'Awaiting payment verification';
+    if (isFullyPaid) return StringConstants.paidInFull;
+    if (awaitingVerification) {
+      return StringConstants.awaitingPaymentVerification;
+    }
     return switch (paymentStatus) {
-      'partial' => 'Partially paid',
-      'pending' || 'unpaid' || '' => 'Payment pending',
+      'partial' => StringConstants.partiallyPaid,
+      'pending' || 'unpaid' || '' => StringConstants.paymentPending,
       final String other => other,
     };
   }
@@ -1255,6 +1278,6 @@ String _displayTime(String raw) {
   final minute = int.tryParse(minuteStr);
   if (hour == null || minute == null) return raw;
   final h12 = hour % 12 == 0 ? 12 : hour % 12;
-  final period = hour < 12 ? 'AM' : 'PM';
+  final period = hour < 12 ? StringConstants.am : StringConstants.pm;
   return '$h12:${minute.toString().padLeft(2, '0')} $period';
 }

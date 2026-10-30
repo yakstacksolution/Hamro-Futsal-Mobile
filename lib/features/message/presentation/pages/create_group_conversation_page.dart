@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
@@ -15,6 +14,7 @@ import 'package:hamro_futsal/features/message/data/repositories/message_reposito
 import 'package:hamro_futsal/features/message/domain/usecase/message_usecase.dart';
 import 'package:hamro_futsal/features/message/presentation/utils/pagination_trigger.dart';
 import 'package:hamro_futsal/features/message/presentation/widgets/group_member_widgets.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 typedef RegisteredUsersLoader =
     Future<RegisteredUserPageModel> Function({
@@ -266,7 +266,7 @@ class _CreateGroupConversationPageState
       setState(() {
         _loadingInitial = false;
         _loadingMore = false;
-        _loadError = 'Could not load users.';
+        _loadError = StringConstants.couldNotLoadUsers;
       });
     }
     // A standing error stops the auto-pager (see [PaginationTrigger]); the
@@ -317,25 +317,25 @@ class _CreateGroupConversationPageState
     final title = _title.text.trim();
 
     if (title.isEmpty) {
-      setState(() => _error = 'Enter a group name.');
+      setState(() => _error = StringConstants.enterAGroupName);
       _titleFocus.requestFocus();
       return;
     }
 
     if (title.length > 255) {
-      setState(() => _error = 'Group name must be 255 characters or fewer.');
+      setState(() => _error = StringConstants.groupNameTooLong);
       _titleFocus.requestFocus();
       return;
     }
 
     if (_selected.isEmpty) {
-      setState(() => _error = 'Select at least one member.');
+      setState(() => _error = StringConstants.selectAtLeastOneMember);
       return;
     }
 
     if (_selected.length > kMaxGroupMembers) {
       setState(() {
-        _error = 'A group can contain at most $kMaxGroupMembers members.';
+        _error = StringConstants.groupMaxMembers(kMaxGroupMembers);
       });
       return;
     }
@@ -451,7 +451,7 @@ class _CreateGroupConversationPageState
               child: Text(
                 _isFull
                     ? StringConstants.groupFull
-                    : 'Tap to add up to $kMaxGroupMembers people.',
+                    : StringConstants.tapToAddUpToPeople(kMaxGroupMembers),
                 style: FutsalTheme.getTextTheme(context).bodyTextSmall
                     ?.copyWith(
                       color: _isFull
@@ -563,10 +563,10 @@ class _CreateGroupConversationPageState
       return GroupEmptyStateCard(
         icon: Icons.person_search_outlined,
         title: _usesRemoteMembers
-            ? 'No users found'
+            ? StringConstants.noUsersFound
             : StringConstants.noMembersFound,
         message: _usesRemoteMembers
-            ? 'Registered users will appear here.'
+            ? StringConstants.registeredUsersWillAppearHere
             : StringConstants.startAConversationFirstThenCreateAGroupFromIt,
       );
     }
@@ -574,7 +574,7 @@ class _CreateGroupConversationPageState
     final List<ParticipantModel> visible = _visibleCandidates;
 
     if (visible.isEmpty) {
-      return const GroupEmptyStateCard(
+      return GroupEmptyStateCard(
         icon: Icons.search_off_rounded,
         title: StringConstants.noMatchingMembers,
         message: StringConstants.trySearchingWithAnotherNameOrEmail,

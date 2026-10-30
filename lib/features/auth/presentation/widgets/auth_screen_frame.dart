@@ -36,13 +36,13 @@ class _AudienceCopy {
 
   final IconData? icon;
 
-  static const List<(IconData, String)> _playerSteps = <(IconData, String)>[
+  static List<(IconData, String)> get _playerSteps => <(IconData, String)>[
     (Icons.travel_explore_rounded, StringConstants.authStepFindCourt),
     (Icons.schedule_rounded, StringConstants.authStepPickSlot),
     (Icons.sports_soccer_rounded, StringConstants.authStepPlay),
   ];
 
-  static const List<(IconData, String)> _playerFeatures = <(IconData, String)>[
+  static List<(IconData, String)> get _playerFeatures => <(IconData, String)>[
     (Icons.bolt_rounded, StringConstants.authFeatureLiveSlots),
     (Icons.groups_rounded, StringConstants.authFeatureOpponents),
     (Icons.forum_rounded, StringConstants.authFeatureTeamChat),
@@ -57,7 +57,7 @@ class _AudienceCopy {
           headline: StringConstants.authPlayerHeadline,
           tagline: StringConstants.authPlayerTagline,
           icon: Icons.sports_soccer_rounded,
-          highlights: const <String>[
+          highlights: <String>[
             StringConstants.authPlayerHighlightDiscover,
             StringConstants.authPlayerHighlightBook,
             StringConstants.authPlayerHighlightCompete,
@@ -75,12 +75,12 @@ class _AudienceCopy {
           headline: StringConstants.authVendorHeadline,
           tagline: StringConstants.authVendorTagline,
           icon: Icons.storefront_rounded,
-          highlights: const <String>[
+          highlights: <String>[
             StringConstants.authVendorHighlightList,
             StringConstants.authVendorHighlightAutomate,
             StringConstants.authVendorHighlightInsights,
           ],
-          steps: const <(IconData, String)>[
+          steps: <(IconData, String)>[
             (Icons.add_business_rounded, StringConstants.authStepListVenue),
             (Icons.schedule_rounded, StringConstants.authStepSetSlots),
             (
@@ -88,7 +88,7 @@ class _AudienceCopy {
               StringConstants.authStepGetBooked,
             ),
           ],
-          features: const <(IconData, String)>[
+          features: <(IconData, String)>[
             (Icons.point_of_sale_rounded, StringConstants.authFeatureWalkIns),
             (Icons.receipt_long_rounded, StringConstants.authFeatureExpenses),
             (
@@ -113,14 +113,14 @@ class _AudienceCopy {
           headline: StringConstants.authBrandTagline,
           tagline: StringConstants.authBrandSubline,
           icon: null,
-          highlights: const <String>[
+          highlights: <String>[
             StringConstants.authBrandHighlightBook,
             StringConstants.authBrandHighlightManage,
             StringConstants.authBrandHighlightPlay,
           ],
           steps: _playerSteps,
           features: _playerFeatures,
-          highlightDetails: const <String>[
+          highlightDetails: <String>[
             StringConstants.authBrandDetailBook,
             StringConstants.authBrandDetailManage,
             StringConstants.authBrandDetailPlay,
@@ -664,7 +664,7 @@ class _HowItWorks extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Step ${i + 1}',
+                  StringConstants.stepLabel(i + 1),
                   style: theme.bodyTextSmall?.copyWith(
                     color: onBrand.withValues(alpha: 0.55),
                     fontWeight: FontWeight.w600,
@@ -1046,7 +1046,7 @@ class _AuthHeader extends StatelessWidget {
             height: circleSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: <Color>[
@@ -1115,7 +1115,7 @@ class _AuthBackground extends StatelessWidget {
           left: -52,
           child: _BackgroundBubble(
             size: AppDimens.sizeX190,
-            colors: <Color>[LightColor.primarySoft, Color(0x1416A34A)],
+            colors: <Color>[LightColor.primarySoft, const Color(0x1416A34A)],
           ),
         ),
         Positioned(
@@ -1123,15 +1123,15 @@ class _AuthBackground extends StatelessWidget {
           right: -70,
           child: _BackgroundBubble(
             size: AppDimens.sizeX230,
-            colors: <Color>[LightColor.secondarySoft, Color(0x1410B981)],
+            colors: <Color>[LightColor.secondarySoft, const Color(0x1410B981)],
           ),
         ),
-        Positioned(
+        const Positioned(
           bottom: -65,
           left: -40,
           child: _BackgroundBubble(
             size: AppDimens.sizeX170,
-            colors: const <Color>[Color(0x1A14532D), Color(0x0F14532D)],
+            colors: <Color>[Color(0x1A14532D), Color(0x0F14532D)],
           ),
         ),
       ],

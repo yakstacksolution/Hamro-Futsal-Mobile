@@ -7,6 +7,7 @@ import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/client.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 abstract class MessageRemoteDataSource {
   Future<Result> getConversations({
@@ -320,7 +321,7 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
     } on DioException catch (error) {
       return Result.error(
         DataError(
-          error.message ?? 'Could not download chat media.',
+          error.message ?? StringConstants.couldNotDownloadChatMedia,
           error.response?.statusCode ?? 0,
           error.response?.data,
         ),

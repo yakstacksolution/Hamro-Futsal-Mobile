@@ -5,6 +5,7 @@ import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_court_item_model.dart';
 
@@ -177,7 +178,7 @@ class CourtSlotCard extends StatelessWidget {
                       Text(
                         isExactPrice
                             ? _money(totalPrice)
-                            : 'from ${_money(price)}',
+                            : StringConstants.fromPrice(_money(price)),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyTextMedium?.copyWith(
@@ -198,8 +199,10 @@ class CourtSlotCard extends StatelessWidget {
                           children: <InlineSpan>[
                             TextSpan(
                               text: isRecurring && hasSlot
-                                  ? '${sessionDates.length} sessions'
-                                  : '/ hour',
+                                  ? StringConstants.sessionsCount(
+                                      sessionDates.length,
+                                    )
+                                  : StringConstants.perHourSuffix,
                               style: textTheme.bodyMiniSubTitle?.copyWith(
                                 color: LightColor.hintTextColor,
                                 fontWeight: FontWeight.w500,
@@ -207,8 +210,9 @@ class CourtSlotCard extends StatelessWidget {
                             ),
                             if (showsDiscount && isAvailable)
                               TextSpan(
-                                text:
-                                    ' · save ${_money(originalTotal - totalPrice)}',
+                                text: StringConstants.saveAmountSuffix(
+                                  _money(originalTotal - totalPrice),
+                                ),
                                 style: textTheme.bodyMiniSubTitle?.copyWith(
                                   color: LightColor.secondaryColor,
                                   fontWeight: FontWeight.w700,
@@ -267,7 +271,7 @@ class CourtSlotCard extends StatelessWidget {
   }
 
   String _money(double value) =>
-      'Rs ${Money.group(value.round().abs().toString())}';
+      StringConstants.rsAmount(Money.group(value.round().abs().toString()));
 
   IconData _statusIcon(SlotStatus status) {
     return switch (status) {

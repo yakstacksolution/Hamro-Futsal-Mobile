@@ -98,7 +98,7 @@ class _ExistingBookingSheetState extends State<_ExistingBookingSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Select an existing booking',
+                    StringConstants.selectAnExistingBooking,
                     style: textTheme.bodyTextMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: LightColor.primaryTextColor,
@@ -106,8 +106,7 @@ class _ExistingBookingSheetState extends State<_ExistingBookingSheet> {
                   ),
                   const SizedBox(height: AppDimens.paddingX4),
                   Text(
-                    'The court, date, time and fee are taken from the booking '
-                    'you pick.',
+                    StringConstants.existingBookingSheetSubtitle,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.secondaryTextColor,
                     ),
@@ -115,7 +114,7 @@ class _ExistingBookingSheetState extends State<_ExistingBookingSheet> {
                   const SizedBox(height: AppDimens.paddingX12),
                   CustomTextField(
                     labelText: StringConstants.search,
-                    hintText: 'Venue, court or booking reference',
+                    hintText: StringConstants.existingBookingSearchHint,
                     icon: Icons.search_rounded,
                     isRequired: false,
                     textInputAction: TextInputAction.search,
@@ -146,7 +145,7 @@ class _ExistingBookingSheetState extends State<_ExistingBookingSheet> {
                         icon: const Icon(Icons.refresh_rounded),
                         label: Text(
                           state.myBookingsError ??
-                              'Could not load your bookings. Retry',
+                              StringConstants.couldNotLoadYourBookingsRetry,
                         ),
                       ),
                     );
@@ -259,7 +258,9 @@ class _BookingTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppDimens.radiusX20),
                 ),
                 child: Text(
-                  confirmed ? 'Confirmed' : 'Pending',
+                  confirmed
+                      ? StringConstants.confirmed
+                      : StringConstants.pending,
                   style: textTheme.bodyTextSmall?.copyWith(
                     fontSize: AppDimens.fontBodySubTitle,
                     fontWeight: FontWeight.w600,
@@ -299,9 +300,8 @@ class _Empty extends StatelessWidget {
             const SizedBox(height: AppDimens.paddingX12),
             Text(
               hasQuery
-                  ? 'No booking matches your search.'
-                  : 'You have no upcoming bookings to attach.\nBook a court '
-                        'first, or enter the venue manually.',
+                  ? StringConstants.noBookingMatchesYourSearch
+                  : StringConstants.noUpcomingBookingsToAttach,
               textAlign: TextAlign.center,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,

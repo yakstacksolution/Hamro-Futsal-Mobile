@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/core/widgets/custom_time_picker_bottom_sheet.dart';
 
@@ -68,7 +69,7 @@ class _CustomTimeFieldState extends State<CustomTimeField> {
         TimeOfDay.now();
     final TimeOfDay? picked = await customCupertinoTimePicker(
       context,
-      'Select Time',
+      StringConstants.selectTime,
       initialTime: initial,
     );
     if (picked == null) return;

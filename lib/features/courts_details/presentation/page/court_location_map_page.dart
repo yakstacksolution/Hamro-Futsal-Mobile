@@ -145,7 +145,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
         AppUtils().showSnackBar(
           context,
           MsgType.error,
-          'Could not open the maps application.',
+          StringConstants.couldNotOpenMapsApplication,
         );
       }
       return;
@@ -171,7 +171,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
         AppUtils().showSnackBar(
           context,
           MsgType.error,
-          'Could not open the maps application.',
+          StringConstants.couldNotOpenMapsApplication,
         );
       }
     } catch (_) {
@@ -183,7 +183,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
       AppUtils().showSnackBar(
         context,
         MsgType.error,
-        'Could not open the maps application.',
+        StringConstants.couldNotOpenMapsApplication,
       );
     }
   }
@@ -192,7 +192,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final String title = (widget.venueName ?? '').trim().isEmpty
-        ? 'Location'
+        ? StringConstants.location
         : widget.venueName!.trim();
     final String addressText = widget.address?.trim() ?? '';
     final double bottomInset = MediaQuery.of(context).padding.bottom;
@@ -223,7 +223,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
                 ),
                 const SizedBox(height: AppDimens.sizeX6),
                 Text(
-                  "This venue hasn't shared map coordinates yet.",
+                  StringConstants.venueHasNotSharedMapCoordinates,
                   textAlign: TextAlign.center,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryTextColor,
@@ -321,7 +321,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
                 children: <Widget>[
                   FloatingActionButton.small(
                     heroTag: 'zoom-in',
-                    tooltip: 'Zoom in',
+                    tooltip: StringConstants.zoomIn,
                     backgroundColor: LightColor.cardColor,
                     foregroundColor: LightColor.secondaryColor,
                     onPressed: _currentZoom < 20 ? () => _zoomBy(1) : null,
@@ -329,7 +329,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
                   ),
                   FloatingActionButton.small(
                     heroTag: 'zoom-out',
-                    tooltip: 'Zoom out',
+                    tooltip: StringConstants.zoomOut,
                     backgroundColor: LightColor.cardColor,
                     foregroundColor: LightColor.secondaryColor,
                     onPressed: _currentZoom > 3 ? () => _zoomBy(-1) : null,

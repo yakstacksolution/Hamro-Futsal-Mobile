@@ -152,8 +152,9 @@ class AppSettings {
 
   set appLanguage(String val) =>
       _preferences.setString(_SettingsPreferenceKeys.appLanguage, val);
-  String get appLanguage =>
-      _preferences.getString(_SettingsPreferenceKeys.appLanguage) ?? 'English';
+  /// Language code (`en`, `ne`, `hi`); null until the user picks one.
+  String? get appLanguage =>
+      _preferences.getString(_SettingsPreferenceKeys.appLanguage);
 
   set vendorOperationalHome(bool val) =>
       _preferences.setBool(_SettingsPreferenceKeys.vendorOperationalHome, val);

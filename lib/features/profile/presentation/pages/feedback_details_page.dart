@@ -8,6 +8,7 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/features/profile/data/model/feedback_history_model.dart';
 import 'package:hamro_futsal/features/profile/data/repositories/feedback_repository_impl.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class FeedbackDetailsPage extends StatefulWidget {
   const FeedbackDetailsPage({super.key, required this.feedbackId});
@@ -35,7 +36,7 @@ class _FeedbackDetailsPageState extends State<FeedbackDetailsPage> {
     if (widget.feedbackId.trim().isEmpty) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Feedback details could not be opened.';
+        _errorMessage = StringConstants.feedbackDetailsCouldNotBeOpened;
       });
       return;
     }
@@ -64,7 +65,7 @@ class _FeedbackDetailsPageState extends State<FeedbackDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Feedback Details'),
+      appBar: CustomAppBar(title: StringConstants.feedbackDetails),
       body: SafeArea(
         top: false,
         child: _isLoading
@@ -121,7 +122,7 @@ class _DetailsContent extends StatelessWidget {
                 children: <Widget>[
                   _DetailsTag(
                     label: item.categoryName.isEmpty
-                        ? 'Category'
+                        ? StringConstants.feedbackCategory
                         : item.categoryName,
                     background: LightColor.secondaryColor.withValues(
                       alpha: 0.08,
@@ -129,7 +130,9 @@ class _DetailsContent extends StatelessWidget {
                     foreground: LightColor.secondaryColor,
                   ),
                   _DetailsTag(
-                    label: item.typeName.isEmpty ? 'Type' : item.typeName,
+                    label: item.typeName.isEmpty
+                        ? StringConstants.type
+                        : item.typeName,
                     background: accent.withValues(alpha: 0.10),
                     foreground: accent,
                   ),
@@ -143,12 +146,12 @@ class _DetailsContent extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               _DetailsSection(
-                label: 'Submitted on',
+                label: StringConstants.submittedOn,
                 value: _formatDateTime(item.createdAt),
               ),
               const SizedBox(height: 16),
               _DetailsSection(
-                label: 'Rating',
+                label: StringConstants.rating,
                 customValue: Row(
                   children: List<Widget>.generate(5, (index) {
                     final bool selected = index < item.rating;
@@ -169,14 +172,14 @@ class _DetailsContent extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _DetailsSection(
-                label: 'Message',
+                label: StringConstants.message,
                 value: item.message,
                 multiline: true,
               ),
               if ((item.contactInfo ?? '').isNotEmpty) ...<Widget>[
                 const SizedBox(height: 16),
                 _DetailsSection(
-                  label: 'Contact info',
+                  label: StringConstants.contactInfo,
                   value: item.contactInfo!,
                 ),
               ],
@@ -294,7 +297,7 @@ class _DetailsError extends StatelessWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: LightColor.secondaryColor,
               ),
-              child: const Text('Retry'),
+              child: Text(StringConstants.retry),
             ),
           ],
         ),

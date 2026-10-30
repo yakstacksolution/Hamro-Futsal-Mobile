@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/weekday_option.dart';
 
@@ -293,7 +294,10 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
       value: courtType,
       explicitName: json['court_type_name'],
       id: courtTypeId,
-      labelsById: const <int, String>{1: 'Indoor', 2: 'Outdoor'},
+      labelsById: <int, String>{
+        1: StringConstants.indoor,
+        2: StringConstants.outdoor,
+      },
     ),
     matchFormatId: matchFormatId,
     matchFormat: _optionDisplayName(

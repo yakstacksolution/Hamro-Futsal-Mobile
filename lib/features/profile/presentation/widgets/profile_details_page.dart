@@ -34,11 +34,22 @@ class ProfileDetailsPage extends StatefulWidget {
 }
 
 class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
+  // Wire values sent to / matched against the API; never translated.
+  static const String _genderMale = 'Male';
+  static const String _genderFemale = 'Female';
+  static const String _genderOthers = 'Others';
   static const List<String> _genderOptions = <String>[
-    'Male',
-    'Female',
-    'Others',
+    _genderMale,
+    _genderFemale,
+    _genderOthers,
   ];
+
+  static String _genderLabel(String gender) => switch (gender) {
+    _genderMale => StringConstants.male,
+    _genderFemale => StringConstants.female,
+    _genderOthers => StringConstants.others,
+    _ => gender,
+  };
 
   late String _selectedGender;
 
@@ -231,7 +242,8 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
               AppUtils().showSnackBar(
                 context,
                 MsgType.success,
-                state.successMessage ?? 'Profile updated successfully.',
+                state.successMessage ??
+                    StringConstants.profileUpdatedSuccessfully,
               );
               if (!wasPhotoOnly) {
                 Navigator.of(context).maybePop();
@@ -366,7 +378,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
 
   List<Widget> _formSections(BuildContext context, {required bool isUpdating}) {
     return <Widget>[
-      _sectionLabel(context, 'Personal information'),
+      _sectionLabel(context, StringConstants.personalInformation),
       const SizedBox(height: AppDimens.paddingX10),
       _SectionCard(
         children: _isEditing
@@ -385,7 +397,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                 _DetailRow(
                   icon: Icons.wc_rounded,
                   label: StringConstants.gender,
-                  value: _selectedGender,
+                  value: _genderLabel(_selectedGender),
                 ),
                 _DetailRow(
                   icon: Icons.calendar_month_outlined,
@@ -395,7 +407,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
               ]),
       ),
       const SizedBox(height: AppDimens.paddingX20),
-      _sectionLabel(context, 'Contact information'),
+      _sectionLabel(context, StringConstants.contactInformation),
       const SizedBox(height: AppDimens.paddingX10),
       _SectionCard(
         children: _isEditing
@@ -515,8 +527,10 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
         focusNode: _genderFocus,
         items: _genderOptions
             .map(
-              (option) =>
-                  DropdownMenuItem<String>(value: option, child: Text(option)),
+              (option) => DropdownMenuItem<String>(
+                value: option,
+                child: Text(_genderLabel(option)),
+              ),
             )
             .toList(),
         enabled: _isEditing,
@@ -662,9 +676,9 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   }
 
   String _resolvedFullName(UserData? user) {
-    if (user == null) return 'Profile unavailable';
+    if (user == null) return StringConstants.profileUnavailable;
     if (user.fullName.trim().isNotEmpty) return user.fullName;
-    return 'Name not provided';
+    return StringConstants.nameNotProvided;
   }
 
   String _resolvedAddress(UserData? user) {
@@ -683,14 +697,14 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
 
   String _resolvedGender(UserData? user) {
     final String? raw = user?.gender?.trim();
-    if (raw == null || raw.isEmpty) return 'Others';
+    if (raw == null || raw.isEmpty) return _genderOthers;
     if (raw.toLowerCase() == 'other' || raw.toLowerCase() == 'others') {
-      return 'Others';
+      return _genderOthers;
     }
     final String normalized =
         raw[0].toUpperCase() + raw.substring(1).toLowerCase();
     if (_genderOptions.contains(normalized)) return normalized;
-    return 'Others';
+    return _genderOthers;
   }
 
   String? _resolvedAvatar(UserData? user) {
@@ -722,7 +736,9 @@ class _ProfileSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final String addressLabel = address.isEmpty ? 'Address not set' : address;
+    final String addressLabel = address.isEmpty
+        ? StringConstants.addressNotSet
+        : address;
 
     return Container(
       padding: const EdgeInsets.all(AppDimens.paddingX16),

@@ -3,20 +3,21 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/widgets/custom_html_viewer.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class CourtDescriptionSection extends StatefulWidget {
   const CourtDescriptionSection({
     super.key,
     required this.description,
-    this.title = 'About this venue',
-    this.subtitle = 'Overview and important details',
+    this.title,
+    this.subtitle,
     this.icon = Icons.description_rounded,
     this.collapsedLines = 8,
   });
 
   final String description;
-  final String title;
-  final String subtitle;
+  final String? title;
+  final String? subtitle;
   final IconData icon;
 
   final int collapsedLines;
@@ -115,7 +116,7 @@ class _CourtDescriptionSectionState extends State<CourtDescriptionSection> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.title,
+                        widget.title ?? StringConstants.aboutThisVenue,
                         style: textTheme.bodyTextLarge!.copyWith(
                           color: LightColor.primaryTextColor,
                           fontWeight: FontWeight.w800,
@@ -123,7 +124,8 @@ class _CourtDescriptionSectionState extends State<CourtDescriptionSection> {
                       ),
                       const SizedBox(height: AppDimens.sizeX3),
                       Text(
-                        widget.subtitle,
+                        widget.subtitle ??
+                            StringConstants.overviewAndImportantDetails,
                         style: textTheme.bodyTextSmall!.copyWith(
                           color: LightColor.hintTextColor,
                           fontWeight: FontWeight.w500,
@@ -212,7 +214,7 @@ class _CourtDescriptionSectionState extends State<CourtDescriptionSection> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              _expanded ? 'Read less' : 'Read more',
+              _expanded ? StringConstants.readLess : StringConstants.readMore,
               style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
                 color: LightColor.secondaryColor,
                 fontWeight: FontWeight.w700,

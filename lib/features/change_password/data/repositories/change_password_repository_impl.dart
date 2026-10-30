@@ -3,6 +3,7 @@ import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/core/helper/response_helper.dart';
 import 'package:hamro_futsal/features/change_password/data/data_source/change_password_data_source.dart';
 import 'package:hamro_futsal/features/change_password/domain/repository/change_password_repository.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 final class ChangePasswordRepositoryImpl extends ChangePasswordRepository {
   ChangePasswordRepositoryImpl({
@@ -27,13 +28,13 @@ final class ChangePasswordRepositoryImpl extends ChangePasswordRepository {
       final AppException error = ResponseHelper.error(response);
       // A 204 No Content reply still means the password was changed.
       if (error.statusCode != 204) return left(error);
-      return right('Password updated successfully.');
+      return right(StringConstants.passwordUpdatedSuccessfully);
     }
 
     final dynamic payload = response.getValue();
     final String message = payload is Map && payload['message'] is String
         ? (payload['message'] as String)
-        : 'Password updated successfully.';
+        : StringConstants.passwordUpdatedSuccessfully;
     return right(message);
   }
 }

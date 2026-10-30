@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
@@ -16,6 +15,7 @@ import 'package:hamro_futsal/features/message/presentation/pages/create_group_co
     show RegisteredUsersLoader;
 import 'package:hamro_futsal/features/message/presentation/utils/pagination_trigger.dart';
 import 'package:hamro_futsal/features/message/presentation/widgets/group_member_widgets.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 const double _kAddMembersSheetHeightFactor = 0.86;
 
@@ -233,7 +233,7 @@ class _AddGroupMembersFormState extends State<AddGroupMembersForm> {
       setState(() {
         _loadingInitial = false;
         _loadingMore = false;
-        _loadError = 'Could not load users.';
+        _loadError = StringConstants.couldNotLoadUsers;
       });
     }
     // A standing error stops the auto-pager (see [PaginationTrigger]); the
@@ -287,13 +287,13 @@ class _AddGroupMembersFormState extends State<AddGroupMembersForm> {
 
   void _submit() {
     if (_selected.isEmpty) {
-      setState(() => _error = 'Select at least one new member.');
+      setState(() => _error = StringConstants.selectAtLeastOneNewMember);
       return;
     }
 
     if (_totalMemberCount > kMaxGroupMembers) {
       setState(() {
-        _error = 'A group can contain at most $kMaxGroupMembers members.';
+        _error = StringConstants.groupMaxMembers(kMaxGroupMembers);
       });
       return;
     }
@@ -371,8 +371,8 @@ class _AddGroupMembersFormState extends State<AddGroupMembersForm> {
               const SizedBox(height: 3),
               Text(
                 _selected.isEmpty
-                    ? 'Choose people to add in this group'
-                    : '${_selected.length} selected',
+                    ? StringConstants.choosePeopleToAddInGroup
+                    : StringConstants.selectedCount(_selected.length),
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: _selected.isEmpty
                       ? LightColor.secondaryTextColor
@@ -519,8 +519,8 @@ class _AddGroupMembersFormState extends State<AddGroupMembersForm> {
         icon: const Icon(Icons.person_add_alt_1_rounded),
         label: Text(
           _selected.isEmpty
-              ? 'Add members'
-              : 'Add ${_selected.length} ${_selected.length == 1 ? 'member' : 'members'}',
+              ? StringConstants.addMembers
+              : StringConstants.addMemberCount(_selected.length),
         ),
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(52),

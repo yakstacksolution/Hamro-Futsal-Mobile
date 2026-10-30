@@ -1,3 +1,5 @@
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+
 enum SlotStatus {
   available,
   unavailable,
@@ -24,10 +26,10 @@ enum SlotStatus {
 
   String get label {
     return switch (this) {
-      SlotStatus.available => 'Available',
-      SlotStatus.unavailable => 'Unavailable',
-      SlotStatus.booked => 'Booked',
-      SlotStatus.closed => 'Closed',
+      SlotStatus.available => StringConstants.available,
+      SlotStatus.unavailable => StringConstants.unavailable,
+      SlotStatus.booked => StringConstants.booked,
+      SlotStatus.closed => StringConstants.closed,
     };
   }
 

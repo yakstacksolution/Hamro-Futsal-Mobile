@@ -364,12 +364,12 @@ class _NotificationMenu extends StatelessWidget {
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<bool>>[
         if (!notification.isRead)
-          const PopupMenuItem<bool>(
+          PopupMenuItem<bool>(
             value: true,
             child: CustomMenuItem(label: StringConstants.markAsRead),
           )
         else
-          const PopupMenuItem<bool>(
+          PopupMenuItem<bool>(
             value: false,
             child: CustomMenuItem(label: StringConstants.markAsUnread),
           ),
@@ -569,15 +569,15 @@ class _NotificationSkeletonLoaderState extends State<NotificationSkeletonLoader>
               borderRadius: BorderRadius.circular(AppDimens.radiusX16),
               border: Border.all(color: LightColor.dividerColor),
             ),
-            child: Row(
+            child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const _Bone(width: 44, height: 44, radius: 22),
-                const SizedBox(width: AppDimens.sizeX14),
+                _Bone(width: 44, height: 44, radius: 22),
+                SizedBox(width: AppDimens.sizeX14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const <Widget>[
+                    children: <Widget>[
                       _Bone(width: 140, height: 12),
                       SizedBox(height: 10),
                       _Bone(width: double.infinity, height: 10),
@@ -650,13 +650,13 @@ String _timeAgo(DateTime? date) {
   final Duration diff = DateTime.now().difference(date);
   if (diff.inSeconds < 60) return StringConstants.justNow;
   if (diff.inMinutes < 60) {
-    return '${diff.inMinutes} min ago';
+    return StringConstants.minutesAgo(diff.inMinutes);
   }
   if (diff.inHours < 24) {
-    return '${diff.inHours} ${diff.inHours == 1 ? 'hour' : 'hours'} ago';
+    return StringConstants.hoursAgoPlural(diff.inHours);
   }
   if (diff.inDays < 7) {
-    return '${diff.inDays} ${diff.inDays == 1 ? 'day' : 'days'} ago';
+    return StringConstants.daysAgoPlural(diff.inDays);
   }
   return AppDateFormat.format(date, 'd MMM y');
 }

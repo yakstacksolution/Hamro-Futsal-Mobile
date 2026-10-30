@@ -13,6 +13,7 @@ import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/confirm_word_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_switch_widget.dart';
 import 'package:hamro_futsal/features/profile/presentation/controller/settings_controller.dart';
+import 'package:hamro_futsal/core/l10n/app_language.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -71,7 +72,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.settings),
+      appBar: CustomAppBar(title: StringConstants.settings),
       body: SafeArea(
         top: false,
         // Only the preference list listens to the controller, so toggling a
@@ -186,7 +187,7 @@ class _SettingsPageState extends State<SettingsPage> {
           icon: Icons.language_rounded,
           title: StringConstants.language,
           subtitle: StringConstants.appDisplayLanguage,
-          trailingValue: _controller.language,
+          trailingValue: _controller.language.nativeName,
           onTap: _showLanguagePicker,
         ),
         _SettingsItem.nav(
@@ -216,7 +217,7 @@ class _SettingsPageState extends State<SettingsPage> {
       confirmationWord: StringConstants.deleteAccountConfirmationWord,
       confirmText: StringConstants.deleteAccount,
       icon: Icons.delete_forever_rounded,
-      consequences: const <String>[
+      consequences: <String>[
         StringConstants.deleteAccountLosesProfile,
         StringConstants.deleteAccountLosesBookings,
         StringConstants.deleteAccountLosesTeams,
@@ -236,11 +237,11 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _showLanguagePicker() async {
-    final String? selected = await _showOptionSheet(
+    final AppLanguage? selected = await _showOptionSheet<AppLanguage>(
       title: StringConstants.language,
       options: SettingsController.languages,
       current: _controller.language,
-      labelFor: (String option) => option,
+      labelFor: (AppLanguage language) => language.nativeName,
     );
     if (selected != null) _controller.setLanguage(selected);
   }

@@ -215,7 +215,9 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: CustomAppBar(
-        title: _isEdit ? 'Edit expense' : 'New expense',
+        title: _isEdit
+            ? StringConstants.editExpense
+            : StringConstants.newExpenseTitle,
         actions: [
           ListenableBuilder(
             listenable: Listenable.merge([_amountCtrl, _vendorCtrl]),
@@ -239,7 +241,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         child: Builder(
           builder: (BuildContext context) {
             final List<Widget> amountSection = [
-              ExpenseSectionLabel('Amount'),
+              ExpenseSectionLabel(StringConstants.amount),
               ValueListenableBuilder<TextEditingValue>(
                 valueListenable: _amountCtrl,
                 builder: (context, _, __) => Column(
@@ -274,7 +276,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               const SizedBox(height: AppDimens.paddingX18),
             ];
             final List<Widget> categorySection = [
-              ExpenseSectionLabel('Category'),
+              ExpenseSectionLabel(StringConstants.category),
               // Categories are fetched from the expense-categories API; the
               // dropdown follows the bloc so it stays in sync with the fetch.
               BlocBuilder<ExpensesBloc, ExpensesState>(
@@ -284,7 +286,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 builder: (context, state) {
                   if (state.categoriesStatus == ExpensesStatus.initial ||
                       state.categoriesStatus == ExpensesStatus.loading) {
-                    return const ExpenseSurface(
+                    return ExpenseSurface(
                       child: _CategoryStatusRow(
                         leading: SizedBox(
                           width: 18,
@@ -325,7 +327,8 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                       autovalidateMode: _submitted
                           ? AutovalidateMode.always
                           : AutovalidateMode.disabled,
-                      validator: (v) => v == null ? 'Pick a category' : null,
+                      validator: (v) =>
+                          v == null ? StringConstants.pickACategory : null,
                       onChanged: (c) => setState(() => _category = c),
                       items: state.categories
                           .map(
@@ -342,7 +345,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               const SizedBox(height: AppDimens.paddingX18),
             ];
             final List<Widget> detailsSection = [
-              ExpenseSectionLabel('Details'),
+              ExpenseSectionLabel(StringConstants.details),
               ExpenseSurface(
                 padding: EdgeInsets.zero,
                 child: Column(
@@ -462,7 +465,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               const SizedBox(height: AppDimens.paddingX18),
             ];
             final List<Widget> noteSection = [
-              ExpenseSectionLabel('Note'),
+              ExpenseSectionLabel(StringConstants.note),
               ExpenseSurface(
                 child: CustomTextField(
                   controller: _noteCtrl,
@@ -479,7 +482,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               const SizedBox(height: AppDimens.paddingX18),
             ];
             final List<Widget> documentSection = [
-              ExpenseSectionLabel('Document'),
+              ExpenseSectionLabel(StringConstants.document),
               ExpenseSurface(
                 child: _DocumentField(
                   document: _document,
@@ -591,8 +594,16 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       width: double.infinity,
       child: CustomButton(
         text: _canSave
-            ? '${_isEdit ? 'Update' : 'Save'} expense · ${ExpenseFmt.npr(_amountInt ?? 0)}'
-            : '${_isEdit ? 'Update' : 'Save'} expense',
+            ? (_isEdit
+                  ? StringConstants.updateExpenseWithAmount(
+                      ExpenseFmt.npr(_amountInt ?? 0),
+                    )
+                  : StringConstants.saveExpenseWithAmount(
+                      ExpenseFmt.npr(_amountInt ?? 0),
+                    ))
+            : (_isEdit
+                  ? StringConstants.updateExpense
+                  : StringConstants.saveExpense),
         icon: Icons.save_outlined,
         onPressed: _canSave ? _save : null,
       ),
@@ -608,7 +619,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Text(
-              'Total',
+              StringConstants.total,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.hintTextColor,
               ),
@@ -669,7 +680,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   String _formatDate(DateTime d) {
     final now = DateTime.now();
     if (d.year == now.year && d.month == now.month && d.day == now.day) {
-      return 'Today, ${AppDateFormat.format(d, 'MMM d')}';
+      return StringConstants.todayCommaDate(AppDateFormat.format(d, 'MMM d'));
     }
     return AppDateFormat.format(d, 'EEE, MMM d, y');
   }
@@ -742,9 +753,11 @@ class _DocumentField extends StatelessWidget {
   String get _size {
     final bytes = document?.size ?? 0;
     if (bytes >= 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+      return StringConstants.fileSizeMb(
+        (bytes / (1024 * 1024)).toStringAsFixed(1),
+      );
     }
-    return '${(bytes / 1024).ceil()} KB';
+    return StringConstants.fileSizeKb((bytes / 1024).ceil());
   }
 
   @override

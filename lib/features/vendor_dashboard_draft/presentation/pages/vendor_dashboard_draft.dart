@@ -5,6 +5,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class VendorDashboardDraft extends StatefulWidget {
   const VendorDashboardDraft({super.key, this.topInset = 0});
@@ -100,7 +101,7 @@ class _VendorDashboardDraftState extends State<VendorDashboardDraft> {
         'HF-${DateTime.now().millisecondsSinceEpoch.remainder(100000)}';
     setState(_selectedSlotIds.clear);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Booking saved. Reference: $reference')),
+      SnackBar(content: Text(StringConstants.bookingSavedReference(reference))),
     );
   }
 
@@ -124,9 +125,9 @@ class _VendorDashboardDraftState extends State<VendorDashboardDraft> {
                 ),
                 const SizedBox(height: AppDimens.sizeX8),
                 Text('${slot.courtName} · ${slot.timeRange}'),
-                Text('Payment: ${slot.paymentText}'),
+                Text(StringConstants.paymentStatusLabel(slot.paymentText)),
                 if (slot.reference != null)
-                  Text('Reference: ${slot.reference}'),
+                  Text(StringConstants.referenceLabel(slot.reference)),
                 const SizedBox(height: AppDimens.sizeX16),
                 Row(
                   children: <Widget>[
@@ -134,7 +135,7 @@ class _VendorDashboardDraftState extends State<VendorDashboardDraft> {
                       child: OutlinedButton.icon(
                         onPressed: () {},
                         icon: const Icon(Icons.receipt_long_rounded),
-                        label: const Text('Receipt'),
+                        label: Text(StringConstants.receipt),
                       ),
                     ),
                     const SizedBox(width: AppDimens.sizeX10),
@@ -142,7 +143,7 @@ class _VendorDashboardDraftState extends State<VendorDashboardDraft> {
                       child: ElevatedButton.icon(
                         onPressed: () {},
                         icon: const Icon(Icons.payments_rounded),
-                        label: const Text('Payment'),
+                        label: Text(StringConstants.payment),
                       ),
                     ),
                   ],
@@ -290,7 +291,7 @@ class _TopBar extends StatelessWidget {
         _IconAction(icon: Icons.chevron_right_rounded, onTap: onNext),
         _SimpleButton(
           icon: Icons.today_rounded,
-          label: isToday ? 'Today' : 'Go to today',
+          label: isToday ? StringConstants.today : StringConstants.goToToday,
           filled: true,
           onTap: onToday,
         ),
@@ -351,7 +352,7 @@ class _GreetingCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Good day, vendor',
+                  StringConstants.goodDayVendor,
                   style: FutsalTheme.getTextTheme(
                     context,
                   ).headingSmall?.copyWith(fontWeight: FontWeight.w800),
@@ -388,10 +389,26 @@ class _SummaryCards extends StatelessWidget {
       (int total, SlotDraft slot) => total + slot.paid,
     );
     final List<_SummaryValue> items = <_SummaryValue>[
-      _SummaryValue('Booked', '$booked', Icons.event_busy_rounded),
-      _SummaryValue('Free slots', '$free', Icons.event_available_rounded),
-      _SummaryValue('Collected', 'Rs. $earned', Icons.payments_rounded),
-      _SummaryValue('Due', 'Rs. $due', Icons.account_balance_wallet_rounded),
+      _SummaryValue(
+        StringConstants.booked,
+        '$booked',
+        Icons.event_busy_rounded,
+      ),
+      _SummaryValue(
+        StringConstants.freeSlots,
+        '$free',
+        Icons.event_available_rounded,
+      ),
+      _SummaryValue(
+        StringConstants.collected,
+        StringConstants.amountInRupees(earned),
+        Icons.payments_rounded,
+      ),
+      _SummaryValue(
+        StringConstants.due,
+        StringConstants.amountInRupees(due),
+        Icons.account_balance_wallet_rounded,
+      ),
     ];
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
@@ -457,8 +474,8 @@ class _ScheduleSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _SectionTitle(
-            title: 'Today schedule',
-            subtitle: 'Tap a free time to add it to a booking.',
+            title: StringConstants.todaySchedule,
+            subtitle: StringConstants.tapFreeTimeToAddToBooking,
           ),
           const SizedBox(height: AppDimens.sizeX12),
           ...venue.courts.map(
@@ -557,13 +574,15 @@ class _SlotButton extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
             Text(
-              selected ? 'Selected' : slot.statusText,
+              selected ? StringConstants.selected : slot.statusText,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(color: LightColor.secondaryTextColor),
             ),
             Text(
-              slot.isFree ? 'Rs. ${slot.price}' : slot.paymentText,
+              slot.isFree
+                  ? StringConstants.amountInRupees(slot.price)
+                  : slot.paymentText,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w700),
@@ -599,10 +618,10 @@ class _BookingBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _SectionTitle(
-            title: 'New booking',
+            title: StringConstants.newBooking,
             subtitle: slots.isEmpty
-                ? 'Select free times first.'
-                : '${slots.length} time selected',
+                ? StringConstants.selectFreeTimesFirst
+                : StringConstants.timesSelected(slots.length),
           ),
           const SizedBox(height: AppDimens.sizeX12),
           if (slots.isEmpty)
@@ -627,7 +646,10 @@ class _BookingBox extends StatelessWidget {
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                           Text(
-                            '${slot.timeRange} · Rs. ${slot.price}',
+                            StringConstants.slotTimeAndPrice(
+                              slot.timeRange,
+                              slot.price,
+                            ),
                             style: TextStyle(
                               color: LightColor.secondaryTextColor,
                             ),
@@ -644,18 +666,18 @@ class _BookingBox extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppDimens.sizeX8),
-            const TextField(
+            TextField(
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
-                labelText: 'Customer phone',
-                prefixIcon: Icon(Icons.phone_rounded),
+                labelText: StringConstants.customerPhone,
+                prefixIcon: const Icon(Icons.phone_rounded),
               ),
             ),
             const SizedBox(height: AppDimens.sizeX10),
-            const TextField(
+            TextField(
               decoration: InputDecoration(
-                labelText: 'Customer name',
-                prefixIcon: Icon(Icons.person_rounded),
+                labelText: StringConstants.customerName,
+                prefixIcon: const Icon(Icons.person_rounded),
               ),
             ),
             const SizedBox(height: AppDimens.sizeX10),
@@ -667,14 +689,14 @@ class _BookingBox extends StatelessWidget {
               ),
               child: Row(
                 children: <Widget>[
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Total amount',
-                      style: TextStyle(fontWeight: FontWeight.w800),
+                      StringConstants.totalAmount,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
                   Text(
-                    'Rs. $total',
+                    StringConstants.amountInRupees(total),
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ],
@@ -686,14 +708,14 @@ class _BookingBox extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: onClear,
-                    child: const Text('Clear'),
+                    child: Text(StringConstants.clear),
                   ),
                 ),
                 const SizedBox(width: AppDimens.sizeX10),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onConfirm,
-                    child: const Text('Save booking'),
+                    child: Text(StringConstants.saveBooking),
                   ),
                 ),
               ],
@@ -718,21 +740,21 @@ class _TodayBookings extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _SectionTitle(
-            title: "Today's bookings",
-            subtitle: 'Search by name, phone, or reference.',
+            title: StringConstants.todaysBookings,
+            subtitle: StringConstants.searchByNamePhoneOrReference,
           ),
           const SizedBox(height: AppDimens.sizeX12),
           TextField(
             onChanged: onSearchChanged,
-            decoration: const InputDecoration(
-              hintText: 'Search booking',
-              prefixIcon: Icon(Icons.search_rounded),
+            decoration: InputDecoration(
+              hintText: StringConstants.searchBooking,
+              prefixIcon: const Icon(Icons.search_rounded),
             ),
           ),
           const SizedBox(height: AppDimens.sizeX12),
           if (bookings.isEmpty)
             Text(
-              'No bookings found.',
+              StringConstants.noBookingsFound,
               style: TextStyle(color: LightColor.secondaryTextColor),
             )
           else
@@ -786,12 +808,12 @@ class _BookingTile extends StatelessWidget {
               _SmallBadge(text: booking.paymentText),
               const SizedBox(height: AppDimens.sizeX6),
               Text(
-                'Rs. ${booking.amount}',
+                StringConstants.amountInRupees(booking.amount),
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               if (booking.due > 0)
                 Text(
-                  'Due Rs. ${booking.due}',
+                  StringConstants.dueRsAmount(booking.due),
                   style: TextStyle(color: LightColor.warningColor),
                 ),
             ],
@@ -868,12 +890,12 @@ class _EmptyHint extends StatelessWidget {
         children: <Widget>[
           Icon(Icons.touch_app_rounded, color: LightColor.brandTextColor),
           const SizedBox(height: AppDimens.sizeX8),
-          const Text(
-            'Tap a free time',
-            style: TextStyle(fontWeight: FontWeight.w800),
+          Text(
+            StringConstants.tapAFreeTime,
+            style: const TextStyle(fontWeight: FontWeight.w800),
           ),
           Text(
-            'Selected times will appear here.',
+            StringConstants.selectedTimesWillAppearHere,
             style: TextStyle(color: LightColor.secondaryTextColor),
           ),
         ],

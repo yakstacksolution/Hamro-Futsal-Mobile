@@ -1,14 +1,15 @@
 import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 enum ConversationFilter { all, unread, direct, group, archived }
 
 extension ConversationFilterX on ConversationFilter {
   String get label => switch (this) {
-    ConversationFilter.all => 'All',
-    ConversationFilter.unread => 'Unread',
-    ConversationFilter.direct => 'Direct',
-    ConversationFilter.group => 'Groups',
-    ConversationFilter.archived => 'Archived',
+    ConversationFilter.all => StringConstants.all,
+    ConversationFilter.unread => StringConstants.unread,
+    ConversationFilter.direct => StringConstants.conversationFilterDirect,
+    ConversationFilter.group => StringConstants.conversationFilterGroups,
+    ConversationFilter.archived => StringConstants.conversationFilterArchived,
   };
 }
 
@@ -228,7 +229,8 @@ class ConversationModel {
   String displayTitle(int currentUserId) {
     final t = title?.trim();
     if (t != null && t.isNotEmpty) return t;
-    return otherParticipant(currentUserId)?.name ?? 'Conversation';
+    return otherParticipant(currentUserId)?.name ??
+        StringConstants.conversation;
   }
 
   String displayAvatar(int currentUserId) =>
@@ -242,9 +244,9 @@ class ConversationModel {
 
   String preview(int currentUserId) {
     final text = lastMessage?.trim() ?? '';
-    if (text.isEmpty) return 'No messages yet — say hello!';
+    if (text.isEmpty) return StringConstants.noMessagesYetSayHello;
     final mine = lastMessageDetail?.senderId == currentUserId;
-    return mine ? 'You: $text' : text;
+    return mine ? StringConstants.youPrefixed(text) : text;
   }
 
   factory ConversationModel.fromJson(Map<String, dynamic> json) {

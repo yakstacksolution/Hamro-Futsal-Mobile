@@ -62,14 +62,14 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
         );
       return right(List.unmodifiable(_teams));
     } catch (_) {
-      return left(_error('Could not parse your teams from server.'));
+      return left(_error(StringConstants.couldNotParseYourTeams));
     }
   }
 
   @override
   Future<Either<AppException, TeamModel>> getTeam(String teamId) async {
     final id = _teamId(teamId);
-    if (id == null) return left(_error('Invalid team.'));
+    if (id == null) return left(_error(StringConstants.invalidTeam));
     final response = await _teamDataSource.getTeam(id);
     if (response.isError()) {
       return left(ResponseHelper.error(response));
@@ -80,7 +80,7 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
       if (i >= 0) _teams[i] = team;
       return right(team);
     } catch (_) {
-      return left(_error('Could not parse the team from server.'));
+      return left(_error(StringConstants.couldNotParseTeam));
     }
   }
 
@@ -105,7 +105,7 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
           .toList(growable: false);
       return right(positions);
     } catch (_) {
-      return left(_error('Could not parse player positions from server.'));
+      return left(_error(StringConstants.couldNotParsePlayerPositions));
     }
   }
 
@@ -129,7 +129,7 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
           .toList(growable: false);
       return right(levels);
     } catch (_) {
-      return left(_error('Could not parse opponent levels from server.'));
+      return left(_error(StringConstants.couldNotParseOpponentLevels));
     }
   }
 
@@ -138,7 +138,7 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     try {
       return right(await _dataSource.fetchVenues());
     } catch (_) {
-      return left(_error('Could not load venues.'));
+      return left(_error(StringConstants.couldNotLoadVenues));
     }
   }
 
@@ -156,12 +156,12 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
         ? _asMap(_asMap(response.getValue())['data'])
         : _asMap(response.getValue());
     if (row.isEmpty) {
-      return left(_error('Could not read the match details.'));
+      return left(_error(StringConstants.couldNotReadMatchDetails));
     }
     try {
       return right(OpponentMatchDetailsModel.fromJson(row));
     } catch (_) {
-      return left(_error('Could not parse the match details from server.'));
+      return left(_error(StringConstants.couldNotParseMatchDetails));
     }
   }
 
@@ -219,7 +219,7 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
               ),
       );
     } catch (_) {
-      return left(_error('Could not parse opponent requests from server.'));
+      return left(_error(StringConstants.couldNotParseOpponentRequests));
     }
   }
 
@@ -256,11 +256,11 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
               tab: OpponentRequestTab.myRequests,
             );
       if (row.isEmpty) {
-        return left(_error('That request could not be found.'));
+        return left(_error(StringConstants.requestCouldNotBeFound));
       }
       return right(OpponentRequestModel.fromJson(row));
     } catch (_) {
-      return left(_error('Could not parse that opponent request.'));
+      return left(_error(StringConstants.couldNotParseOpponentRequest));
     }
   }
 
@@ -278,7 +278,9 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   @override
   Future<Either<AppException, List<TeamModel>>> createTeam(String name) async {
     final trimmed = name.trim();
-    if (trimmed.isEmpty) return left(_error('Team name cannot be empty.'));
+    if (trimmed.isEmpty) {
+      return left(_error(StringConstants.teamNameCannotBeEmpty));
+    }
     return _mutateThenReload(
       () => _teamDataSource.createTeam({'name': trimmed}),
     );
@@ -290,9 +292,11 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     String name,
   ) async {
     final id = _teamId(teamId);
-    if (id == null) return left(_error('Invalid team.'));
+    if (id == null) return left(_error(StringConstants.invalidTeam));
     final trimmed = name.trim();
-    if (trimmed.isEmpty) return left(_error('Team name cannot be empty.'));
+    if (trimmed.isEmpty) {
+      return left(_error(StringConstants.teamNameCannotBeEmpty));
+    }
     return _mutateThenReload(
       () => _teamDataSource.updateTeam(id, {'name': trimmed}),
     );
@@ -303,7 +307,7 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     String teamId,
   ) async {
     final id = _teamId(teamId);
-    if (id == null) return left(_error('Invalid team.'));
+    if (id == null) return left(_error(StringConstants.invalidTeam));
     return _mutateThenReload(() => _teamDataSource.deleteTeam(id));
   }
 
@@ -313,9 +317,11 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     PlayerModel player,
   ) async {
     final id = _teamId(teamId);
-    if (id == null) return left(_error('Invalid team.'));
+    if (id == null) return left(_error(StringConstants.invalidTeam));
     final name = player.name.trim();
-    if (name.isEmpty) return left(_error('Player name cannot be empty.'));
+    if (name.isEmpty) {
+      return left(_error(StringConstants.playerNameCannotBeEmpty));
+    }
     // The backend stores the position by its `/positions` row id; when the
     // selection came from the static fallback list (no id yet) derive the
     // 1-based id from the enum (1=GK … 4=FW).
@@ -340,9 +346,13 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   ) async {
     final id = _teamId(teamId);
     final member = _teamId(player.id);
-    if (id == null || member == null) return left(_error('Invalid member.'));
+    if (id == null || member == null) {
+      return left(_error(StringConstants.invalidMember));
+    }
     final name = player.name.trim();
-    if (name.isEmpty) return left(_error('Player name cannot be empty.'));
+    if (name.isEmpty) {
+      return left(_error(StringConstants.playerNameCannotBeEmpty));
+    }
     // Same payload shape as addMember: the position travels as its
     // `/positions` row id (enum-derived 1-based id as fallback).
     final int positionId =
@@ -364,7 +374,9 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   ) async {
     final id = _teamId(teamId);
     final member = _teamId(memberId);
-    if (id == null || member == null) return left(_error('Invalid member.'));
+    if (id == null || member == null) {
+      return left(_error(StringConstants.invalidMember));
+    }
     return _mutateThenReload(() => _teamDataSource.removeMember(id, member));
   }
 
@@ -577,7 +589,7 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
           .toList(growable: false);
       return right(invitations);
     } catch (_) {
-      return left(_error('Could not parse the invitations from server.'));
+      return left(_error(StringConstants.couldNotParseInvitations));
     }
   }
 
@@ -618,7 +630,7 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
       }
       return _refetchAfterAccept(request.requestId);
     } catch (_) {
-      return left(_error('Could not parse the accepted request from server.'));
+      return left(_error(StringConstants.couldNotParseAcceptedRequest));
     }
   }
 
@@ -645,7 +657,7 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     }
     final Map<String, dynamic> row = _unwrapRequest(response.getValue());
     if (row.isEmpty) {
-      return left(_error('Could not read the request after accepting.'));
+      return left(_error(StringConstants.couldNotReadRequestAfterAccepting));
     }
     return right(OpponentRequestModel.fromJson(row));
   }

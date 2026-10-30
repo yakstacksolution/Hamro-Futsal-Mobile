@@ -101,7 +101,7 @@ class _VendorCategorySwitcherState extends State<VendorCategorySwitcher>
         labelStyle: labelStyle,
         unselectedLabelStyle: labelStyle,
         tabs: <Widget>[
-          const _CategoryTab(
+          _CategoryTab(
             icon: Icons.storefront_rounded,
             title: StringConstants.futsal,
           ),

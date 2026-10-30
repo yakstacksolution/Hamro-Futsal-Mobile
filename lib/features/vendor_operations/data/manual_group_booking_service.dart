@@ -8,6 +8,7 @@ import 'package:hamro_futsal/features/futsal_details/data/model/booking_hold_mod
 import 'package:hamro_futsal/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
 import 'package:hamro_futsal/features/futsal_details/domain/repository/futsal_details_repository.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 typedef OpsSubmitManualBooking =
     Future<Either<AppException, dynamic>> Function(
@@ -49,8 +50,7 @@ class ManualGroupBookingService {
               ),
           ],
         );
-    const String refused =
-        'This slot could not be held. It may have just been booked.';
+    final String refused = StringConstants.slotCouldNotBeHeld;
     final AppException? failure = result.fold((AppException e) => e, (_) {
       return null;
     });
@@ -291,24 +291,32 @@ List<double> _paidPerTicket(List<OpsRangeTicket> tickets, double received) {
 }
 
 enum OpsPaymentPlan {
-  full('Paid', 'paid'),
-  partial('Partly paid', 'partial'),
-  pending('Pending', 'pending');
+  full('paid'),
+  partial('partial'),
+  pending('pending');
 
-  const OpsPaymentPlan(this.label, this.apiStatus);
+  const OpsPaymentPlan(this.apiStatus);
 
-  final String label;
+  String get label => switch (this) {
+    OpsPaymentPlan.full => StringConstants.paid,
+    OpsPaymentPlan.partial => StringConstants.partlyPaid,
+    OpsPaymentPlan.pending => StringConstants.pending,
+  };
 
   final String apiStatus;
 }
 
 enum OpsBookingStatus {
-  confirmed('Confirmed', 'confirmed'),
-  completed('Completed', 'completed');
+  confirmed('confirmed'),
+  completed('completed');
 
-  const OpsBookingStatus(this.label, this.apiValue);
+  const OpsBookingStatus(this.apiValue);
 
-  final String label;
+  String get label => switch (this) {
+    OpsBookingStatus.confirmed => StringConstants.confirmed,
+    OpsBookingStatus.completed => StringConstants.completed,
+  };
+
   final String apiValue;
 }
 

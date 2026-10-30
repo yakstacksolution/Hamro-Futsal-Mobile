@@ -5,6 +5,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
 
 class CompactDateTimeSelector extends StatelessWidget {
@@ -32,14 +33,18 @@ class CompactDateTimeSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _sectionLabel(context, Icons.calendar_today_rounded, 'Select date'),
+        _sectionLabel(
+          context,
+          Icons.calendar_today_rounded,
+          StringConstants.selectDate,
+        ),
         const SizedBox(height: AppDimens.sizeX12),
         SizedBox(height: AppDimens.sizeX56, child: _buildDateStrip(context)),
         const SizedBox(height: AppDimens.sizeX18),
         _sectionLabel(
           context,
           Icons.schedule_rounded,
-          'Choose Preferred Time',
+          StringConstants.choosePreferredTime,
           isRequired: true,
         ),
         const SizedBox(height: AppDimens.sizeX12),
@@ -113,7 +118,7 @@ class CompactDateTimeSelector extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  today ? 'Today' : _dayName(date),
+                  today ? StringConstants.today : _dayName(date),
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: selected
                         ? LightColor.inverseTextColor.withValues(alpha: 0.7)

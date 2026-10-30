@@ -40,7 +40,7 @@ class OpponentCostSplitCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Court fee · ${cost.format.label}',
+                      '${StringConstants.courtFee} · ${cost.format.label}',
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.hintTextColor,
                         fontSize: 11.5,
@@ -104,8 +104,12 @@ class OpponentCostSplitCard extends StatelessWidget {
             const SizedBox(height: AppDimens.paddingX10),
             _PercentSlider(
               percent: cost.isResultBased ? cost.loserPercent : cost.myPercent,
-              leftLabel: cost.isResultBased ? 'Loser pays' : 'My side pays',
-              rightLabel: cost.isResultBased ? 'Winner' : 'Opponent',
+              leftLabel: cost.isResultBased
+                  ? StringConstants.loserPays
+                  : StringConstants.mySidePays,
+              rightLabel: cost.isResultBased
+                  ? StringConstants.winner
+                  : StringConstants.opponent,
               // Result-based reaches 100: "loser pays everything, winner pays
               // nothing" is a rule people actually agree on. A fixed per-side
               // split still stops short of 0/100, which would make one team's
@@ -121,7 +125,7 @@ class OpponentCostSplitCard extends StatelessWidget {
           Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
           const SizedBox(height: AppDimens.paddingX12),
           if (cost.isResultBased) ...[
-            const _CostHintRow(
+            _CostHintRow(
               icon: Icons.emoji_events_outlined,
               text: StringConstants
                   .loserCoversTheLargerShareSettleTheAmountAfterThe2a150fda,
@@ -155,8 +159,8 @@ class OpponentCostSplitCard extends StatelessWidget {
             const SizedBox(height: AppDimens.paddingX8),
             _CostLine(
               label: cost.playerCount == 0
-                  ? 'Per player'
-                  : 'Per player (${cost.playerCount})',
+                  ? StringConstants.perPlayer
+                  : StringConstants.perPlayerCount(cost.playerCount),
               value: cost.perPlayerShare == 0
                   ? '—'
                   : OpponentFmt.npr(cost.perPlayerShare),
@@ -176,7 +180,9 @@ class OpponentCostSplitCard extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  cost.isResultBased ? 'You pay (if loser)' : 'You pay',
+                  cost.isResultBased
+                      ? StringConstants.youPayIfLoser
+                      : StringConstants.youPay,
                   style: textTheme.bodyTextSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: LightColor.secondaryColor,
@@ -280,16 +286,16 @@ class _PercentSlider extends StatelessWidget {
   const _PercentSlider({
     required this.percent,
     required this.onChanged,
-    this.leftLabel = 'My side pays',
-    this.rightLabel = 'Opponent',
+    this.leftLabel,
+    this.rightLabel,
     this.min = 10,
     this.max = 90,
   });
 
   final int percent;
   final ValueChanged<int> onChanged;
-  final String leftLabel;
-  final String rightLabel;
+  final String? leftLabel;
+  final String? rightLabel;
   final int min;
   final int max;
 
@@ -304,7 +310,7 @@ class _PercentSlider extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                leftLabel,
+                leftLabel ?? StringConstants.mySidePays,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w500,
@@ -319,7 +325,7 @@ class _PercentSlider extends StatelessWidget {
               ),
             ),
             Text(
-              '  ·  $rightLabel ${100 - percent}%',
+              '  ·  ${rightLabel ?? StringConstants.opponent} ${100 - percent}%',
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.hintTextColor,
                 fontWeight: FontWeight.w500,

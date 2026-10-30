@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BookingReviewModel extends Equatable {
   const BookingReviewModel({
@@ -36,13 +37,17 @@ class BookingReviewModel extends Equatable {
     if (at == null) return '';
     final Duration age = DateTime.now().difference(at);
     if (age.inDays >= 1) {
-      return age.inDays == 1 ? 'Yesterday' : '${age.inDays} days ago';
+      return age.inDays == 1
+          ? StringConstants.yesterday
+          : StringConstants.daysAgo(age.inDays);
     }
     if (age.inHours >= 1) {
-      return age.inHours == 1 ? '1 hour ago' : '${age.inHours} hours ago';
+      return age.inHours == 1
+          ? StringConstants.oneHourAgo
+          : StringConstants.hoursAgo(age.inHours);
     }
-    if (age.inMinutes >= 1) return '${age.inMinutes} min ago';
-    return 'Just now';
+    if (age.inMinutes >= 1) return StringConstants.minutesAgo(age.inMinutes);
+    return StringConstants.justNow;
   }
 
   factory BookingReviewModel.fromJson(Map<String, dynamic> json) {

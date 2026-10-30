@@ -10,6 +10,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_futsal/features/message/domain/model/message_mentions.dart';
 import 'package:hamro_futsal/features/message/presentation/utils/message_fmt.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
@@ -120,10 +121,10 @@ class ChatBubble extends StatelessWidget {
               ),
               child: Text(
                 message.replyTo!.isDeleted
-                    ? 'Deleted message'
+                    ? StringConstants.deletedMessage
                     : message.replyTo!.body.trim().isNotEmpty
                     ? message.replyTo!.body
-                    : 'Attachment',
+                    : StringConstants.attachment,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: textTheme.bodyTextSmall?.copyWith(
@@ -244,11 +245,13 @@ class ChatBubble extends StatelessWidget {
     );
 
     if (message.isDeleted) {
-      return Text('Message deleted', style: base);
+      return Text(StringConstants.messageDeleted, style: base);
     }
 
     return _MessageBodyText(
-      body: message.body,
+      body: message.type == 'location' && message.body == kSharedLocationBody
+          ? StringConstants.sharedLocation
+          : message.body,
       baseStyle: base,
       isMe: isMe,
       mentionCandidates: mentionCandidates,
@@ -429,8 +432,8 @@ class ChatDayChip extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final day = DateTime(date.year, date.month, date.day);
     final diff = today.difference(day).inDays;
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Yesterday';
+    if (diff == 0) return StringConstants.today;
+    if (diff == 1) return StringConstants.yesterday;
     return AppDateFormat.format(day, 'd MMM');
   }
 
@@ -578,7 +581,7 @@ class _MessageBodyTextState extends State<_MessageBodyText> {
             style: linkStyle,
             recognizer: _recognizerFor(link),
             semanticsLabel: link.isInternal
-                ? '${link.text}, opens in the app'
+                ? StringConstants.opensInTheApp(link.text)
                 : null,
           ),
         );

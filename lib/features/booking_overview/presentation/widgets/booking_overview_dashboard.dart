@@ -10,6 +10,7 @@ import 'package:hamro_futsal/features/booking_overview/presentation/utils/bookin
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_chart_widgets.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_leaderboard_widgets.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_summary_widgets.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 const double kBookingDashboardMaxWidth = 1280;
 
@@ -56,7 +57,7 @@ class BookingOverviewDashboard extends StatelessWidget {
               children: <Widget>[
                 // ── Header ──
                 Text(
-                  'Booking overview',
+                  StringConstants.bookingOverviewTitle,
                   style: textTheme.headingSmall?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,
@@ -69,7 +70,7 @@ class BookingOverviewDashboard extends StatelessWidget {
                 gap,
 
                 // ── Snapshot: every KPI in one row, profit beneath ──
-                const DashboardSectionLabel('Snapshot'),
+                DashboardSectionLabel(StringConstants.snapshot),
                 BookingKpiGrid(analytics: analytics),
                 const SizedBox(height: AppDimens.paddingX12),
                 BookingProfitCard(analytics: analytics),
@@ -78,7 +79,7 @@ class BookingOverviewDashboard extends StatelessWidget {
                 // ── Earnings and status: one row, equal heights ──
                 DashboardPair(
                   stacked: !desktop,
-                  leftLabel: 'Net earnings',
+                  leftLabel: StringConstants.netEarnings,
                   left: BookingHeroCard(analytics: analytics),
                   rightLabel: analytics.statusTitle,
                   right: BookingStatusCard(analytics: analytics),
@@ -91,16 +92,16 @@ class BookingOverviewDashboard extends StatelessWidget {
                 gap,
 
                 // ── Venues ──
-                const DashboardSectionLabel('Performance by venue'),
+                DashboardSectionLabel(StringConstants.performanceByVenue),
                 _VenuePerformanceTable(rows: analytics.futsalLeaderboard),
                 gap,
 
                 // ── Leaderboards: one row, equal heights ──
                 DashboardPair(
                   stacked: !desktop,
-                  leftLabel: 'Top courts',
+                  leftLabel: StringConstants.topCourts,
                   left: BookingTopCourtsCard(analytics: analytics),
-                  rightLabel: 'Top customers',
+                  rightLabel: StringConstants.topCustomers,
                   right: BookingTopCustomersCard(analytics: analytics),
                 ),
               ],
@@ -201,13 +202,21 @@ class _VenuePerformanceTable extends StatelessWidget {
             ),
             child: Row(
               children: <Widget>[
-                headCell('Venue', _fVenue, align: TextAlign.start),
-                headCell('Courts', _fNum),
-                headCell('Bookings', _fNum),
-                headCell('Booked hrs', _fNum),
-                headCell('Revenue', _fNum),
+                headCell(
+                  StringConstants.venue,
+                  _fVenue,
+                  align: TextAlign.start,
+                ),
+                headCell(StringConstants.courts, _fNum),
+                headCell(StringConstants.bookings, _fNum),
+                headCell(StringConstants.bookedHrs, _fNum),
+                headCell(StringConstants.revenue, _fNum),
                 const SizedBox(width: AppDimens.paddingX24),
-                headCell('Occupancy', _fOcc, align: TextAlign.start),
+                headCell(
+                  StringConstants.occupancy,
+                  _fOcc,
+                  align: TextAlign.start,
+                ),
               ],
             ),
           ),
@@ -216,7 +225,7 @@ class _VenuePerformanceTable extends StatelessWidget {
               padding: const EdgeInsets.all(AppDimens.paddingX24),
               child: Center(
                 child: Text(
-                  'No venue activity in this period.',
+                  StringConstants.noVenueActivityInPeriod,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryTextColor,
                   ),
